@@ -1,0 +1,145 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: #222;
+  background: #f6f7f9;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.section {
+  margin-top: 24px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.upload-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.selected-files {
+  margin-top: 16px;
+}
+
+.selected-files h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.section-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.filters input,
+.filters select {
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+}
+
+.filters button {
+  align-self: end;
+}
+
+button {
+  padding: 8px 14px;
+  border: 1px solid #1f6feb;
+  border-radius: 4px;
+  color: #fff;
+  background: #1f6feb;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.secondary-button {
+  border-color: #bbb;
+  color: #222;
+  background: #fff;
+}
+
+.danger-button {
+  border-color: #b42318;
+  background: #b42318;
+}
+
+.message {
+  margin: 12px 0 0;
+}
+
+.success {
+  color: #116329;
+}
+
+.error {
+  color: #b42318;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background: #fff;
+}
+
+th,
+td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background: #f0f2f5;
+}
