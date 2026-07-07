@@ -4,10 +4,12 @@ import zipfile
 from io import BytesIO
 from datetime import datetime
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import UploadFile
 
+from app.database import SessionLocal, is_database_configured
+from app.models import Document
 from app.schemas.document_schema import DocumentMetadata
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -38,6 +40,99 @@ def _write_metadata(documents: list[dict]) -> None:
         json.dumps(documents, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def _format_datetime(value) -> str:
+    if value is None:
+        return datetime.now().isoformat(timespec="seconds")
+
+    return value.isoformat(timespec="seconds")
+
+
+def _document_model_to_schema(document: Document) -> DocumentMetadata:
+    return DocumentMetadata(
+        id=str(document.id),
+        original_filename=document.original_filename,
+        stored_filename=document.stored_filename,
+        file_type=document.file_type,
+        file_size=document.file_size,
+        file_path=document.file_path,
+        status=document.status,
+        uploaded_at=_format_datetime(document.uploaded_at),
+        error_message=document.error_message,
+        updated_at=_format_datetime(document.updated_at),
+    )
+
+
+def _delete_uploaded_file(file_path: str) -> None:
+    filename = Path(file_path).name
+
+    if not filename:
+        return
+
+    target_path = UPLOAD_DIR / filename
+
+    try:
+        if target_path.exists() and target_path.is_file():
+            target_path.unlink()
+    except PermissionError:
+        raise
+    except OSError:
+        raise
+
+
+def _save_documents_to_database(documents: list[DocumentMetadata]) -> list[DocumentMetadata]:
+    if not is_database_configured():
+        return documents
+
+    with SessionLocal() as db:
+        saved_documents: list[Document] = []
+
+        for document in documents:
+            document_model = Document(
+                id=UUID(document.id),
+                original_filename=document.original_filename,
+                stored_filename=document.stored_filename,
+                file_type=document.file_type,
+                file_size=document.file_size,
+                file_path=document.file_path,
+                status=document.status,
+            )
+            db.add(document_model)
+            saved_documents.append(document_model)
+
+        db.commit()
+
+        for document_model in saved_documents:
+            db.refresh(document_model)
+
+        return [_document_model_to_schema(document_model) for document_model in saved_documents]
+
+
+def _get_documents_from_database(document_ids: list[str]) -> list[DocumentMetadata]:
+    document_uuids = [UUID(document_id) for document_id in document_ids]
+
+    with SessionLocal() as db:
+        documents = db.query(Document).filter(Document.id.in_(document_uuids)).all()
+        document_by_id = {str(document.id): document for document in documents}
+
+        return [
+            _document_model_to_schema(document_by_id[document_id])
+            for document_id in document_ids
+            if document_id in document_by_id
+        ]
+
+
+def _extract_saved_documents(documents: list[DocumentMetadata]) -> list[DocumentMetadata]:
+    if not is_database_configured():
+        return documents
+
+    from app.services.document_text_service import extract_document_text
+
+    for document in documents:
+        extract_document_text(document.id)
+
+    return _get_documents_from_database([document.id for document in documents])
 
 
 def _safe_filename(filename: str) -> str:
@@ -122,12 +217,29 @@ def _save_zip_documents(original_filename: str, content: bytes) -> list[Document
 
 
 def list_documents() -> list[DocumentMetadata]:
+    if is_database_configured():
+        with SessionLocal() as db:
+            documents = db.query(Document).order_by(Document.uploaded_at.desc()).all()
+            return [_document_model_to_schema(document) for document in documents]
+
     documents = _read_metadata()
     return [DocumentMetadata(**document) for document in reversed(documents)]
 
 
 def clear_upload_history() -> None:
     _ensure_storage()
+
+    if is_database_configured():
+        with SessionLocal() as db:
+            documents = db.query(Document).all()
+
+            for document in documents:
+                _delete_uploaded_file(document.file_path)
+
+            db.query(Document).delete()
+            db.commit()
+        _write_metadata([])
+        return
 
     for file_path in UPLOAD_DIR.iterdir():
         if file_path.name in {".gitkeep", "documents.json"}:
@@ -137,6 +249,53 @@ def clear_upload_history() -> None:
             file_path.unlink()
 
     _write_metadata([])
+
+
+def delete_documents_by_ids(document_ids: list[str]) -> int:
+    _ensure_storage()
+
+    ids_to_delete = set(document_ids)
+
+    if not ids_to_delete:
+        raise ValueError("At least one document id is required")
+
+    if is_database_configured():
+        deleted_count = 0
+        document_uuids: list[UUID] = []
+
+        for document_id in ids_to_delete:
+            try:
+                document_uuids.append(UUID(document_id))
+            except ValueError as exc:
+                raise ValueError(f"Invalid document id: {document_id}") from exc
+
+        with SessionLocal() as db:
+            documents = db.query(Document).filter(Document.id.in_(document_uuids)).all()
+
+            for document in documents:
+                _delete_uploaded_file(document.file_path)
+                db.delete(document)
+                deleted_count += 1
+
+            db.commit()
+
+        return deleted_count
+
+    documents = _read_metadata()
+    remaining_documents: list[dict] = []
+    deleted_count = 0
+
+    for document in documents:
+        if document.get("id") in ids_to_delete:
+            _delete_uploaded_file(document.get("file_path", ""))
+            deleted_count += 1
+            continue
+
+        remaining_documents.append(document)
+
+    _write_metadata(remaining_documents)
+
+    return deleted_count
 
 
 async def save_upload_file(file: UploadFile) -> list[DocumentMetadata]:
@@ -157,6 +316,10 @@ async def save_upload_file(file: UploadFile) -> list[DocumentMetadata]:
     else:
         allowed = ", ".join(sorted(ALLOWED_EXTENSIONS | {ZIP_EXTENSION}))
         raise ValueError(f"Invalid file type for {file.filename}. Allowed types: {allowed}")
+
+    if is_database_configured():
+        saved_documents = _save_documents_to_database(uploaded_documents)
+        return _extract_saved_documents(saved_documents)
 
     documents = _read_metadata()
     documents.extend(document.model_dump() for document in uploaded_documents)

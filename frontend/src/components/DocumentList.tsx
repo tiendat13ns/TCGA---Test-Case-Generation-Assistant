@@ -7,6 +7,11 @@ type DocumentListProps = {
   newUploadedDocuments: DocumentItem[];
 };
 
+type DocumentDetail = DocumentItem & {
+  text_length: number;
+  preview: string | null;
+};
+
 type Filters = {
   filename: string;
   type: string;
@@ -42,6 +47,10 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
+  const [selectedDocumentDetail, setSelectedDocumentDetail] = useState<DocumentDetail | null>(null);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
 
@@ -144,6 +153,27 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
     setFilters(defaultFilters);
   };
 
+  const toggleDocumentSelection = (documentId: string) => {
+    setSelectedDocumentIds((currentIds) =>
+      currentIds.includes(documentId)
+        ? currentIds.filter((id) => id !== documentId)
+        : [...currentIds, documentId],
+    );
+  };
+
+  const toggleAllVisibleDocuments = () => {
+    const visibleIds = filteredDocuments.map((document) => document.id);
+    const allVisibleSelected = visibleIds.every((id) => selectedDocumentIds.includes(id));
+
+    setSelectedDocumentIds((currentIds) => {
+      if (allVisibleSelected) {
+        return currentIds.filter((id) => !visibleIds.includes(id));
+      }
+
+      return Array.from(new Set([...currentIds, ...visibleIds]));
+    });
+  };
+
   const clearUploadHistory = async () => {
     const confirmed = window.confirm("Clear all uploaded document history?");
 
@@ -165,6 +195,7 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
       }
 
       setDocuments([]);
+      setSelectedDocumentIds([]);
       resetFilters();
     } catch (error) {
       setMessage(
@@ -177,6 +208,81 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
     }
   };
 
+  const deleteSelectedDocuments = async () => {
+    if (selectedDocumentIds.length === 0) {
+      setMessage("Please select at least one file to delete.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete ${selectedDocumentIds.length} selected file(s)?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeletingSelected(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/selected`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: selectedDocumentIds }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "Could not delete selected documents.");
+      }
+
+      setDocuments((currentDocuments) =>
+        currentDocuments.filter((document) => !selectedDocumentIds.includes(document.id)),
+      );
+      setSelectedDocumentDetail((currentDetail) =>
+        currentDetail && selectedDocumentIds.includes(currentDetail.id) ? null : currentDetail,
+      );
+      setSelectedDocumentIds([]);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Cannot connect to backend. Please make sure it is running.",
+      );
+    } finally {
+      setIsDeletingSelected(false);
+    }
+  };
+
+  const loadDocumentPreview = async (documentId: string) => {
+    setLoadingPreviewId(documentId);
+    setMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/${documentId}`);
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "Could not load document preview.");
+      }
+
+      setSelectedDocumentDetail(data);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Cannot connect to backend. Please make sure it is running.",
+      );
+    } finally {
+      setLoadingPreviewId(null);
+    }
+  };
+
+  const allVisibleSelected =
+    filteredDocuments.length > 0 &&
+    filteredDocuments.every((document) => selectedDocumentIds.includes(document.id));
+
   return (
     <section className="section">
       <div className="section-header">
@@ -184,6 +290,16 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
         <div className="header-actions">
           <button type="button" onClick={() => setShowFilters((current) => !current)}>
             Filter
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={isDeletingSelected || selectedDocumentIds.length === 0}
+            onClick={deleteSelectedDocuments}
+          >
+            {isDeletingSelected
+              ? "Deleting..."
+              : `Delete Selected (${selectedDocumentIds.length})`}
           </button>
           <button
             type="button"
@@ -271,25 +387,84 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
         <table>
           <thead>
             <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  disabled={filteredDocuments.length === 0}
+                  onChange={toggleAllVisibleDocuments}
+                  aria-label="Select all visible documents"
+                />
+              </th>
               <th>Original filename</th>
               <th>Type</th>
               <th>Size</th>
               <th>Status</th>
               <th>Uploaded at</th>
+              <th>Preview</th>
             </tr>
           </thead>
           <tbody>
             {filteredDocuments.map((document) => (
               <tr key={document.id}>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={selectedDocumentIds.includes(document.id)}
+                    onChange={() => toggleDocumentSelection(document.id)}
+                    aria-label={`Select ${document.original_filename}`}
+                  />
+                </td>
                 <td>{document.original_filename}</td>
                 <td>{document.file_type}</td>
                 <td>{formatFileSize(document.file_size)}</td>
                 <td>{document.status}</td>
                 <td>{document.uploaded_at}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={loadingPreviewId === document.id}
+                    onClick={() => loadDocumentPreview(document.id)}
+                  >
+                    {loadingPreviewId === document.id ? "Loading..." : "Preview Text"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+      {selectedDocumentDetail && (
+        <div className="document-preview">
+          <div className="section-header">
+            <h3>Extracted Text Preview</h3>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setSelectedDocumentDetail(null)}
+            >
+              Close
+            </button>
+          </div>
+          <p>
+            <strong>Filename:</strong> {selectedDocumentDetail.original_filename}
+          </p>
+          <p>
+            <strong>Status:</strong> {selectedDocumentDetail.status}
+          </p>
+          <p>
+            <strong>Text length:</strong> {selectedDocumentDetail.text_length}
+          </p>
+          {selectedDocumentDetail.error_message && (
+            <p className="message error">
+              <strong>Error:</strong> {selectedDocumentDetail.error_message}
+            </p>
+          )}
+          <pre className="text-preview">
+            {selectedDocumentDetail.preview || "No extracted text preview available."}
+          </pre>
+        </div>
       )}
     </section>
   );

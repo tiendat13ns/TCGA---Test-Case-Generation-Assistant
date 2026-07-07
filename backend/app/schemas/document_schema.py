@@ -10,3 +10,21 @@ class DocumentMetadata(BaseModel):
     file_path: str
     status: str
     uploaded_at: str
+    error_message: str | None = None
+    updated_at: str | None = None
+
+
+class DocumentDetail(DocumentMetadata):
+    text_length: int
+    preview: str | None = None
+
+
+class DocumentExtractResponse(BaseModel):
+    document_id: str
+    status: str
+    text_length: int
+    error_message: str | None = None
+
+
+class DocumentDeleteRequest(BaseModel):
+    ids: list[str]

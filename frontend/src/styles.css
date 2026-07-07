@@ -114,6 +114,29 @@ button:disabled {
   background: #b42318;
 }
 
+.document-preview {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.document-preview h3 {
+  margin: 0;
+}
+
+.text-preview {
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+}
+
 .message {
   margin: 12px 0 0;
 }
@@ -142,4 +165,10 @@ td {
 
 th {
   background: #f0f2f5;
+}
+
+th:first-child,
+td:first-child {
+  width: 44px;
+  text-align: center;
 }

@@ -11,6 +11,8 @@ export type DocumentItem = {
   file_path: string;
   status: string;
   uploaded_at: string;
+  error_message?: string | null;
+  updated_at?: string | null;
 };
 
 function App() {

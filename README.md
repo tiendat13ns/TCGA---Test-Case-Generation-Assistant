@@ -11,7 +11,9 @@ Backend:
 - FastAPI
 - Uvicorn
 - Local file storage trong `backend/uploads`
-- Metadata local trong `backend/uploads/documents.json`
+- Supabase PostgreSQL cho metadata khi `DATABASE_URL` duoc cau hinh
+- Fallback metadata local trong `backend/uploads/documents.json` khi chua cau hinh database
+- Text extraction cho `pdf`, `docx`, `txt`, `md`, `xlsx`
 
 Frontend:
 - React
@@ -27,6 +29,19 @@ Upload document:
 - Co the bo bot file khoi danh sach chon bang nut `Remove`.
 - Hien thong bao upload thanh cong mau xanh la cay.
 - File vua upload hien ngay trong `Uploaded Documents`, khong can reload web.
+- Khi `DATABASE_URL` duoc cau hinh, upload thanh cong se tu extract text, luu text vao database, xoa file local sau khi extract, va cap nhat status:
+  - `uploaded`
+  - `processing`
+  - `completed`
+  - hoac `failed`
+
+Extract text:
+- PDF dung `pdfplumber`.
+- DOCX dung `python-docx`, doc paragraphs va tables.
+- TXT/MD doc plain text.
+- XLSX dung `openpyxl`, doc tat ca worksheets.
+- Khong OCR, khong AI.
+- File upload chi duoc luu tam thoi de extract, sau do bi xoa. User xem lai noi dung qua preview lay tu database.
 
 Quan ly uploaded documents:
 - Hien danh sach file da upload.
@@ -128,6 +143,22 @@ GET /api/documents
 
 Tra ve danh sach file da upload, sap xep moi nhat truoc.
 
+### Get document detail
+
+```http
+GET /api/documents/{document_id}
+```
+
+Tra ve metadata, status, `text_length`, va `preview` 500 ky tu dau. Khong tra full `extracted_text`.
+
+### Extract text manually
+
+```http
+POST /api/documents/{document_id}/extract-text
+```
+
+Chay lai text extraction cho document da upload.
+
 ### Clear upload history
 
 ```http
@@ -137,6 +168,21 @@ DELETE /api/documents
 Dung cho moi truong test. API nay xoa metadata va cac file da upload trong `backend/uploads`, giu lai `.gitkeep`.
 
 ## Chay Backend
+
+Tao file `.env` tu `.env.example` va dien connection string Supabase:
+
+```bash
+cd backend
+copy .env.example .env
+```
+
+Vi du:
+
+```env
+DATABASE_URL=postgresql://postgres:<YOUR-PASSWORD>@db.<YOUR-PROJECT-REF>.supabase.co:5432/postgres
+```
+
+Neu password co ky tu dac biet, can percent-encode trong connection string. Vi du `#` thanh `%23`.
 
 ```bash
 cd backend
@@ -148,6 +194,12 @@ Backend mac dinh chay tai:
 
 ```text
 http://localhost:8000
+```
+
+Kiem tra ket noi database:
+
+```text
+http://localhost:8000/health/db
 ```
 
 ## Chay Frontend
