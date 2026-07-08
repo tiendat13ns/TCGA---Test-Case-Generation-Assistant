@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, Column, DateTime, Float, ForeignKey, Integer, JSON, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -70,3 +70,26 @@ class AgentLog(Base):
     error_message = Column(Text, nullable=True)
     execution_time_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TestCase(Base):
+    __tablename__ = "test_cases"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    requirement_id = Column(UUID(as_uuid=True), ForeignKey("requirements.id"), nullable=False)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=True)
+    title = Column(Text, nullable=False)
+    scenario = Column(Text, nullable=True)
+    preconditions = Column(Text, nullable=True)
+    test_steps = Column(JSON, nullable=True)          # list[str]
+    test_data = Column(Text, nullable=True)
+    expected_result = Column(Text, nullable=False)
+    priority = Column(Text, nullable=False, default="Medium")        # High|Medium|Low
+    severity = Column(Text, nullable=True)            # Critical|Major|Minor|Trivial
+    test_type = Column(Text, nullable=True)           # Positive|Negative|Boundary|...
+    automation_candidate = Column(Boolean, nullable=False, default=False)
+    execution_type = Column(Text, nullable=False, default="Manual")  # Manual|Automation Candidate
+    status = Column(Text, nullable=False, default="ai_generated")
+    version = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True)

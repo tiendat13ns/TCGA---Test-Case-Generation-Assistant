@@ -7,6 +7,7 @@ from app.database import check_database_connection, init_db
 from app.routers.ai import router as ai_router
 from app.routers.documents import router as documents_router
 from app.routers.requirements import router as requirements_router
+from app.routers.test_cases import router as test_cases_router
 
 app = FastAPI(title="AI Test Case Generation Assistant")
 
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(documents_router)
 app.include_router(ai_router)
 app.include_router(requirements_router)
+app.include_router(test_cases_router)
 
 
 @app.on_event("startup")

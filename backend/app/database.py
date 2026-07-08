@@ -35,6 +35,34 @@ def init_db() -> None:
     _ensure_document_columns()
     _ensure_requirement_columns()
     _ensure_agent_log_columns()
+    _ensure_test_case_columns()
+
+
+def _ensure_test_case_columns() -> None:
+    add_column_statements = [
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS document_id UUID",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS scenario TEXT",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS preconditions TEXT",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS test_steps JSON",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS test_data TEXT",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS severity TEXT",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS test_type TEXT",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS automation_candidate BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS execution_type TEXT NOT NULL DEFAULT 'Manual'",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
+    ]
+    # Fix legacy columns whose types differ from our model
+    fix_type_statements = [
+        # Old schema had test_data as JSON; convert to TEXT so plain strings can be stored
+        "ALTER TABLE test_cases ALTER COLUMN test_data TYPE TEXT USING test_data::TEXT",
+    ]
+
+    with engine.begin() as connection:
+        for statement in add_column_statements:
+            connection.execute(text(statement))
+        for statement in fix_type_statements:
+            connection.execute(text(statement))
 
 
 def _ensure_document_columns() -> None:
