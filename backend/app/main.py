@@ -4,7 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import check_database_connection, init_db
+from app.routers.ai import router as ai_router
 from app.routers.documents import router as documents_router
+from app.routers.requirements import router as requirements_router
 
 app = FastAPI(title="AI Test Case Generation Assistant")
 
@@ -19,6 +21,8 @@ app.add_middleware(
 )
 
 app.include_router(documents_router)
+app.include_router(ai_router)
+app.include_router(requirements_router)
 
 
 @app.on_event("startup")

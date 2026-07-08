@@ -59,6 +59,18 @@ select {
   gap: 8px;
 }
 
+.row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.row-actions button {
+  min-width: 130px;
+  white-space: nowrap;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -122,8 +134,71 @@ button:disabled {
   background: #fafafa;
 }
 
-.document-preview h3 {
+.requirements-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.document-preview h3,
+.requirements-panel h3 {
   margin: 0;
+}
+
+.requirements-text-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.requirement-text-item {
+  padding: 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.requirement-item-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.requirement-item-header h4 {
+  margin: 0;
+}
+
+.requirement-item-header span {
+  color: #555;
+  font-size: 14px;
+}
+
+.requirement-field {
+  margin-top: 12px;
+}
+
+.requirement-field p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.requirement-list {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
+.requirement-list li {
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.requirement-empty,
+.requirement-meta {
+  margin: 6px 0 0;
 }
 
 .text-preview {
@@ -154,6 +229,59 @@ table {
   border-collapse: collapse;
   margin-top: 12px;
   background: #fff;
+}
+
+.document-table-wrapper {
+  width: 100%;
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.documents-table {
+  min-width: 920px;
+  table-layout: fixed;
+  margin-top: 0;
+}
+
+.documents-table th,
+.documents-table td {
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+.documents-table th:nth-child(1),
+.documents-table td:nth-child(1) {
+  width: 40px;
+}
+
+.documents-table th:nth-child(2),
+.documents-table td:nth-child(2) {
+  width: 34%;
+}
+
+.documents-table th:nth-child(3),
+.documents-table td:nth-child(3) {
+  width: 56px;
+}
+
+.documents-table th:nth-child(4),
+.documents-table td:nth-child(4) {
+  width: 72px;
+}
+
+.documents-table th:nth-child(5),
+.documents-table td:nth-child(5) {
+  width: 96px;
+}
+
+.documents-table th:nth-child(6),
+.documents-table td:nth-child(6) {
+  width: 160px;
+}
+
+.documents-table th:nth-child(7),
+.documents-table td:nth-child(7) {
+  width: 150px;
 }
 
 th,
