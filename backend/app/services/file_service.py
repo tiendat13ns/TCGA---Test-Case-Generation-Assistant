@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 from fastapi import UploadFile
 
 from app.database import SessionLocal, is_database_configured
-from app.models import Document
+from app.models import Document, Requirement, TestCase
 from app.schemas.document_schema import DocumentMetadata
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -236,6 +236,9 @@ def clear_upload_history() -> None:
             for document in documents:
                 _delete_uploaded_file(document.file_path)
 
+            # Delete in FK order: test_cases → requirements → documents
+            db.query(TestCase).delete()
+            db.query(Requirement).delete()
             db.query(Document).delete()
             db.commit()
         _write_metadata([])
@@ -274,6 +277,11 @@ def delete_documents_by_ids(document_ids: list[str]) -> int:
 
             for document in documents:
                 _delete_uploaded_file(document.file_path)
+                # Delete in FK order: test_cases → requirements → documents
+                db.query(TestCase).filter(TestCase.requirement_id.in_(
+                    db.query(Requirement.id).filter(Requirement.document_id == document.id)
+                )).delete(synchronize_session=False)
+                db.query(Requirement).filter(Requirement.document_id == document.id).delete()
                 db.delete(document)
                 deleted_count += 1
 
