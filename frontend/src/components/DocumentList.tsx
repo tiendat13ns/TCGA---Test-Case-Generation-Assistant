@@ -2,6 +2,8 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import type { DocumentItem } from "../App";
 
 const API_URL = "http://localhost:8000/api/documents";
+const API_V1_DOCUMENTS_URL = "http://localhost:8000/api/v1/documents";
+const API_V1_REQUIREMENTS_URL = "http://localhost:8000/api/v1/requirements";
 
 type DocumentListProps = {
   newUploadedDocuments: DocumentItem[];
@@ -10,6 +12,64 @@ type DocumentListProps = {
 type DocumentDetail = DocumentItem & {
   text_length: number;
   preview: string | null;
+};
+
+type RequirementItem = {
+  id: string;
+  title: string;
+  description: string;
+  functional_requirement: string | null;
+  validation_rule: string[] | null;
+  permission: string[] | null;
+  workflow: string[] | null;
+  state: string[] | null;
+  error_handling: string[] | null;
+  module_name: string | null;
+  feature_name: string | null;
+  actor: string | null;
+  business_rules: string[] | null;
+  inputs: string[] | null;
+  outputs: string[] | null;
+  preconditions: string[] | null;
+  validation_rules: string[] | null;
+  exception_flows: string[] | null;
+  source_reference: string | null;
+  confidence_score: number | null;
+  status: string;
+  version: number;
+};
+
+type GenerateRequirementsResponse = {
+  document_id: string;
+  project_id: string | null;
+  total_requirements: number;
+  requirements: RequirementItem[];
+};
+
+type TestCaseItem = {
+  id: string;
+  requirement_id: string;
+  document_id: string | null;
+  title: string;
+  scenario: string | null;
+  preconditions: string | null;
+  test_steps: string[] | null;
+  test_data: string | null;
+  expected_result: string;
+  priority: string;
+  severity: string | null;
+  test_type: string | null;
+  automation_candidate: boolean;
+  execution_type: string;
+  status: string;
+  version: number;
+};
+
+type GenerateTestCasesResponse = {
+  requirement_id: string;
+  document_id: string | null;
+  total_test_cases: number;
+  test_cases: TestCaseItem[];
 };
 
 type Filters = {
@@ -42,6 +102,20 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function RequirementTextList({ items }: { items: string[] | null }) {
+  if (!items || items.length === 0) {
+    return <p className="requirement-empty">-</p>;
+  }
+
+  return (
+    <ul className="requirement-list">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
 function DocumentList({ newUploadedDocuments }: DocumentListProps) {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [message, setMessage] = useState("");
@@ -49,10 +123,17 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
   const [isClearing, setIsClearing] = useState(false);
   const [isDeletingSelected, setIsDeletingSelected] = useState(false);
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
+  const [generatingRequirementsId, setGeneratingRequirementsId] = useState<string | null>(null);
   const [selectedDocumentDetail, setSelectedDocumentDetail] = useState<DocumentDetail | null>(null);
+  const [generatedRequirements, setGeneratedRequirements] =
+    useState<GenerateRequirementsResponse | null>(null);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
+  // Test case state: requirementId → test cases response
+  const [testCasesMap, setTestCasesMap] = useState<Record<string, GenerateTestCasesResponse>>({});
+  const [generatingTestCasesId, setGeneratingTestCasesId] = useState<string | null>(null);
+  const [expandedTestCasesId, setExpandedTestCasesId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadDocuments = async () => {
@@ -243,6 +324,11 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
       setSelectedDocumentDetail((currentDetail) =>
         currentDetail && selectedDocumentIds.includes(currentDetail.id) ? null : currentDetail,
       );
+      setGeneratedRequirements((currentRequirements) =>
+        currentRequirements && selectedDocumentIds.includes(currentRequirements.document_id)
+          ? null
+          : currentRequirements,
+      );
       setSelectedDocumentIds([]);
     } catch (error) {
       setMessage(
@@ -277,6 +363,68 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
     } finally {
       setLoadingPreviewId(null);
     }
+  };
+
+  const generateRequirements = async (documentId: string) => {
+    setGeneratingRequirementsId(documentId);
+    setMessage("");
+    setGeneratedRequirements(null);
+
+    try {
+      const response = await fetch(
+        `${API_V1_DOCUMENTS_URL}/${documentId}/requirements/generate`,
+        {
+          method: "POST",
+        },
+      );
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "Could not generate requirements.");
+      }
+
+      setGeneratedRequirements(data);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Cannot connect to backend. Please make sure it is running.",
+      );
+    } finally {
+      setGeneratingRequirementsId(null);
+    }
+  };
+
+  const generateTestCases = async (requirementId: string) => {
+    setGeneratingTestCasesId(requirementId);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `${API_V1_REQUIREMENTS_URL}/${requirementId}/test-cases/generate`,
+        { method: "POST" },
+      );
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "Could not generate test cases.");
+      }
+
+      setTestCasesMap((prev) => ({ ...prev, [requirementId]: data }));
+      setExpandedTestCasesId(requirementId);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Cannot connect to backend. Please make sure it is running.",
+      );
+    } finally {
+      setGeneratingTestCasesId(null);
+    }
+  };
+
+  const toggleTestCasesPanel = (requirementId: string) => {
+    setExpandedTestCasesId((prev) => (prev === requirementId ? null : requirementId));
   };
 
   const allVisibleSelected =
@@ -384,56 +532,71 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
         <p>No files match the current filters.</p>
       )}
       {documents.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  disabled={filteredDocuments.length === 0}
-                  onChange={toggleAllVisibleDocuments}
-                  aria-label="Select all visible documents"
-                />
-              </th>
-              <th>Original filename</th>
-              <th>Type</th>
-              <th>Size</th>
-              <th>Status</th>
-              <th>Uploaded at</th>
-              <th>Preview</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDocuments.map((document) => (
-              <tr key={document.id}>
-                <td>
+        <div className="document-table-wrapper">
+          <table className="documents-table">
+            <thead>
+              <tr>
+                <th>
                   <input
                     type="checkbox"
-                    checked={selectedDocumentIds.includes(document.id)}
-                    onChange={() => toggleDocumentSelection(document.id)}
-                    aria-label={`Select ${document.original_filename}`}
+                    checked={allVisibleSelected}
+                    disabled={filteredDocuments.length === 0}
+                    onChange={toggleAllVisibleDocuments}
+                    aria-label="Select all visible documents"
                   />
-                </td>
-                <td>{document.original_filename}</td>
-                <td>{document.file_type}</td>
-                <td>{formatFileSize(document.file_size)}</td>
-                <td>{document.status}</td>
-                <td>{document.uploaded_at}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={loadingPreviewId === document.id}
-                    onClick={() => loadDocumentPreview(document.id)}
-                  >
-                    {loadingPreviewId === document.id ? "Loading..." : "Preview Text"}
-                  </button>
-                </td>
+                </th>
+                <th>Original filename</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th>Uploaded at</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredDocuments.map((document) => (
+                <tr key={document.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedDocumentIds.includes(document.id)}
+                      onChange={() => toggleDocumentSelection(document.id)}
+                      aria-label={`Select ${document.original_filename}`}
+                    />
+                  </td>
+                  <td>{document.original_filename}</td>
+                  <td>{document.file_type}</td>
+                  <td>{formatFileSize(document.file_size)}</td>
+                  <td>{document.status}</td>
+                  <td>{document.uploaded_at}</td>
+                  <td>
+                    <div className="row-actions">
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        disabled={loadingPreviewId === document.id}
+                        onClick={() => loadDocumentPreview(document.id)}
+                      >
+                        {loadingPreviewId === document.id ? "Loading..." : "Preview Text"}
+                      </button>
+                      {document.status === "completed" && (
+                        <button
+                          type="button"
+                          disabled={generatingRequirementsId === document.id}
+                          onClick={() => generateRequirements(document.id)}
+                        >
+                          {generatingRequirementsId === document.id
+                            ? "Generating..."
+                            : "Generate Requirements"}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {selectedDocumentDetail && (
         <div className="document-preview">
@@ -464,6 +627,154 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
           <pre className="text-preview">
             {selectedDocumentDetail.preview || "No extracted text preview available."}
           </pre>
+        </div>
+      )}
+      {generatedRequirements && (
+        <div className="requirements-panel">
+          <div className="section-header">
+            <h3>Generated Requirements</h3>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setGeneratedRequirements(null)}
+            >
+              Close
+            </button>
+          </div>
+          <p>
+            <strong>Total:</strong> {generatedRequirements.total_requirements}
+          </p>
+          <div className="requirements-text-list">
+            {generatedRequirements.requirements.map((requirement, index) => (
+              <article className="requirement-text-item" key={requirement.id}>
+                <div className="requirement-item-header">
+                  <h4>Requirement {index + 1}</h4>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <span>{requirement.status}</span>
+                    <button
+                      type="button"
+                      className="generate-tc-button"
+                      disabled={generatingTestCasesId === requirement.id}
+                      onClick={() => generateTestCases(requirement.id)}
+                      title="Generate test cases from this requirement"
+                    >
+                      {generatingTestCasesId === requirement.id
+                        ? "⏳ Generating..."
+                        : testCasesMap[requirement.id]
+                          ? "↻ Re-generate Test Cases"
+                          : "⚡ Generate Test Cases"}
+                    </button>
+                    {testCasesMap[requirement.id] && (
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => toggleTestCasesPanel(requirement.id)}
+                      >
+                        {expandedTestCasesId === requirement.id
+                          ? `▲ Hide (${testCasesMap[requirement.id].total_test_cases})`
+                          : `▼ Show (${testCasesMap[requirement.id].total_test_cases})`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="requirement-field">
+                  <strong>Functional Requirement</strong>
+                  <p>{requirement.functional_requirement || requirement.description}</p>
+                </div>
+                <div className="requirement-field">
+                  <strong>Validation Rule</strong>
+                  <RequirementTextList items={requirement.validation_rule} />
+                </div>
+                <div className="requirement-field">
+                  <strong>Permission</strong>
+                  <RequirementTextList items={requirement.permission} />
+                </div>
+                <div className="requirement-field">
+                  <strong>Workflow</strong>
+                  <RequirementTextList items={requirement.workflow} />
+                </div>
+                <div className="requirement-field">
+                  <strong>State</strong>
+                  <RequirementTextList items={requirement.state} />
+                </div>
+                <div className="requirement-field">
+                  <strong>Error Handling</strong>
+                  <RequirementTextList items={requirement.error_handling} />
+                </div>
+                <p className="requirement-meta">
+                  <strong>Confidence:</strong>{" "}
+                  {requirement.confidence_score === null
+                    ? "-"
+                    : requirement.confidence_score.toFixed(2)}
+                </p>
+
+                {/* Test Cases Panel */}
+                {expandedTestCasesId === requirement.id && testCasesMap[requirement.id] && (
+                  <div className="test-cases-panel">
+                    <div className="test-cases-panel-header">
+                      <h5>Test Cases ({testCasesMap[requirement.id].total_test_cases})</h5>
+                    </div>
+                    <div className="test-cases-list">
+                      {testCasesMap[requirement.id].test_cases.map((tc, tcIndex) => (
+                        <div className="test-case-card" key={tc.id}>
+                          <div className="test-case-card-header">
+                            <span className="tc-index">TC-{tcIndex + 1}</span>
+                            <span className="tc-title">{tc.title}</span>
+                            <div className="tc-badges">
+                              <span className={`tc-badge priority-${tc.priority.toLowerCase()}`}>
+                                {tc.priority}
+                              </span>
+                              {tc.test_type && (
+                                <span className="tc-badge type-badge">{tc.test_type}</span>
+                              )}
+                              {tc.severity && (
+                                <span className="tc-badge severity-badge">{tc.severity}</span>
+                              )}
+                              {tc.automation_candidate && (
+                                <span className="tc-badge automation-badge">🤖 Auto</span>
+                              )}
+                            </div>
+                          </div>
+                          {tc.scenario && (
+                            <div className="tc-field">
+                              <strong>Scenario</strong>
+                              <p>{tc.scenario}</p>
+                            </div>
+                          )}
+                          {tc.preconditions && (
+                            <div className="tc-field">
+                              <strong>Preconditions</strong>
+                              <p>{tc.preconditions}</p>
+                            </div>
+                          )}
+                          {tc.test_steps && tc.test_steps.length > 0 && (
+                            <div className="tc-field">
+                              <strong>Test Steps</strong>
+                              <ol className="tc-steps">
+                                {tc.test_steps.map((step, stepIdx) => (
+                                  <li key={stepIdx}>{step}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
+                          {tc.test_data && (
+                            <div className="tc-field">
+                              <strong>Test Data</strong>
+                              <p>{tc.test_data}</p>
+                            </div>
+                          )}
+                          <div className="tc-field tc-expected">
+                            <strong>Expected Result</strong>
+                            <p>{tc.expected_result}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
         </div>
       )}
     </section>
