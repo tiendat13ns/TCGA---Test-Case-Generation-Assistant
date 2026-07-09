@@ -31,3 +31,8 @@ class GenerateRequirementsResponse(BaseModel):
     project_id: str | None = None
     total_requirements: int
     requirements: list[RequirementResponse]
+
+
+class ListRequirementsResponse(BaseModel):
+    items: list[RequirementResponse]
+    total: int

@@ -1,7 +1,8 @@
 import "./styles.css";
 import { useState } from "react";
-import DocumentList from "./components/DocumentList";
-import DocumentUpload from "./components/DocumentUpload";
+import SourcesPanel from "./components/SourcesPanel";
+import ChatPanel from "./components/ChatPanel";
+import StudioPanel from "./components/StudioPanel";
 
 export type DocumentItem = {
   id: string;
@@ -26,7 +27,8 @@ function TCGAMark() {
 }
 
 function App() {
-  const [newUploadedDocuments, setNewUploadedDocuments] = useState<DocumentItem[]>([]);
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
+  const [refreshStudioTick, setRefreshStudioTick] = useState(0);
 
   return (
     <div className="app-shell">
@@ -43,10 +45,43 @@ function App() {
         <span className="app-nav-badge">AI-powered</span>
       </nav>
 
-      {/* Main */}
+      {/* Main 3-Column Layout */}
       <main className="app-main">
-        <DocumentUpload onUploadSuccess={setNewUploadedDocuments} />
-        <DocumentList newUploadedDocuments={newUploadedDocuments} />
+        {/* Left Column: Sources */}
+        <div className="panel-col">
+          <SourcesPanel 
+            activeDocumentId={activeDocumentId} 
+            onSelectDocument={setActiveDocumentId} 
+          />
+        </div>
+
+        {/* Middle Column: Chat */}
+        <div className="panel-col">
+          {activeDocumentId ? (
+            <ChatPanel 
+              documentId={activeDocumentId} 
+              onDataGenerated={() => setRefreshStudioTick(t => t + 1)}
+            />
+          ) : (
+            <div className="empty-state">
+              <p>Chọn một tài liệu ở cột trái để bắt đầu trò chuyện</p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Studio */}
+        <div className="panel-col">
+          {activeDocumentId ? (
+            <StudioPanel 
+              documentId={activeDocumentId} 
+              refreshTick={refreshStudioTick} 
+            />
+          ) : (
+            <div className="empty-state">
+              <p>Chưa có dữ liệu</p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

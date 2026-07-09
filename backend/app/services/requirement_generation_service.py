@@ -13,7 +13,7 @@ from app.models import AgentLog, Document, Requirement
 from app.prompts.requirement_extraction_prompt import SYSTEM_PROMPT, build_user_prompt
 from app.repositories.requirement_repository import RequirementRepository
 from app.schemas.ai_requirement_schema import AIRequirementExtractionResponse
-from app.schemas.requirement_schema import GenerateRequirementsResponse, RequirementResponse
+from app.schemas.requirement_schema import GenerateRequirementsResponse, RequirementResponse, ListRequirementsResponse
 from app.services.ai.base_provider import AIProviderError
 from app.services.ai.provider import AIProviderFactory
 
@@ -241,6 +241,60 @@ def _get_project_context(document: Document) -> str:
 
     return "No project context available."
 
+
+def list_requirements_by_document(document_id: str) -> ListRequirementsResponse:
+    if not is_database_configured():
+        raise RequirementGenerationError("Database is not configured")
+
+    with SessionLocal() as db:
+        repo = RequirementRepository(db)
+        requirements = repo.list_by_document_id(UUID(document_id))
+        
+        return ListRequirementsResponse(
+            items=[_requirement_model_to_schema(req) for req in requirements],
+            total=len(requirements)
+        )
+
+def update_requirement_status(requirement_id: str, status: str) -> RequirementResponse:
+    if not is_database_configured():
+        raise RequirementGenerationError("Database is not configured")
+
+    with SessionLocal() as db:
+        req = db.query(Requirement).filter(Requirement.id == UUID(requirement_id)).first()
+        if not req:
+            raise RequirementGenerationNotFoundError("Requirement not found")
+        
+        req.status = status
+        db.commit()
+        db.refresh(req)
+        return _requirement_model_to_schema(req)
+
+def list_requirements_by_document(document_id: str) -> ListRequirementsResponse:
+    if not is_database_configured():
+        raise RequirementGenerationError("Database is not configured")
+
+    with SessionLocal() as db:
+        repo = RequirementRepository(db)
+        requirements = repo.list_by_document_id(UUID(document_id))
+        
+        return ListRequirementsResponse(
+            items=[_requirement_model_to_schema(req) for req in requirements],
+            total=len(requirements)
+        )
+
+def update_requirement_status(requirement_id: str, status: str) -> RequirementResponse:
+    if not is_database_configured():
+        raise RequirementGenerationError("Database is not configured")
+
+    with SessionLocal() as db:
+        req = db.query(Requirement).filter(Requirement.id == UUID(requirement_id)).first()
+        if not req:
+            raise RequirementGenerationNotFoundError("Requirement not found")
+        
+        req.status = status
+        db.commit()
+        db.refresh(req)
+        return _requirement_model_to_schema(req)
 
 async def generate_requirements_from_document(document_id: str) -> GenerateRequirementsResponse:
     if not is_database_configured():

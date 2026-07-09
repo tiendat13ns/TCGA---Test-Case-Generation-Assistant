@@ -120,12 +120,23 @@ button, input, select { font: inherit; }
 }
 
 .app-main {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
+  height: calc(100vh - 56px);
   display: grid;
-  gap: 16px;
+  grid-template-columns: 220px 1fr 400px;
+  overflow: hidden;
+}
+
+.panel-col {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+}
+.panel-col:last-child {
+  border-right: none;
 }
 
 /* ── Card / Panel ────────────────────────────────────────── */

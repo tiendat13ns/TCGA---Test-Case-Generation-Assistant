@@ -187,6 +187,21 @@ def _save_agent_log(
 # Public API
 # ---------------------------------------------------------------------------
 
+
+def update_test_case_status(test_case_id: str, status: str) -> TestCaseResponse:
+    if not is_database_configured():
+        raise TestCaseGenerationError("Database is not configured")
+
+    with SessionLocal() as db:
+        tc = db.query(TestCase).filter(TestCase.id == UUID(test_case_id)).first()
+        if not tc:
+            raise TestCaseGenerationNotFoundError("Test case not found")
+        
+        tc.status = status
+        db.commit()
+        db.refresh(tc)
+        return _test_case_model_to_schema(tc)
+
 async def generate_test_cases_from_requirement(requirement_id: str) -> GenerateTestCasesResponse:
     if not is_database_configured():
         raise TestCaseGenerationError("Database is not configured")
@@ -278,7 +293,7 @@ async def generate_test_cases_from_requirement(requirement_id: str) -> GenerateT
                     test_type=item.test_type,
                     automation_candidate=item.automation_candidate,
                     execution_type=item.execution_type,
-                    status="ai_generated",
+                    status="draft",
                     version=version,
                     updated_at=datetime.now(),
                 )

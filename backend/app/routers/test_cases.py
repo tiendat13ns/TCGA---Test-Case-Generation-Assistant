@@ -1,14 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.schemas.test_case_schema import GenerateTestCasesResponse, ListTestCasesResponse
+from app.schemas.test_case_schema import GenerateTestCasesResponse, ListTestCasesResponse, TestCaseResponse
 from app.services.test_case_generation_service import (
     TestCaseGenerationError,
     generate_test_cases_from_requirement,
     list_test_cases_by_requirement,
+    update_test_case_status,
 )
 
 router = APIRouter(prefix="/api/v1/requirements", tags=["test-cases"])
+items_router = APIRouter(prefix="/api/v1/test-cases", tags=["test-cases"])
 
 
 @router.post(
@@ -33,3 +35,11 @@ def get_test_cases(requirement_id: str):
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     except SQLAlchemyError as exc:
         raise HTTPException(status_code=500, detail="Database error while loading test cases") from exc
+
+
+@items_router.put("/{test_case_id}/status", response_model=TestCaseResponse)
+def update_status(test_case_id: str, status: str):
+    try:
+        return update_test_case_status(test_case_id, status)
+    except TestCaseGenerationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc

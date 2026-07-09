@@ -48,7 +48,7 @@ class Requirement(Base):
     exception_flows = Column(JSON, nullable=True)
     source_reference = Column(Text, nullable=True)
     confidence_score = Column(Float, nullable=True)
-    status = Column(Text, nullable=False, default="ai_generated")
+    status = Column(Text, nullable=False, default="draft")
     version = Column(Integer, nullable=False, default=1)
     created_by = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -89,7 +89,7 @@ class TestCase(Base):
     test_type = Column(Text, nullable=True)           # Positive|Negative|Boundary|...
     automation_candidate = Column(Boolean, nullable=False, default=False)
     execution_type = Column(Text, nullable=False, default="Manual")  # Manual|Automation Candidate
-    status = Column(Text, nullable=False, default="ai_generated")
+    status = Column(Text, nullable=False, default="draft")
     version = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True)

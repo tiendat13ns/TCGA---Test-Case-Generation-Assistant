@@ -8,3 +8,7 @@ pdfplumber
 python-docx
 openpyxl
 httpx
+langchain
+langchain-openai
+websockets
+langgraph
