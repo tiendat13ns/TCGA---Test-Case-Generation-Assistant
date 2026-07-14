@@ -63,7 +63,7 @@ Required JSON schema:
 """
 
 
-def build_user_prompt(requirement: Requirement) -> str:
+def build_user_prompt(requirement: Requirement, document_context: str | None = None) -> str:
     def _join_list(items) -> str:
         if not items:
             return "None"
@@ -117,6 +117,15 @@ def build_user_prompt(requirement: Requirement) -> str:
 
     if requirement.exception_flows:
         sections.append(f"Exception Flows:\n{_join_list(requirement.exception_flows)}")
+
+    if document_context:
+        sections.append(
+            f"[DOCUMENT CONTEXT]\n"
+            f"The following excerpts are the most relevant sections from the original source document.\n"
+            f"Use them to enrich the test cases with concrete data, edge cases, and business rules\n"
+            f"that may not be fully captured in the requirement fields above:\n\n"
+            f"{document_context}"
+        )
 
     sections.append("""
 Before returning JSON, internally verify:

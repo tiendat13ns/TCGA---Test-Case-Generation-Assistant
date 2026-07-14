@@ -31,11 +31,27 @@ def init_db() -> None:
 
     from app import models  # noqa: F401
 
+    # Kích hoạt pgvector extension (bắt buộc trước create_all để cột Vector(1536) hoạt động)
+    _ensure_pgvector_extension()
+
     Base.metadata.create_all(bind=engine)
     _ensure_document_columns()
     _ensure_requirement_columns()
     _ensure_agent_log_columns()
     _ensure_test_case_columns()
+
+
+def _ensure_pgvector_extension() -> None:
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            conn.commit()
+    except Exception as exc:
+        # Không fail nếu DB không hỗ trợ pgvector (fallback graceful)
+        import logging
+        logging.getLogger(__name__).warning(
+            "Could not create pgvector extension: %s. RAG features will be disabled.", exc
+        )
 
 
 def _ensure_test_case_columns() -> None:

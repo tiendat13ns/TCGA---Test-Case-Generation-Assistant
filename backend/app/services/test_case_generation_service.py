@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import time
 from datetime import datetime
@@ -16,6 +17,9 @@ from app.schemas.ai_test_case_schema import AITestCaseExtractionResponse
 from app.schemas.test_case_schema import GenerateTestCasesResponse, ListTestCasesResponse, TestCaseResponse
 from app.services.ai.base_provider import AIProviderError
 from app.services.ai.provider import AIProviderFactory
+from app.services.retrieval_service import retrieve_relevant_chunks_async
+
+logger = logging.getLogger(__name__)
 
 
 class TestCaseGenerationError(RuntimeError):
@@ -210,7 +214,27 @@ async def generate_test_cases_from_requirement(requirement_id: str) -> GenerateT
         # Detach data needed for prompt before session closes
         req_id = requirement.id
         doc_id = requirement.document_id
-        user_prompt = build_user_prompt(requirement)
+
+        # RAG: Lấy các chunks liên quan nhất từ tài liệu gốc (nếu có document_id)
+        document_context: str | None = None
+        if doc_id:
+            rag_query = f"{requirement.title}: {requirement.description or requirement.functional_requirement or ''}"
+            chunks = await retrieve_relevant_chunks_async(
+                db, str(doc_id), rag_query, top_k=5
+            )
+            if chunks:
+                document_context = "\n\n---\n\n".join(chunks)
+                logger.info(
+                    "RAG: enriched test case prompt for requirement %s with %d chunks from document %s",
+                    req_id, len(chunks), doc_id,
+                )
+            else:
+                logger.warning(
+                    "RAG: no chunks found for document %s (requirement %s), using requirement fields only",
+                    doc_id, req_id,
+                )
+
+        user_prompt = build_user_prompt(requirement, document_context=document_context)
 
     try:
         provider = AIProviderFactory.create()

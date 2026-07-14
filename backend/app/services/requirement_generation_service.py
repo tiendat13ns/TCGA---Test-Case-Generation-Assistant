@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import time
 from datetime import datetime
@@ -16,6 +17,9 @@ from app.schemas.ai_requirement_schema import AIRequirementExtractionResponse
 from app.schemas.requirement_schema import GenerateRequirementsResponse, ListRequirementsResponse, RequirementResponse
 from app.services.ai.base_provider import AIProviderError
 from app.services.ai.provider import AIProviderFactory
+from app.services.retrieval_service import retrieve_relevant_chunks_async
+
+logger = logging.getLogger(__name__)
 
 
 class RequirementGenerationError(RuntimeError):
@@ -265,13 +269,43 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
 
         project_id = getattr(document, "project_id", None)
         project_context = _get_project_context(document)
-        user_prompt = build_user_prompt(
-            project_context=project_context,
-            document_id=str(document.id),
-            file_name=document.original_filename,
-            document_type=document.file_type,
-            extracted_text=document.extracted_text,
+        doc_filename = document.original_filename
+        doc_filetype = document.file_type
+        doc_id_str = str(document.id)
+        fallback_text = document.extracted_text
+
+        # RAG: Lấy các chunks liên quan nhất từ DB thay vì nhồi toàn bộ văn bản
+        RAG_QUERY = (
+            "software requirements, features, user stories, business rules, "
+            "functional requirements, use cases, actors, workflows, validations, "
+            "permissions, error handling, system behavior"
         )
+        retrieved_chunks = await retrieve_relevant_chunks_async(
+            db, doc_id_str, RAG_QUERY, top_k=12
+        )
+
+    # Nếu chưa có chunks trong DB (chưa embed xong), fallback về extracted_text
+    if retrieved_chunks:
+        retrieved_context = "\n\n---\n\n".join(retrieved_chunks)
+        logger.info(
+            "RAG: using %d retrieved chunks for document %s (skipping full extracted_text)",
+            len(retrieved_chunks),
+            doc_id_str,
+        )
+    else:
+        retrieved_context = fallback_text
+        logger.warning(
+            "RAG: no chunks found for document %s, falling back to full extracted_text",
+            doc_id_str,
+        )
+
+    user_prompt = build_user_prompt(
+        project_context=project_context,
+        document_id=doc_id_str,
+        file_name=doc_filename,
+        document_type=doc_filetype,
+        retrieved_context=retrieved_context,
+    )
 
     try:
         provider = AIProviderFactory.create()
@@ -331,7 +365,7 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
 
             requirements = [
                 Requirement(
-                    project_id=project_id,
+                    project_id=getattr(document, "project_id", None),
                     document_id=document.id,
                     title=item.title or item.functional_requirement[:120],
                     description=item.description or item.functional_requirement,

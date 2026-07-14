@@ -85,9 +85,9 @@ def build_user_prompt(
     document_id: str,
     file_name: str,
     document_type: str,
-    extracted_text: str,
+    retrieved_context: str,
 ) -> str:
-    return f"""Generate requirements from this extracted document text:
+    return f"""Generate requirements from the following document context.
 
 Project context:
 {project_context}
@@ -97,11 +97,13 @@ Document metadata:
 - file_name: {file_name}
 - document_type: {document_type}
 
-Extracted text:
-{extracted_text}
+The following text consists of the most semantically relevant excerpts retrieved from the document.
+Each excerpt is separated by "---". Analyze ALL excerpts thoroughly to extract requirements:
+
+{retrieved_context}
 
 Before returning JSON, internally check that:
-- every important use case in the extracted text has been covered;
+- every important use case covered in the excerpts has been extracted;
 - each requirement is atomic and testable;
 - list fields contain useful detail when the source text supports it;
 - the response is ONLY valid JSON matching the required schema.
