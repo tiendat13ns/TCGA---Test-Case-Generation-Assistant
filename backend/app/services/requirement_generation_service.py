@@ -13,7 +13,7 @@ from app.models import AgentLog, Document, Requirement
 from app.prompts.requirement_extraction_prompt import SYSTEM_PROMPT, build_user_prompt
 from app.repositories.requirement_repository import RequirementRepository
 from app.schemas.ai_requirement_schema import AIRequirementExtractionResponse
-from app.schemas.requirement_schema import GenerateRequirementsResponse, RequirementResponse
+from app.schemas.requirement_schema import GenerateRequirementsResponse, ListRequirementsResponse, RequirementResponse
 from app.services.ai.base_provider import AIProviderError
 from app.services.ai.provider import AIProviderFactory
 
@@ -394,3 +394,23 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
             execution_time_ms=execution_time_ms,
         )
         raise RequirementGenerationError("Database save failed") from exc
+
+def list_requirements_by_document(document_id: str) -> ListRequirementsResponse:
+    if not is_database_configured():
+        raise RequirementGenerationError("Database is not configured")
+
+    try:
+        document_uuid = UUID(document_id)
+    except ValueError as exc:
+        raise RequirementGenerationNotFoundError("Document not found.") from exc
+
+    with SessionLocal() as db:
+        repository = RequirementRepository(db)
+        requirements = repository.list_by_document_id(document_uuid)
+        
+        return ListRequirementsResponse(
+            document_id=str(document_uuid),
+            total_requirements=len(requirements),
+            requirements=[_requirement_to_response(req) for req in requirements],
+        )
+

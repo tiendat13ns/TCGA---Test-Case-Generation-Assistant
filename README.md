@@ -1,349 +1,127 @@
-# AI Test Case Generation Assistant
+# AI Test Case Generation Assistant (TCGA)
 
-MVP hien tai cua project tap trung vao chuc nang upload tai lieu len backend Python va quan ly danh sach file da upload tren frontend React.
-
-Chua co AI, chua extract text, chua sinh requirement/test case.
+Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệu yêu cầu (SRS, BA doc) và sinh test case theo chuẩn xuất Excel.
 
 ## Tech Stack
 
-Backend:
-- Python
-- FastAPI
-- Uvicorn
-- Local file storage trong `backend/uploads`
-- Supabase PostgreSQL cho metadata khi `DATABASE_URL` duoc cau hinh
-- Fallback metadata local trong `backend/uploads/documents.json` khi chua cau hinh database
-- Text extraction cho `pdf`, `docx`, `txt`, `md`, `xlsx`
+**Backend** — FastAPI + Python
+- Text extraction: `pdfplumber`, `python-docx`, `openpyxl`
+- AI Provider abstraction: hỗ trợ OpenAI-compatible endpoint (vd. `api.vilao.ai`)
+- Database: PostgreSQL (Supabase) qua SQLAlchemy, SQLite cho agent loop (`claude/`)
+- Preprocessing pipeline: extract → clean → section-based structure
 
-Frontend:
-- React
-- TypeScript
-- Vite
+**Frontend** — React + TypeScript + Vite
+- Dark/light mode toggle (lưu localStorage)
+- Test case hiển thị dạng bảng phẳng 8 cột, có nút Export Excel
 
-## Chuc Nang Hien Tai
+**Agent UI** — Streamlit (`claude/`)
+- 3-cột: Sources | Chat | Studio
+- Agent loop sử dụng OpenAI tool calling
 
-Upload document:
-- Upload 1 file hoac nhieu file cung luc.
-- Upload 1 file `.zip`; backend se doc va luu cac file hop le ben trong zip.
-- Hien danh sach file user da chon truoc khi upload.
-- Co the bo bot file khoi danh sach chon bang nut `Remove`.
-- Hien thong bao upload thanh cong mau xanh la cay.
-- File vua upload hien ngay trong `Uploaded Documents`, khong can reload web.
-- Khi `DATABASE_URL` duoc cau hinh, upload thanh cong se tu extract text, luu text vao database, xoa file local sau khi extract, va cap nhat status:
-  - `uploaded`
-  - `processing`
-  - `completed`
-  - hoac `failed`
+---
 
-Extract text:
-- PDF dung `pdfplumber`.
-- DOCX dung `python-docx`, doc paragraphs va tables.
-- TXT/MD doc plain text.
-- XLSX dung `openpyxl`, doc tat ca worksheets.
-- Khong OCR, khong AI.
-- File upload chi duoc luu tam thoi de extract, sau do bi xoa. User xem lai noi dung qua preview lay tu database.
+## Chức Năng Hiện Tại
 
-AI Provider:
-- Backend co AI Provider abstraction de ket noi provider AI qua service layer.
-- Provider hien tai: Ollama.
-- Da co endpoint generate requirements tu `extracted_text` bang Ollama.
-- Chua implement AI test case generation, review hay export.
-- Endpoint health/test chi dung de kiem tra ket noi provider.
+### Upload & Extract
+- Upload `pdf`, `docx`, `txt`, `md`, `xlsx`, `csv`, `zip`
+- Auto extract text khi upload, lưu vào database
+- Preview trích xuất tối đa 5.000 ký tự
 
-Quan ly uploaded documents:
-- Hien danh sach file da upload.
-- File moi nhat hien o tren dau.
-- Filter theo:
-  - ten file
-  - type
-  - size min/max theo KB
-  - status
-  - time: newest first / oldest first
-- Xoa lich su upload bang nut `Clear History` cho moi truong test.
+### AI Requirement Generation
+- Gọi LLM sinh requirements từ extracted text
+- Lưu từng requirement vào database (versioned)
+- Frontend hiển thị: functional requirement, validation rules, workflow, error handling, confidence score
 
-Validate file:
-- Khong cho upload file rong.
-- Gioi han dung luong moi file toi da 10MB.
-- Chi cho phep cac dinh dang:
-  - `pdf`
-  - `docx`
-  - `txt`
-  - `md`
-  - `xlsx`
-  - `csv`
-  - `dbml`
-  - `zip`
-- File ben trong zip chi duoc phep la cac dinh dang document hop le: `pdf`, `docx`, `txt`, `md`, `xlsx`, `csv`, `dbml`.
-- Backend chan path khong an toan trong zip.
+### AI Test Case Generation
+- Sinh test case từ requirement đã extract
+- Output bảng phẳng 8 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output | Note**
+- Không merge cell, không block thống kê QA, không ma trận trình duyệt
+- Export ra file `.xlsx` trực tiếp từ UI
 
-## Cau Truc Thu Muc
+### Agent Loop (`claude/` — Streamlit)
+- BA Agent chat với tài liệu đã upload
+- Tools: `save_requirement`, `save_test_case`, `search_document`
+- SQLite local DB (`ba_agent.db`) — schema tách biệt với backend PostgreSQL
+- Export test case từ tab Studio
+
+---
+
+## Cấu Trúc Thư Mục
 
 ```text
 backend/
   app/
     main.py
-    routers/
-      documents.py
+    models.py
+    routers/          # documents, requirements, test_cases, ai
     schemas/
-      document_schema.py
     services/
+      ai/             # provider abstraction, openai_compatible_provider
+      extractors/     # pdf, docx, xlsx, txt extractors
       file_service.py
+      requirement_generation_service.py
+      test_case_generation_service.py
   uploads/
-    .gitkeep
-    documents.json
   requirements.txt
 
 frontend/
   src/
-    App.tsx
-    main.tsx
-    styles.css
+    App.tsx           # theme toggle (dark/light)
+    styles.css        # design tokens Zinc/Emerald
     components/
       DocumentUpload.tsx
-      DocumentList.tsx
-  package.json
-  vite.config.ts
+      DocumentList.tsx  # bảng test case 8 cột + export
+
+claude/
+  app.py            # Streamlit UI 3 cột
+  agent.py          # agent loop + tool definitions
+  database.py       # SQLite schema (requirement, test_case, session)
+  preprocessor.py   # extract → clean → structure sections
+  uploads/          # tài liệu upload cho agent
+  CLAUDE.md         # kiến trúc và quyết định đã chốt
 ```
 
-## API
+---
 
-### Upload documents
+## API Chính
 
-```http
-POST /api/documents/upload
-```
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `POST` | `/api/documents/upload` | Upload file |
+| `GET` | `/api/documents` | Danh sách documents |
+| `GET` | `/api/v1/documents/{id}` | Chi tiết + preview 5000 chars |
+| `POST` | `/api/v1/documents/{id}/requirements/generate` | Sinh requirements từ text |
+| `GET` | `/api/v1/requirements/{id}/test-cases` | Lấy test cases |
+| `POST` | `/api/v1/requirements/{id}/test-cases/generate` | Sinh test cases từ requirement |
+| `GET` | `/api/v1/requirements/{id}/test-cases/export` | Export Excel 8 cột |
+| `GET` | `/api/v1/ai/health` | Kiểm tra kết nối AI provider |
 
-Content type:
+---
 
-```text
-multipart/form-data
-```
-
-Form field:
-
-```text
-files
-```
-
-Response thanh cong:
-
-```json
-[
-  {
-    "id": "uuid",
-    "original_filename": "SRS.docx",
-    "stored_filename": "uuid_SRS.docx",
-    "file_type": "docx",
-    "file_size": 123456,
-    "file_path": "uploads/uuid_SRS.docx",
-    "status": "uploaded",
-    "uploaded_at": "2026-07-06T09:00:00"
-  }
-]
-```
-
-### List uploaded documents
-
-```http
-GET /api/documents
-```
-
-Tra ve danh sach file da upload, sap xep moi nhat truoc.
-
-### Get document detail
-
-```http
-GET /api/documents/{document_id}
-```
-
-Tra ve metadata, status, `text_length`, va `preview` 500 ky tu dau. Khong tra full `extracted_text`.
-
-### Extract text manually
-
-```http
-POST /api/documents/{document_id}/extract-text
-```
-
-Chay lai text extraction cho document da upload.
-
-### Clear upload history
-
-```http
-DELETE /api/documents
-```
-
-Dung cho moi truong test. API nay xoa metadata va cac file da upload trong `backend/uploads`, giu lai `.gitkeep`.
-
-### AI provider health
-
-```http
-GET /api/v1/ai/health
-```
-
-Kiem tra backend co ket noi duoc Ollama va model da duoc pull hay chua.
-
-Response thanh cong:
-
-```json
-{
-  "provider": "ollama",
-  "model": "gemma4:12b",
-  "status": "healthy"
-}
-```
-
-### AI provider test
-
-```http
-POST /api/v1/ai/test
-```
-
-Body:
-
-```json
-{
-  "prompt": "Hello"
-}
-```
-
-Response:
-
-```json
-{
-  "response": "..."
-}
-```
-
-### Generate requirements
-
-```http
-POST /api/v1/documents/{document_id}/requirements/generate
-```
-
-Dieu kien:
-- Document ton tai.
-- `document.status = completed`.
-- `document.extracted_text` khong rong.
-- Ollama dang chay va da pull model trong `.env`.
-
-Response:
-
-```json
-{
-  "document_id": "...",
-  "project_id": null,
-  "total_requirements": 3,
-  "requirements": [
-    {
-      "id": "...",
-      "title": "...",
-      "description": "...",
-      "module_name": "...",
-      "feature_name": "...",
-      "actor": "...",
-      "business_rules": [],
-      "inputs": [],
-      "outputs": [],
-      "preconditions": [],
-      "validation_rules": [],
-      "exception_flows": [],
-      "source_reference": "...",
-      "confidence_score": 0.9,
-      "status": "ai_generated",
-      "version": 1
-    }
-  ]
-}
-```
-
-Neu generate lai cung document, backend tao version moi va khong overwrite requirements cu.
-
-## Chay Backend
-
-Tao file `.env` tu `.env.example` va dien connection string Supabase:
+## Chạy Backend
 
 ```bash
 cd backend
-copy .env.example .env
-```
-
-Vi du:
-
-```env
-DATABASE_URL=postgresql://postgres:<YOUR-PASSWORD>@db.<YOUR-PROJECT-REF>.supabase.co:5432/postgres
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma4:12b
-OLLAMA_TIMEOUT_SECONDS=180
-```
-
-Neu password co ky tu dac biet, can percent-encode trong connection string. Vi du `#` thanh `%23`.
-
-```bash
-cd backend
+copy .env.example .env   # điền DATABASE_URL và AI provider config
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
-Backend mac dinh chay tai:
-
-```text
-http://localhost:8000
-```
-
-Kiem tra ket noi database:
-
-```text
-http://localhost:8000/health/db
-```
-
-## Cau Hinh Ollama
-
-Tai va cai Ollama tu:
-
-```text
-https://ollama.com
-```
-
-Pull model:
-
-```bash
-ollama pull gemma4:12b
-```
-
-Start Ollama:
-
-```bash
-ollama serve
-```
-
-Neu Ollama chay tren may khac trong LAN, doi `OLLAMA_BASE_URL` trong `backend/.env`:
+Ví dụ `.env` với OpenAI-compatible provider:
 
 ```env
-OLLAMA_BASE_URL=http://192.168.1.99:11434
+DATABASE_URL=postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres
+AI_PROVIDER=openai_compatible
+OPENAI_COMPATIBLE_BASE_URL=https://api.vilao.ai/v1
+OPENAI_COMPATIBLE_API_KEY=your_key
+OPENAI_COMPATIBLE_MODEL=ram/gemini-3.5-flash-low
 ```
 
-Test health:
+Backend chạy tại: `http://localhost:8000`
 
-```text
-http://localhost:8000/api/v1/ai/health
-```
+---
 
-Test prompt:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/ai/test ^
-  -H "Content-Type: application/json" ^
-  -d "{\"prompt\":\"Hello\"}"
-```
-
-Generate requirements:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/documents/{document_id}/requirements/generate
-```
-
-## Chay Frontend
+## Chạy Frontend
 
 ```bash
 cd frontend
@@ -351,23 +129,22 @@ npm install
 npm run dev
 ```
 
-Frontend mac dinh chay tai:
+Frontend chạy tại: `http://localhost:5173`
 
-```text
-http://localhost:5173
+---
+
+## Chạy Agent UI (Streamlit)
+
+```bash
+cd claude
+pip install -r requirements.txt
+python -m streamlit run app.py
 ```
 
-## CORS
+---
 
-Backend cho phep frontend goi API tu:
+## Ghi Chú
 
-```text
-http://localhost:3000
-http://localhost:5173
-```
-
-## Ghi Chu Development
-
-- `backend/uploads` la local storage tam thoi cho MVP.
-- `documents.json` la metadata store tam thoi, chua dung database.
-- `backend/venv`, `frontend/node_modules`, `frontend/dist`, log file va generated upload files duoc ignore boi `.gitignore`.
+- `uvicorn.exe` có thể bị chặn bởi Device Guard — dùng `python -m uvicorn` thay thế.
+- DB schema của `claude/` (SQLite) và `backend/` (PostgreSQL) là hai hệ thống tách biệt, không share.
+- Kiến trúc và quyết định thiết kế cho agent loop được ghi chi tiết trong `claude/CLAUDE.md`.
