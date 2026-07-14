@@ -124,8 +124,7 @@ function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
         <form ref={formRef} onSubmit={handleSubmit}>
           {/* Drop Zone */}
           <div
-            className="upload-zone"
-            style={{ borderColor: isDragging ? "var(--accent)" : undefined, background: isDragging ? "var(--accent-glow)" : undefined }}
+            className={`upload-zone${isDragging ? " dragging" : ""}`}
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -186,6 +185,8 @@ function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             <button type="submit" className="btn btn-primary" disabled={isUploading || selectedFiles.length === 0}>
               {isUploading ? (
                 <><SpinnerIcon /> Uploading...</>
+              ) : selectedFiles.length > 0 ? (
+                <><UploadIcon /> Upload {selectedFiles.length} file{selectedFiles.length === 1 ? "" : "s"}</>
               ) : (
                 <><UploadIcon /> Upload</>
               )}
