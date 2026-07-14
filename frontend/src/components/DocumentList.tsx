@@ -46,18 +46,18 @@ type Filters = { filename: string; type: string; minSizeKb: string; maxSizeKb: s
 const defaultFilters: Filters = { filename: "", type: "", minSizeKb: "", maxSizeKb: "", status: "", timeOrder: "newest" };
 
 /* ── Icons ── */
-const FilterIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
-const TrashIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
-const EyeIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-const ZapIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-const RefreshIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>;
-const ChevronDown = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>;
-const ChevronUp = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>;
-const XIcon = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const FileTextIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
-const AlertIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
-const CheckIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const SpinnerIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.7s linear infinite" }}><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>;
+const FilterIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
+const TrashIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>;
+const EyeIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>;
+const ZapIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+const RefreshIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" /></svg>;
+const ChevronDown = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>;
+const ChevronUp = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15" /></svg>;
+const XIcon = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+const FileTextIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
+const AlertIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>;
+const CheckIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+const SpinnerIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.7s linear infinite" }}><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>;
 
 function formatFileSize(size: number) {
   if (size < 1024) return `${size} B`;
@@ -103,9 +103,58 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
-  const [testCasesMap, setTestCasesMap] = useState<Record<string, GenerateTestCasesResponse>>({});
+  const [testCasesMap, setTestCasesMap] = useState<Record<string, GenerateTestCasesResponse | null>>({});
   const [generatingTestCasesId, setGeneratingTestCasesId] = useState<string | null>(null);
   const [expandedTestCasesId, setExpandedTestCasesId] = useState<string | null>(null);
+
+  const [existingRequirements, setExistingRequirements] = useState<Record<string, GenerateRequirementsResponse | null>>({});
+  const [isLoadingRequirements, setIsLoadingRequirements] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    documents.forEach(async (doc) => {
+      if (doc.status === "completed" && existingRequirements[doc.id] === undefined && !isLoadingRequirements[doc.id]) {
+        setIsLoadingRequirements((prev) => ({ ...prev, [doc.id]: true }));
+        try {
+          const r = await fetch(`${API_V1_DOCUMENTS_URL}/${doc.id}/requirements`);
+          if (r.ok) {
+            const d = await r.json();
+            if (d.total_requirements > 0) {
+              setExistingRequirements((prev) => ({ ...prev, [doc.id]: d }));
+            } else {
+              setExistingRequirements((prev) => ({ ...prev, [doc.id]: null }));
+            }
+          } else {
+            setExistingRequirements((prev) => ({ ...prev, [doc.id]: null }));
+          }
+        } catch {
+          setExistingRequirements((prev) => ({ ...prev, [doc.id]: null }));
+        } finally {
+          setIsLoadingRequirements((prev) => ({ ...prev, [doc.id]: false }));
+        }
+      }
+    });
+  }, [documents, existingRequirements, isLoadingRequirements]);
+
+  useEffect(() => {
+    if (!generatedRequirements) return;
+    generatedRequirements.requirements.forEach(async (req) => {
+      if (testCasesMap[req.id] === undefined && !generatingTestCasesId) {
+        try {
+          const r = await fetch(`${API_V1_REQUIREMENTS_URL}/${req.id}/test-cases`);
+          if (r.ok) {
+            const d = await r.json();
+            if (d.total_test_cases > 0) {
+              setTestCasesMap((prev) => ({ ...prev, [req.id]: d }));
+            } else {
+              setTestCasesMap((prev) => ({ ...prev, [req.id]: null }));
+            }
+          } else {
+            setTestCasesMap((prev) => ({ ...prev, [req.id]: null }));
+          }
+        } catch {}
+      }
+    });
+  }, [generatedRequirements, testCasesMap, generatingTestCasesId]);
 
   useEffect(() => {
     const loadDocuments = async () => {
@@ -219,6 +268,7 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
       const d = await r.json().catch(() => null);
       if (!r.ok) throw new Error(d?.detail || "Could not generate requirements.");
       setGeneratedRequirements(d);
+      setExistingRequirements((prev) => ({ ...prev, [documentId]: d }));
     } catch (e) { setMessage(e instanceof Error ? e.message : "Cannot connect to backend."); }
     finally { setGeneratingRequirementsId(null); }
   };
@@ -252,9 +302,6 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
         <div className="header-actions">
           <button type="button" className="btn btn-secondary" onClick={() => setShowFilters((f) => !f)}>
             <FilterIcon /> {showFilters ? "Hide filters" : "Filter"}
-          </button>
-          <button type="button" className="btn btn-secondary" disabled={isDeletingSelected || selectedDocumentIds.length === 0} onClick={deleteSelectedDocuments}>
-            {isDeletingSelected ? <><SpinnerIcon /> Deleting...</> : <><TrashIcon /> Delete ({selectedDocumentIds.length})</>}
           </button>
           <button type="button" className="btn btn-danger" disabled={isClearing || documents.length === 0} onClick={clearUploadHistory}>
             {isClearing ? <><SpinnerIcon /> Clearing...</> : <><TrashIcon /> Clear All</>}
@@ -369,17 +416,39 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
                       <button type="button" className="btn btn-secondary" disabled={loadingPreviewId === doc.id} onClick={() => loadDocumentPreview(doc.id)}>
                         {loadingPreviewId === doc.id ? <><SpinnerIcon /> Loading...</> : <><EyeIcon /> Preview</>}
                       </button>
-                      {doc.status === "completed" && (
-                        <button type="button" className="btn btn-primary" disabled={generatingRequirementsId === doc.id} onClick={() => generateRequirements(doc.id)}>
-                          {generatingRequirementsId === doc.id ? <><SpinnerIcon /> Generating...</> : <><ZapIcon /> Generate Requirements</>}
+                      {doc.status === "completed" && existingRequirements[doc.id] ? (
+                        <>
+                          <button type="button" className="btn btn-primary" onClick={() => setGeneratedRequirements(existingRequirements[doc.id]!)}>
+                            <EyeIcon /> View Requirements
+                          </button>
+                          <button type="button" className="btn btn-secondary" disabled={generatingRequirementsId === doc.id} onClick={() => generateRequirements(doc.id)} title="Re-generate requirements">
+                            {generatingRequirementsId === doc.id ? <><SpinnerIcon /></> : <><RefreshIcon /></>}
+                          </button>
+                        </>
+                      ) : doc.status === "completed" ? (
+                        <button type="button" className="btn btn-primary" disabled={generatingRequirementsId === doc.id || isLoadingRequirements[doc.id]} onClick={() => generateRequirements(doc.id)}>
+                          {generatingRequirementsId === doc.id ? <><SpinnerIcon /> Generating...</> : isLoadingRequirements[doc.id] ? <><SpinnerIcon /> Loading...</> : <><ZapIcon /> Generate Requirements</>}
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Sticky bulk toolbar — appears when items are selected */}
+      {selectedDocumentIds.length > 0 && (
+        <div className="bulk-toolbar">
+          <span className="bulk-toolbar-count"><span>{selectedDocumentIds.length}</span> selected</span>
+          <button type="button" className="btn btn-secondary" onClick={() => setSelectedDocumentIds([])}>
+            <XIcon /> Deselect
+          </button>
+          <button type="button" className="btn btn-danger" disabled={isDeletingSelected} onClick={deleteSelectedDocuments}>
+            {isDeletingSelected ? <><SpinnerIcon /> Deleting...</> : <><TrashIcon /> Delete selected</>}
+          </button>
         </div>
       )}
 
@@ -425,7 +494,7 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
           </div>
           <div className="req-list">
             {generatedRequirements.requirements.map((req, idx) => (
-              <article className="req-card animate-in" key={req.id}>
+              <article className="req-card animate-in" key={req.id} data-status={req.status}>
                 <div className="req-card-header">
                   <span className="req-card-title">REQ-{String(idx + 1).padStart(2, "0")}</span>
                   <div className="req-card-actions">
@@ -441,7 +510,7 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
                     </button>
                     {testCasesMap[req.id] && (
                       <button type="button" className="btn btn-secondary" onClick={() => setExpandedTestCasesId((prev) => prev === req.id ? null : req.id)}>
-                        {expandedTestCasesId === req.id ? <><ChevronUp /> Hide ({testCasesMap[req.id].total_test_cases})</> : <><ChevronDown /> Show ({testCasesMap[req.id].total_test_cases})</>}
+                        {expandedTestCasesId === req.id ? <><ChevronUp /> Hide ({testCasesMap[req.id]!.total_test_cases})</> : <><ChevronDown /> Show ({testCasesMap[req.id]!.total_test_cases})</>}
                       </button>
                     )}
                   </div>
@@ -486,55 +555,55 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
                     <div className="tc-panel" style={{ margin: "4px -14px -12px", borderRadius: "0 0 7px 7px" }}>
                       <div className="tc-panel-header">
                         <span className="tc-panel-title">Test Cases</span>
-                        <span className="tc-count-badge">{testCasesMap[req.id].total_test_cases}</span>
+                        <span className="tc-count-badge">{testCasesMap[req.id]!.total_test_cases}</span>
+                        <div style={{ flex: 1 }} />
+                        <a
+                          href={`${API_V1_REQUIREMENTS_URL}/${req.id}/test-cases/export`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary"
+                          style={{ padding: "4px 10px", fontSize: "11px", gap: "6px", textDecoration: "none" }}
+                        >
+                          <FileTextIcon /> Export Excel
+                        </a>
                       </div>
-                      <div className="tc-list">
-                        {testCasesMap[req.id].test_cases.map((tc, tcIdx) => (
-                          <div className="tc-card animate-in" key={tc.id}>
-                            <div className="tc-card-header">
-                              <span className="tc-index">TC-{String(tcIdx + 1).padStart(2, "0")}</span>
-                              <span className="tc-title">{tc.title}</span>
-                              <div className="tc-badges">
-                                <span className={`badge badge-${tc.priority.toLowerCase()}`}>{tc.priority}</span>
-                                {tc.test_type && <span className="badge badge-type">{tc.test_type}</span>}
-                                {tc.severity && <span className="badge badge-severity">{tc.severity}</span>}
-                                {tc.automation_candidate && <span className="badge badge-auto">Auto</span>}
-                              </div>
-                            </div>
-                            <div className="tc-body">
-                              {tc.scenario && (
-                                <div className="tc-field">
-                                  <div className="tc-field-label">Scenario</div>
-                                  <div className="tc-field-value">{tc.scenario}</div>
-                                </div>
-                              )}
-                              {tc.preconditions && (
-                                <div className="tc-field">
-                                  <div className="tc-field-label">Preconditions</div>
-                                  <div className="tc-field-value">{tc.preconditions}</div>
-                                </div>
-                              )}
-                              {tc.test_steps && tc.test_steps.length > 0 && (
-                                <div className="tc-field">
-                                  <div className="tc-field-label">Test Steps</div>
-                                  <ol className="tc-steps">
-                                    {tc.test_steps.map((step, si) => <li key={si}>{step}</li>)}
-                                  </ol>
-                                </div>
-                              )}
-                              {tc.test_data && (
-                                <div className="tc-field">
-                                  <div className="tc-field-label">Test Data</div>
-                                  <div className="tc-field-value">{tc.test_data}</div>
-                                </div>
-                              )}
-                              <div className="tc-field tc-expected">
-                                <div className="tc-field-label">Expected Result</div>
-                                <div className="tc-field-value">{tc.expected_result}</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="tc-table-wrap">
+                        <table className="tc-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: "12%" }}>Feature</th>
+                              <th style={{ width: "8%" }}>Test Case ID</th>
+                              <th style={{ width: "15%" }}>Test Item</th>
+                              <th style={{ width: "15%" }}>Precondition</th>
+                              <th style={{ width: "22%" }}>Test Steps</th>
+                              <th style={{ width: "12%" }}>Test Data</th>
+                              <th style={{ width: "12%" }}>Expected Output</th>
+                              <th style={{ width: "4%" }}>Note</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {testCasesMap[req.id]!.test_cases.map((tc, tcIdx) => (
+                              <tr key={tc.id} className="animate-in">
+                                <td>{req.feature_name || req.title || "N/A"}</td>
+                                <td style={{ whiteSpace: "nowrap", fontFamily: "var(--font-mono)", color: "var(--accent)" }}>
+                                  TC-{String(tcIdx + 1).padStart(2, "0")}
+                                </td>
+                                <td style={{ fontWeight: 500, color: "var(--text-primary)" }}>{tc.title}</td>
+                                <td>{tc.preconditions || ""}</td>
+                                <td>
+                                  {tc.test_steps && tc.test_steps.length > 0 ? (
+                                    <ol style={{ margin: 0, paddingLeft: "16px" }}>
+                                      {tc.test_steps.map((step, si) => <li key={si}>{step}</li>)}
+                                    </ol>
+                                  ) : null}
+                                </td>
+                                <td>{tc.test_data || ""}</td>
+                                <td>{tc.expected_result}</td>
+                                <td></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}
