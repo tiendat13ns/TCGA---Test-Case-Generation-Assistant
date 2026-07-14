@@ -47,7 +47,7 @@ def _document_to_detail(document: Document) -> DocumentDetail:
         error_message=document.error_message,
         updated_at=_format_datetime(document.updated_at),
         text_length=len(extracted_text),
-        preview=extracted_text[:500] if extracted_text else None,
+        preview=extracted_text[:5000] if extracted_text else None,
     )
 
 
