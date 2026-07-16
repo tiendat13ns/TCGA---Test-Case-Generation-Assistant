@@ -5,18 +5,14 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 ## Tech Stack
 
 **Backend** — FastAPI + Python
-- Text extraction: `pdfplumber`, `python-docx`, `openpyxl`
+- Text extraction & Vectorization: `pdfplumber`, `python-docx`, `openpyxl`, `langchain` text splitters
 - AI Provider abstraction: hỗ trợ OpenAI-compatible endpoint (vd. `api.vilao.ai`)
-- Database: PostgreSQL (Supabase) qua SQLAlchemy, SQLite cho agent loop (`claude/`)
-- Preprocessing pipeline: extract → clean → section-based structure
+- Database: PostgreSQL (Supabase) + `pgvector` qua SQLAlchemy
+- Preprocessing pipeline: extract → chunking (size=800, overlap=150) → embedding (1536 chiều) → RAG retrieval
 
 **Frontend** — React + TypeScript + Vite
 - Dark/light mode toggle (lưu localStorage)
 - Test case hiển thị dạng bảng phẳng 8 cột, có nút Export Excel
-
-**Agent UI** — Streamlit (`claude/`)
-- 3-cột: Sources | Chat | Studio
-- Agent loop sử dụng OpenAI tool calling
 
 ---
 
@@ -27,22 +23,18 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 - Auto extract text khi upload, lưu vào database
 - Preview trích xuất tối đa 5.000 ký tự
 
-### AI Requirement Generation
-- Gọi LLM sinh requirements từ extracted text
+### AI Requirement Generation (Tích hợp RAG)
+- Nhúng toàn bộ tài liệu (Embedding) bằng mô hình của Vilao (ví dụ: `ram/gemini-3.5-flash-low`)
+- Dùng truy vấn Semantic Search để lấy ra **Top-12 Chunks** liên quan nhất để đưa vào LLM
 - Lưu từng requirement vào database (versioned)
 - Frontend hiển thị: functional requirement, validation rules, workflow, error handling, confidence score
 
-### AI Test Case Generation
+### AI Test Case Generation (Tích hợp RAG)
 - Sinh test case từ requirement đã extract
+- Lấy thêm bối cảnh (**Top-5 Chunks** từ tài liệu gốc) bằng query dựa trên Requirement Title + Description để bổ sung ngữ cảnh cho LLM
 - Output bảng phẳng 8 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output | Note**
 - Không merge cell, không block thống kê QA, không ma trận trình duyệt
 - Export ra file `.xlsx` trực tiếp từ UI
-
-### Agent Loop (`claude/` — Streamlit)
-- BA Agent chat với tài liệu đã upload
-- Tools: `save_requirement`, `save_test_case`, `search_document`
-- SQLite local DB (`ba_agent.db`) — schema tách biệt với backend PostgreSQL
-- Export test case từ tab Studio
 
 ---
 
@@ -58,6 +50,9 @@ backend/
     services/
       ai/             # provider abstraction, openai_compatible_provider
       extractors/     # pdf, docx, xlsx, txt extractors
+      chunk_storage_service.py # Xử lý lưu vector vào pgvector
+      embedding_service.py     # Gọi API lấy embedding vector
+      retrieval_service.py     # Thực hiện Semantic Search (Cosine Distance)
       file_service.py
       requirement_generation_service.py
       test_case_generation_service.py
@@ -71,14 +66,6 @@ frontend/
     components/
       DocumentUpload.tsx
       DocumentList.tsx  # bảng test case 8 cột + export
-
-claude/
-  app.py            # Streamlit UI 3 cột
-  agent.py          # agent loop + tool definitions
-  database.py       # SQLite schema (requirement, test_case, session)
-  preprocessor.py   # extract → clean → structure sections
-  uploads/          # tài liệu upload cho agent
-  CLAUDE.md         # kiến trúc và quyết định đã chốt
 ```
 
 ---
@@ -133,18 +120,6 @@ Frontend chạy tại: `http://localhost:5173`
 
 ---
 
-## Chạy Agent UI (Streamlit)
-
-```bash
-cd claude
-pip install -r requirements.txt
-python -m streamlit run app.py
-```
-
----
-
 ## Ghi Chú
 
 - `uvicorn.exe` có thể bị chặn bởi Device Guard — dùng `python -m uvicorn` thay thế.
-- DB schema của `claude/` (SQLite) và `backend/` (PostgreSQL) là hai hệ thống tách biệt, không share.
-- Kiến trúc và quyết định thiết kế cho agent loop được ghi chi tiết trong `claude/CLAUDE.md`.

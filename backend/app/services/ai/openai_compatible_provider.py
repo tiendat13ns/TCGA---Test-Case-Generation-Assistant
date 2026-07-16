@@ -101,6 +101,12 @@ class OpenAICompatibleProvider(BaseAIProvider):
             try:
                 data = response.json()
             except ValueError as exc:
+                logger.error(
+                    "OpenAI-compatible API returned non-JSON response (status=%d). "
+                    "Raw response (first 500 chars): %s",
+                    response.status_code,
+                    response.text[:500],
+                )
                 raise AIProviderInvalidResponseError(
                     "OpenAI-compatible API returned invalid JSON"
                 ) from exc

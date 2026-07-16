@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +11,22 @@ from app.schemas.document_schema import DocumentDetail, DocumentExtractResponse
 from app.services.extractors.extractor_factory import ExtractorFactory
 
 logger = logging.getLogger(__name__)
+
+
+def _trigger_background_chunking(document_id: str, text: str) -> None:
+    """Chạy ngầm chunking & embedding trong thread riêng ngay khi extract text xong."""
+    def _run():
+        from app.services.chunk_storage_service import process_and_store_document_chunks
+        logger.info("Starting background chunking & embedding for document %s", document_id)
+        with SessionLocal() as db:
+            try:
+                process_and_store_document_chunks(db, document_id, text)
+                logger.info("Completed background chunking & embedding for document %s", document_id)
+            except Exception as exc:
+                logger.error("Background chunking failed for document %s: %s", document_id, str(exc))
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -138,6 +155,9 @@ def extract_document_text(document_id: str) -> DocumentExtractResponse | None:
                 len(extracted_text),
                 document.status,
             )
+
+            # Tự động trigger chunking + embedding ngay khi trích xuất text thành công
+            _trigger_background_chunking(str(document.id), extracted_text)
 
             return DocumentExtractResponse(
                 document_id=str(document.id),
