@@ -12,11 +12,15 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 
 **Frontend** — React + TypeScript + Vite
 - Dark/light mode toggle (lưu localStorage)
-- Test case hiển thị dạng bảng phẳng 8 cột, có nút Export Excel
+- Test case hiển thị dạng bảng phẳng 7 cột, có nút Export Excel
 
 ---
 
 ## Chức Năng Hiện Tại
+
+### Quản Lý Dự Án (Project-centric)
+- Mỗi người dùng tạo Project trước khi upload tài liệu.
+- RAG Context Isolation: AI Semantic Search được giới hạn nghiêm ngặt ở cấp độ Project (Project-level isolation). Tài liệu của dự án này không bị trộn lẫn với dự án khác, nhưng các tài liệu trong cùng dự án có thể liên kết (cross-reference) với nhau để bổ sung context.
 
 ### Upload & Extract
 - Upload `pdf`, `docx`, `txt`, `md`, `xlsx`, `csv`, `zip`
@@ -25,14 +29,15 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 
 ### AI Requirement Generation (Tích hợp RAG)
 - Nhúng toàn bộ tài liệu (Embedding) bằng mô hình của Vilao (ví dụ: `ram/gemini-3.5-flash-low`)
-- Dùng truy vấn Semantic Search để lấy ra **Top-12 Chunks** liên quan nhất để đưa vào LLM
-- Lưu từng requirement vào database (versioned)
-- Frontend hiển thị: functional requirement, validation rules, workflow, error handling, confidence score
+- Dùng truy vấn Semantic Search lấy ra **Top-12 Chunks** liên quan nhất trong toàn bộ Project.
+- Gom nhóm toàn bộ context thành 1 Requirement tổng hợp, chi tiết (Comprehensive Requirement) không bị xé lẻ.
+- Tự động nhận diện và đồng bộ ngôn ngữ đầu ra (Language matching).
 
 ### AI Test Case Generation (Tích hợp RAG)
 - Sinh test case từ requirement đã extract
-- Lấy thêm bối cảnh (**Top-5 Chunks** từ tài liệu gốc) bằng query dựa trên Requirement Title + Description để bổ sung ngữ cảnh cho LLM
-- Output bảng phẳng 8 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output | Note**
+- Lấy thêm bối cảnh (**Top-5 Chunks** trong Project) bằng query dựa trên Requirement Title + Description để bổ sung ngữ cảnh cho LLM
+- Output bảng phẳng 7 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output**
+- Cột *Test Item* hiển thị mục đích/ngữ cảnh test case bằng ngôn ngữ tự nhiên.
 - Không merge cell, không block thống kê QA, không ma trận trình duyệt
 - Export ra file `.xlsx` trực tiếp từ UI
 
@@ -65,7 +70,7 @@ frontend/
     styles.css        # design tokens Zinc/Emerald
     components/
       DocumentUpload.tsx
-      DocumentList.tsx  # bảng test case 8 cột + export
+      DocumentList.tsx  # bảng test case 7 cột + export
 ```
 
 ---
@@ -74,13 +79,15 @@ frontend/
 
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
-| `POST` | `/api/documents/upload` | Upload file |
+| `GET` | `/api/v1/projects` | Danh sách projects |
+| `POST`| `/api/v1/projects` | Tạo project mới |
+| `POST` | `/api/documents/upload` | Upload file (yêu cầu project_id) |
 | `GET` | `/api/documents` | Danh sách documents |
 | `GET` | `/api/v1/documents/{id}` | Chi tiết + preview 5000 chars |
 | `POST` | `/api/v1/documents/{id}/requirements/generate` | Sinh requirements từ text |
 | `GET` | `/api/v1/requirements/{id}/test-cases` | Lấy test cases |
 | `POST` | `/api/v1/requirements/{id}/test-cases/generate` | Sinh test cases từ requirement |
-| `GET` | `/api/v1/requirements/{id}/test-cases/export` | Export Excel 8 cột |
+| `GET` | `/api/v1/requirements/{id}/test-cases/export` | Export Excel 7 cột |
 | `GET` | `/api/v1/ai/health` | Kiểm tra kết nối AI provider |
 
 ---
