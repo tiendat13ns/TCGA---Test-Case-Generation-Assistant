@@ -2,9 +2,11 @@ import "./styles.css";
 import { useEffect, useState } from "react";
 import DocumentList from "./components/DocumentList";
 import DocumentUpload from "./components/DocumentUpload";
+import ProjectManager, { Project } from "./components/ProjectManager";
 
 export type DocumentItem = {
   id: string;
+  project_id?: string | null;
   original_filename: string;
   stored_filename: string;
   file_type: string;
@@ -45,7 +47,16 @@ function MoonIcon() {
   );
 }
 
+function FolderIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+    </svg>
+  );
+}
+
 function App() {
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newUploadedDocuments, setNewUploadedDocuments] = useState<DocumentItem[]>([]);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
@@ -56,6 +67,11 @@ function App() {
     document.documentElement.style.colorScheme = theme;
     localStorage.setItem("tcga-theme", theme);
   }, [theme]);
+
+  // Reset docs list when project changes
+  useEffect(() => {
+    setNewUploadedDocuments([]);
+  }, [selectedProject?.id]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
@@ -72,6 +88,18 @@ function App() {
         <div className="app-nav-divider" />
         <span className="app-nav-title">Test Case Generation Assistant</span>
         <span className="app-nav-badge">AI-powered</span>
+
+        {/* Active Project Breadcrumb */}
+        {selectedProject && (
+          <>
+            <div className="app-nav-divider" />
+            <span className="app-nav-project-crumb">
+              <FolderIcon />
+              {selectedProject.name}
+            </span>
+          </>
+        )}
+
         <button
           className="theme-toggle"
           onClick={toggleTheme}
@@ -82,11 +110,49 @@ function App() {
         </button>
       </nav>
 
-      {/* Main */}
-      <main className="app-main">
-        <DocumentUpload onUploadSuccess={setNewUploadedDocuments} />
-        <DocumentList newUploadedDocuments={newUploadedDocuments} />
-      </main>
+      {/* Main layout — 2 columns: sidebar + content */}
+      <div className="app-workspace">
+        <ProjectManager
+          selectedProjectId={selectedProject?.id ?? null}
+          onSelectProject={setSelectedProject}
+        />
+
+        <main className="app-main">
+          {selectedProject ? (
+            <>
+              {/* Project context banner */}
+              <div className="project-context-banner">
+                <FolderIcon />
+                <span>
+                  Project: <strong>{selectedProject.name}</strong>
+                </span>
+                {selectedProject.description && (
+                  <span className="project-context-desc">— {selectedProject.description}</span>
+                )}
+              </div>
+
+              <DocumentUpload
+                projectId={selectedProject.id}
+                onUploadSuccess={setNewUploadedDocuments}
+              />
+              <DocumentList
+                projectId={selectedProject.id}
+                newUploadedDocuments={newUploadedDocuments}
+              />
+            </>
+          ) : (
+            /* Empty state — no project selected */
+            <div className="workspace-empty">
+              <div className="workspace-empty-icon">📂</div>
+              <div className="workspace-empty-title">Select a project to get started</div>
+              <div className="workspace-empty-body">
+                Choose an existing project from the sidebar, or create a new one to begin uploading
+                documents and generating test cases.
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

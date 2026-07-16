@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.schemas.document_schema import DocumentDeleteRequest, DocumentDetail, DocumentExtractResponse, DocumentMetadata
@@ -6,6 +6,7 @@ from app.services.file_service import (
     clear_upload_history,
     delete_documents_by_ids,
     list_documents,
+    list_documents_by_project,
     save_upload_files,
 )
 from app.services.document_text_service import extract_document_text, get_document_detail
@@ -14,9 +15,12 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 
 @router.post("/upload", response_model=list[DocumentMetadata])
-async def upload_document(files: list[UploadFile] = File(...)):
+async def upload_document(
+    files: list[UploadFile] = File(...),
+    project_id: str | None = Query(default=None, description="ID của project để gắn tài liệu. Nếu không truyền, document sẽ không thuộc project nào."),
+):
     try:
-        return await save_upload_files(files)
+        return await save_upload_files(files, project_id=project_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except OSError as exc:
@@ -26,8 +30,12 @@ async def upload_document(files: list[UploadFile] = File(...)):
 
 
 @router.get("", response_model=list[DocumentMetadata])
-def get_documents():
+def get_documents(
+    project_id: str | None = Query(default=None, description="Lọc documents theo project_id. Nếu không truyền, trả về tất cả documents."),
+):
     try:
+        if project_id:
+            return list_documents_by_project(project_id)
         return list_documents()
     except SQLAlchemyError as exc:
         raise HTTPException(status_code=500, detail="Database error while loading documents") from exc

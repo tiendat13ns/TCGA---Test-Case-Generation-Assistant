@@ -5,7 +5,10 @@ const API_URL = "http://localhost:8000/api/documents";
 const API_V1_DOCUMENTS_URL = "http://localhost:8000/api/v1/documents";
 const API_V1_REQUIREMENTS_URL = "http://localhost:8000/api/v1/requirements";
 
-type DocumentListProps = { newUploadedDocuments: DocumentItem[] };
+type DocumentListProps = {
+  projectId: string | null;
+  newUploadedDocuments: DocumentItem[];
+};
 
 type DocumentDetail = DocumentItem & { text_length: number; preview: string | null };
 
@@ -90,7 +93,7 @@ function RequirementFieldList({ items }: { items: string[] | null }) {
   );
 }
 
-function DocumentList({ newUploadedDocuments }: DocumentListProps) {
+function DocumentList({ projectId, newUploadedDocuments }: DocumentListProps) {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -161,7 +164,11 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
       setIsLoading(true);
       setMessage("");
       try {
-        const response = await fetch(API_URL);
+        // Filter by project if a project is selected
+        const url = projectId
+          ? `${API_URL}?project_id=${projectId}`
+          : API_URL;
+        const response = await fetch(url);
         const data = await response.json().catch(() => null);
         if (!response.ok) throw new Error(data?.detail || "Could not load documents.");
         setDocuments(data);
@@ -172,7 +179,7 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
       }
     };
     loadDocuments();
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     if (newUploadedDocuments.length === 0) return;
@@ -571,14 +578,13 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
                         <table className="tc-table">
                           <thead>
                             <tr>
-                              <th style={{ width: "12%" }}>Feature</th>
+                              <th style={{ width: "8%" }}>Feature</th>
                               <th style={{ width: "8%" }}>Test Case ID</th>
-                              <th style={{ width: "15%" }}>Test Item</th>
+                              <th style={{ width: "16%" }}>Test Item</th>
                               <th style={{ width: "15%" }}>Precondition</th>
-                              <th style={{ width: "22%" }}>Test Steps</th>
-                              <th style={{ width: "12%" }}>Test Data</th>
-                              <th style={{ width: "12%" }}>Expected Output</th>
-                              <th style={{ width: "4%" }}>Note</th>
+                              <th style={{ width: "20%" }}>Test Steps</th>
+                              <th style={{ width: "16%" }}>Test Data</th>
+                              <th style={{ width: "16%" }}>Expected Output</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -599,7 +605,6 @@ function DocumentList({ newUploadedDocuments }: DocumentListProps) {
                                 </td>
                                 <td>{tc.test_data || ""}</td>
                                 <td>{tc.expected_result}</td>
-                                <td></td>
                               </tr>
                             ))}
                           </tbody>

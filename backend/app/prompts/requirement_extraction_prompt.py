@@ -32,14 +32,9 @@ Rules:
 - Do not invent unsupported business logic.
 - If information is missing for text metadata, use null.
 - If information is missing for list fields, use an empty array [].
-- Break large features into multiple atomic requirements.
-- Keep each requirement testable.
-- Prefer clear functional requirements.
-- Do not return only a short summary. Each requirement must be detailed enough for a tester to design test cases from it.
-- For every use case in the input, identify separate functional requirements for user actions, system responses, validations, permissions, state changes, and error scenarios when they are present.
-- If the text describes a use case, analyze its actor, trigger, goal, preconditions, main success flow, alternative flow, exception flow, and expected result.
-- Split UI display, data entry, submit action, validation, authorization, status transition, notification, import/export, and audit/history behavior into separate requirements when the document supports it.
-- functional_requirement must be 2 to 4 complete sentences. It must mention the actor or system, the trigger/action, the expected system behavior, and the business outcome.
+- IMPORTANT: Synthesize the entire document or use case into ONE highly detailed, comprehensive requirement that captures all behaviors, rules, and flows. DO NOT fragment the use case into multiple small requirements.
+- IMPORTANT: The language of your output MUST MATCH the language of the input document (e.g., if the input text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
+- The `functional_requirement` field must be highly detailed, thoroughly describing the actor, the trigger, the main flow, and the expected business outcome in multiple complete sentences. Do not use brief or vague summaries.
 - Put validation constraints into validation_rule.
 - Put access control, role, authorization, and permission details into permission.
 - Put step-by-step user/system process into workflow.
@@ -51,8 +46,7 @@ Rules:
 - state should include initial state, target state, status values, state transitions, and persistence/history behavior when present.
 - error_handling should include validation errors, permission errors, missing data, duplicate data, system failures, timeout, unsupported file/type/format, and recovery behavior when present.
 - If a category has no support in the source text, return [] for that category instead of guessing.
-- Generate multiple requirements when the document contains multiple behaviors. Avoid returning a single requirement unless the input only contains one simple behavior.
-- Prefer more complete extraction over brevity.
+- Prefer highly detailed and complete extraction over brevity. Every field in the JSON should be as exhaustive as possible.
 - source_reference should briefly indicate where the requirement came from in the text.
 - confidence_score must be between 0 and 1.
 - status should be "ai_generated" if clear, otherwise "needs_review".

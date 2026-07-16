@@ -13,14 +13,16 @@ from app.services.extractors.extractor_factory import ExtractorFactory
 logger = logging.getLogger(__name__)
 
 
-def _trigger_background_chunking(document_id: str, text: str) -> None:
-    """Chạy ngầm chunking & embedding trong thread riêng ngay khi extract text xong."""
+def _trigger_background_chunking(document_id: str, text: str, project_id: str | None = None) -> None:
+    """Chạy ngầm chunking & embedding trong thread riêng ngay khi extract text xong.
+    project_id được truyền vào để lưu denormalized vào mỗi chunk — giúp RAG filter không cần JOIN.
+    """
     def _run():
         from app.services.chunk_storage_service import process_and_store_document_chunks
-        logger.info("Starting background chunking & embedding for document %s", document_id)
+        logger.info("Starting background chunking & embedding for document %s (project=%s)", document_id, project_id)
         with SessionLocal() as db:
             try:
-                process_and_store_document_chunks(db, document_id, text)
+                process_and_store_document_chunks(db, document_id, text, project_id=project_id)
                 logger.info("Completed background chunking & embedding for document %s", document_id)
             except Exception as exc:
                 logger.error("Background chunking failed for document %s: %s", document_id, str(exc))
@@ -54,6 +56,7 @@ def _document_to_detail(document: Document) -> DocumentDetail:
 
     return DocumentDetail(
         id=str(document.id),
+        project_id=str(document.project_id) if getattr(document, "project_id", None) else None,
         original_filename=document.original_filename,
         stored_filename=document.stored_filename,
         file_type=document.file_type,
@@ -66,6 +69,7 @@ def _document_to_detail(document: Document) -> DocumentDetail:
         text_length=len(extracted_text),
         preview=extracted_text[:5000] if extracted_text else None,
     )
+
 
 
 def get_document_detail(document_id: str) -> DocumentDetail | None:
@@ -157,7 +161,9 @@ def extract_document_text(document_id: str) -> DocumentExtractResponse | None:
             )
 
             # Tự động trigger chunking + embedding ngay khi trích xuất text thành công
-            _trigger_background_chunking(str(document.id), extracted_text)
+            # Truyền project_id để chunk được gắn đúng project — tối ưu RAG filter
+            project_id_str = str(document.project_id) if getattr(document, "project_id", None) else None
+            _trigger_background_chunking(str(document.id), extracted_text, project_id=project_id_str)
 
             return DocumentExtractResponse(
                 document_id=str(document.id),

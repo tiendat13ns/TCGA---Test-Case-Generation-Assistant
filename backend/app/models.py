@@ -1,17 +1,34 @@
 import uuid
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, JSON, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
 from app.database import Base
 
 
+class Project(Base):
+    """Đơn vị tổ chức cao nhất — mỗi Project đại diện cho một hệ thống/module riêng biệt."""
+    __tablename__ = "projects"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+
+
 class Document(Base):
     __tablename__ = "documents"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,  # B-Tree index cho project_id để filter nhanh
+    )
     original_filename = Column(Text, nullable=False)
     stored_filename = Column(Text, nullable=False)
     file_type = Column(Text, nullable=False)
@@ -25,8 +42,27 @@ class Document(Base):
 
 
 class DocumentChunk(Base):
-    """Lưu trữ các chunk text và vector embedding cho RAG."""
+    """Lưu trữ các chunk text và vector embedding cho RAG.
+
+    Chiến lược tối ưu hoá:
+    - project_id được denormalize trực tiếp vào bảng này (không cần JOIN Document khi search).
+    - HNSW index trên cột embedding để cosine similarity search siêu tốc.
+    - B-Tree index trên project_id để pre-filter trước khi search vector.
+    """
     __tablename__ = "document_chunks"
+    __table_args__ = (
+        # HNSW index cho vector search — nhanh hơn IVFFlat, không cần training set.
+        # m=16: số kết nối tối đa mỗi node; ef_construction=64: độ chính xác khi build index.
+        Index(
+            "ix_document_chunks_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+        # B-Tree index cho project_id để filter nhanh trước khi chạy vector search.
+        Index("ix_document_chunks_project_id", "project_id"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     document_id = Column(
@@ -35,6 +71,8 @@ class DocumentChunk(Base):
         nullable=False,
         index=True,
     )
+    # Denormalized: lưu project_id trực tiếp vào chunk để tránh JOIN khi search RAG.
+    project_id = Column(UUID(as_uuid=True), nullable=True)
     chunk_index = Column(Integer, nullable=False)
     content = Column(Text, nullable=False)
     token_count = Column(Integer, nullable=True)
@@ -42,11 +80,17 @@ class DocumentChunk(Base):
     embedding = Column(Vector(1536), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
 class Requirement(Base):
     __tablename__ = "requirements"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), nullable=True)
+    project_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)

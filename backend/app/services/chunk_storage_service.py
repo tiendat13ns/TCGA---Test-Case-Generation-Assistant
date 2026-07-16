@@ -11,13 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 async def _async_process_chunks(
-    db: Session, document_id: str, extracted_text: str
+    db: Session, document_id: str, extracted_text: str, project_id: str | None = None
 ) -> int:
     """
     Phiên bản async: chia text → gọi embedding API → lưu vào document_chunks.
-    Được gọi nội bộ từ hàm sync process_and_store_document_chunks().
+    project_id được lưu denormalized vào mỗi chunk để tối ưu RAG query (tránh JOIN).
     """
     doc_uuid = UUID(document_id)
+    project_uuid = UUID(project_id) if project_id else None
 
     # 1. Xóa các chunks cũ (tránh trùng lặp nếu extract lại)
     db.query(DocumentChunk).filter(DocumentChunk.document_id == doc_uuid).delete()
@@ -31,9 +32,10 @@ async def _async_process_chunks(
         return 0
 
     logger.info(
-        "Generated %d chunks for document %s, starting embedding...",
+        "Generated %d chunks for document %s (project=%s), starting embedding...",
         len(chunks),
         document_id,
+        project_id,
     )
 
     # 3. Gọi API Embedding theo batch (20 chunks/batch để tránh payload lớn)
@@ -46,6 +48,7 @@ async def _async_process_chunks(
         db_chunks = [
             DocumentChunk(
                 document_id=doc_uuid,
+                project_id=project_uuid,   # Denormalized — dùng để filter RAG không cần JOIN
                 chunk_index=i + idx,
                 content=text,
                 token_count=len(text.split()),  # Ước tính nhanh (word count)
@@ -62,7 +65,7 @@ async def _async_process_chunks(
 
 
 def process_and_store_document_chunks(
-    db: Session, document_id: str, extracted_text: str
+    db: Session, document_id: str, extracted_text: str, project_id: str | None = None
 ) -> int:
     """
     Sync wrapper — an toàn để gọi từ FastAPI BackgroundTasks (sync context).
@@ -72,7 +75,9 @@ def process_and_store_document_chunks(
     vì BackgroundTasks chạy trong thread pool riêng.
     """
     try:
-        return asyncio.run(_async_process_chunks(db, document_id, extracted_text))
+        return asyncio.run(
+            _async_process_chunks(db, document_id, extracted_text, project_id=project_id)
+        )
     except Exception as exc:
         logger.error(
             "Failed to process chunks for document %s: %s", document_id, str(exc)

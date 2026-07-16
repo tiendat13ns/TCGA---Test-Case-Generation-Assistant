@@ -18,7 +18,7 @@ For every requirement provided, generate comprehensive test cases that cover:
 - Error handling and exception flows (if applicable)
 
 Each test case must include:
-- title: short descriptive name
+- title: A clear, human-readable sentence stating the objective or purpose of the test case. Do NOT use ID-like formats (e.g. PM_TC001_...).
 - scenario: what situation is being tested
 - preconditions: what must be true before the test runs
 - test_steps: ordered list of concrete steps a tester follows
@@ -31,6 +31,7 @@ Each test case must include:
 - execution_type: Manual | Automation Candidate
 
 Rules:
+- IMPORTANT: The language of your output test cases MUST MATCH the language of the input requirement (e.g., if the requirement text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
 - title must be unique and descriptive.
 - test_steps must be a list of strings (at least 2 steps).
 - expected_result must be explicit and verifiable — never vague like "it works".

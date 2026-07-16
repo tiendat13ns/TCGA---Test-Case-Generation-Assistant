@@ -216,14 +216,21 @@ async def generate_test_cases_from_requirement(requirement_id: str) -> GenerateT
         doc_id = requirement.document_id
 
         # RAG: Lấy các chunks liên quan nhất từ tài liệu gốc (nếu có document_id)
+        # Dùng named arguments theo signature mới: (db, query, top_k, document_id, project_id)
         document_context: str | None = None
         if doc_id:
             rag_query = f"{requirement.title}: {requirement.description or requirement.functional_requirement or ''}"
+            project_id = getattr(requirement, "project_id", None)
             chunks = await retrieve_relevant_chunks_async(
-                db, str(doc_id), rag_query, top_k=5
+                db,
+                rag_query,
+                top_k=5,
+                document_id=None,  # Bỏ lọc theo document_id
+                project_id=str(project_id) if project_id else None, # Lọc theo toàn bộ Project
             )
             if chunks:
                 document_context = "\n\n---\n\n".join(chunks)
+
                 logger.info(
                     "RAG: enriched test case prompt for requirement %s with %d chunks from document %s",
                     req_id, len(chunks), doc_id,

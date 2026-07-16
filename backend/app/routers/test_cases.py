@@ -73,7 +73,7 @@ def export_test_cases(requirement_id: str):
         wb = Workbook()
         ws = wb.active
         ws.title = "Test Cases"
-        headers = ["Feature", "Test Case ID", "Test Item", "Precondition", "Test Steps", "Test Data", "Expected Output", "Note"]
+        headers = ["Feature", "Test Case ID", "Test Item", "Precondition", "Test Steps", "Test Data", "Expected Output"]
         ws.append(headers)
         
         header_font = Font(bold=True)
@@ -93,8 +93,7 @@ def export_test_cases(requirement_id: str):
                 tc.preconditions or "",
                 steps_text,
                 tc.test_data or "",
-                tc.expected_result,
-                ""  # Note
+                tc.expected_result
             ])
             
         output = io.BytesIO()

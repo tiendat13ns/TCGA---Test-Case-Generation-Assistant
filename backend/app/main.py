@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import check_database_connection, init_db
 from app.routers.ai import router as ai_router
 from app.routers.documents import router as documents_router
+from app.routers.projects import router as projects_router
 from app.routers.requirements import router as requirements_router
 from app.routers.test_cases import router as test_cases_router
 from app.routers.agent import router as agent_router
@@ -22,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(projects_router)
 app.include_router(documents_router)
 app.include_router(ai_router)
 app.include_router(requirements_router)

@@ -188,6 +188,23 @@ select {
   background: var(--accent-dim);
   color: var(--accent);
   border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.app-nav-project-crumb {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-left: auto;
 }
 
@@ -214,14 +231,208 @@ select {
   border-color: var(--accent);
 }
 
+/* ── 2-Column Workspace Layout ─────────────────────────── */
+.app-workspace {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100dvh - 56px);
+  overflow: hidden;
+}
+
 .app-main {
   padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
+  overflow-y: auto;
   display: grid;
-  gap: 16px;
+  gap: 20px;
+  align-content: start;
 }
+
+/* ── Project Sidebar ────────────────────────────────────── */
+.project-sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sidebar-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.project-list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 0;
+}
+
+.project-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 2px 6px;
+  transition: background var(--transition);
+}
+
+.project-item:hover {
+  background: var(--bg-hover);
+}
+
+.project-item.active {
+  background: var(--accent-glow);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.project-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-item-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-item.active .project-item-name {
+  color: var(--accent);
+}
+
+.project-item-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.project-item-date {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.project-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.project-item:hover .project-item-actions,
+.project-item.active .project-item-actions {
+  opacity: 1;
+}
+
+.create-project-form {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+/* ── Project Context Banner ─────────────────────────────── */
+.project-context-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--accent-glow);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-card);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.project-context-banner strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.project-context-desc {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Workspace Empty State ──────────────────────────────── */
+.workspace-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  gap: 10px;
+  padding: 40px;
+}
+
+.workspace-empty-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  filter: grayscale(0.2);
+}
+
+.workspace-empty-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.workspace-empty-body {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 360px;
+  line-height: 1.7;
+}
+
+/* ── Extra small button variant ────────────────────────── */
+.btn-xs {
+  padding: 3px 9px;
+  font-size: 11px;
+  height: auto;
+}
+
+
 
 /* ── Card / Panel ────────────────────────────────────────── */
 .panel {
