@@ -189,6 +189,8 @@ def _requirement_to_response(requirement: Requirement) -> RequirementResponse:
         confidence_score=requirement.confidence_score,
         status=requirement.status,
         version=requirement.version,
+        clarifying_questions=requirement.clarifying_questions,
+        user_answers=requirement.user_answers,
     )
 
 
@@ -395,6 +397,7 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
                     status=item.status,
                     version=version,
                     updated_at=datetime.now(),
+                    clarifying_questions=item.clarifying_questions or [],
                 )
                 for item in validated_response.requirements
             ]

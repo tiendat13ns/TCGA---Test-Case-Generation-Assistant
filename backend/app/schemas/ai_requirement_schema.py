@@ -27,6 +27,7 @@ class AIRequirementItem(BaseModel):
     source_reference: str | None = None
     confidence_score: float | None = None
     status: str = "ai_generated"
+    clarifying_questions: list[str] = Field(default_factory=list)
 
     @field_validator(
         "validation_rule",
@@ -40,6 +41,7 @@ class AIRequirementItem(BaseModel):
         "preconditions",
         "validation_rules",
         "exception_flows",
+        "clarifying_questions",
         mode="before",
     )
     @classmethod

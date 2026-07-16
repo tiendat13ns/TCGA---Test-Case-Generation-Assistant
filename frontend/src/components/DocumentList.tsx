@@ -23,6 +23,9 @@ type RequirementItem = {
   preconditions: string[] | null; validation_rules: string[] | null;
   exception_flows: string[] | null; source_reference: string | null;
   confidence_score: number | null; status: string; version: number;
+  // HITL Q&A fields
+  clarifying_questions: string[] | null;
+  user_answers: string[] | null;
 };
 
 type GenerateRequirementsResponse = {
@@ -112,6 +115,10 @@ function DocumentList({ projectId, newUploadedDocuments }: DocumentListProps) {
 
   const [existingRequirements, setExistingRequirements] = useState<Record<string, GenerateRequirementsResponse | null>>({});
   const [isLoadingRequirements, setIsLoadingRequirements] = useState<Record<string, boolean>>({});
+
+  // HITL Q&A state: map from requirementId -> user's draft answers (one per question)
+  const [qaAnswersDraft, setQaAnswersDraft] = useState<Record<string, string[]>>({});
+  const [submittingAnswersId, setSubmittingAnswersId] = useState<string | null>(null);
 
   useEffect(() => {
     documents.forEach(async (doc) => {
@@ -290,6 +297,40 @@ function DocumentList({ projectId, newUploadedDocuments }: DocumentListProps) {
       setExpandedTestCasesId(requirementId);
     } catch (e) { setMessage(e instanceof Error ? e.message : "Cannot connect to backend."); }
     finally { setGeneratingTestCasesId(null); }
+  };
+
+  const submitAnswersAndGenerate = async (req: RequirementItem) => {
+    const drafts = qaAnswersDraft[req.id] || [];
+    const numQuestions = req.clarifying_questions?.length || 0;
+
+    // Pad missing answers with empty strings
+    const answers = Array.from({ length: numQuestions }, (_, i) => drafts[i] || "");
+
+    setSubmittingAnswersId(req.id); setMessage("");
+    try {
+      // Step 1: Save answers to backend
+      const r = await fetch(`${API_V1_REQUIREMENTS_URL}/${req.id}/answers`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const saved = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(saved?.detail || "Could not save answers.");
+
+      // Update local requirement state with saved answers
+      const updateReqs = (prev: GenerateRequirementsResponse | null) =>
+        prev ? { ...prev, requirements: prev.requirements.map((r) => r.id === req.id ? { ...r, user_answers: saved.user_answers } : r) } : prev;
+      setGeneratedRequirements((prev) => updateReqs(prev));
+      setExistingRequirements((prev) => {
+        const docId = Object.keys(prev).find((k) => prev[k]?.requirements.some((r) => r.id === req.id));
+        if (!docId) return prev;
+        return { ...prev, [docId]: updateReqs(prev[docId]) };
+      });
+
+      // Step 2: Generate test cases (with answers now in DB)
+      await generateTestCases(req.id);
+    } catch (e) { setMessage(e instanceof Error ? e.message : "Cannot connect to backend."); }
+    finally { setSubmittingAnswersId(null); }
   };
 
   const allVisibleSelected = filteredDocuments.length > 0 && filteredDocuments.every((d) => selectedDocumentIds.includes(d.id));
@@ -506,15 +547,36 @@ function DocumentList({ projectId, newUploadedDocuments }: DocumentListProps) {
                   <span className="req-card-title">REQ-{String(idx + 1).padStart(2, "0")}</span>
                   <div className="req-card-actions">
                     <StatusBadge status={req.status} />
-                    <button type="button" className="btn btn-purple" disabled={generatingTestCasesId === req.id} onClick={() => generateTestCases(req.id)}>
-                      {generatingTestCasesId === req.id ? (
-                        <><SpinnerIcon /> Generating...</>
-                      ) : testCasesMap[req.id] ? (
-                        <><RefreshIcon /> Re-generate Test Cases</>
-                      ) : (
-                        <><ZapIcon /> Generate Test Cases</>
-                      )}
-                    </button>
+                    {/* HITL: Show Q&A button only if no answers yet */}
+                    {!req.user_answers?.length && req.clarifying_questions?.length ? (
+                      <button
+                        type="button"
+                        className="btn btn-purple"
+                        disabled={submittingAnswersId === req.id}
+                        onClick={() => submitAnswersAndGenerate(req)}
+                      >
+                        {submittingAnswersId === req.id ? (
+                          <><SpinnerIcon /> Saving & Generating...</>
+                        ) : (
+                          <><ZapIcon /> Confirm Answers & Generate</>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-purple"
+                        disabled={generatingTestCasesId === req.id}
+                        onClick={() => generateTestCases(req.id)}
+                      >
+                        {generatingTestCasesId === req.id ? (
+                          <><SpinnerIcon /> Generating...</>
+                        ) : testCasesMap[req.id] ? (
+                          <><RefreshIcon /> Re-generate Test Cases</>
+                        ) : (
+                          <><ZapIcon /> Generate Test Cases</>
+                        )}
+                      </button>
+                    )}
                     {testCasesMap[req.id] && (
                       <button type="button" className="btn btn-secondary" onClick={() => setExpandedTestCasesId((prev) => prev === req.id ? null : req.id)}>
                         {expandedTestCasesId === req.id ? <><ChevronUp /> Hide ({testCasesMap[req.id]!.total_test_cases})</> : <><ChevronDown /> Show ({testCasesMap[req.id]!.total_test_cases})</>}
@@ -554,6 +616,45 @@ function DocumentList({ projectId, newUploadedDocuments }: DocumentListProps) {
                         <div className="confidence-fill" style={{ width: `${(req.confidence_score * 100).toFixed(0)}%` }} />
                       </div>
                       <span>{(req.confidence_score * 100).toFixed(0)}%</span>
+                    </div>
+                  )}
+
+                  {/* ── Q&A Panel (HITL) ── */}
+                  {req.clarifying_questions && req.clarifying_questions.length > 0 && (
+                    <div className="hitl-qa-panel">
+                      <div className="hitl-qa-header">
+                        <span className="hitl-qa-icon">⚠️</span>
+                        <span className="hitl-qa-title">AI cần làm rõ {req.clarifying_questions.length} điểm trước khi tạo Test Case</span>
+                        {req.user_answers?.length ? (
+                          <span className="badge badge-completed" style={{ marginLeft: "auto" }}>Đã trả lời</span>
+                        ) : (
+                          <span className="badge badge-processing" style={{ marginLeft: "auto" }}>Chờ trả lời</span>
+                        )}
+                      </div>
+                      <div className="hitl-qa-body">
+                        {req.clarifying_questions.map((q, qIdx) => (
+                          <div key={qIdx} className="hitl-qa-item">
+                            <div className="hitl-qa-question">
+                              <span className="hitl-q-num">Q{qIdx + 1}</span>
+                              <span>{q}</span>
+                            </div>
+                            <textarea
+                              className="hitl-qa-answer"
+                              placeholder={req.user_answers?.[qIdx] || "Nhập câu trả lời của bạn..."}
+                              value={qaAnswersDraft[req.id]?.[qIdx] ?? (req.user_answers?.[qIdx] || "")}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setQaAnswersDraft((prev) => {
+                                  const arr = [...(prev[req.id] || Array(req.clarifying_questions!.length).fill(""))];
+                                  arr[qIdx] = val;
+                                  return { ...prev, [req.id]: arr };
+                                });
+                              }}
+                              rows={2}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 

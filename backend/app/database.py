@@ -38,6 +38,7 @@ def init_db() -> None:
     _ensure_document_columns()
     _ensure_document_chunk_columns()
     _ensure_requirement_columns()
+    _ensure_requirement_hitl_columns()
     _ensure_agent_log_columns()
     _ensure_test_case_columns()
 
@@ -133,6 +134,17 @@ def _ensure_requirement_columns() -> None:
         "ALTER TABLE requirements ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
     ]
 
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
+def _ensure_requirement_hitl_columns() -> None:
+    """Thêm các cột cho tính năng Human-in-the-Loop Q&A."""
+    statements = [
+        "ALTER TABLE requirements ADD COLUMN IF NOT EXISTS clarifying_questions JSON",
+        "ALTER TABLE requirements ADD COLUMN IF NOT EXISTS user_answers JSON",
+    ]
     with engine.begin() as connection:
         for statement in statements:
             connection.execute(text(statement))

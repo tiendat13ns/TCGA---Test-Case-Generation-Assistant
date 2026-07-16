@@ -24,6 +24,9 @@ class RequirementResponse(BaseModel):
     confidence_score: float | None = None
     status: str
     version: int
+    # Human-in-the-Loop Q&A fields
+    clarifying_questions: list[str] | None = None
+    user_answers: list[str] | None = None
 
 
 class GenerateRequirementsResponse(BaseModel):

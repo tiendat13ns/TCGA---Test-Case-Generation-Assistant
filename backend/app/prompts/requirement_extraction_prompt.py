@@ -19,6 +19,7 @@ Each requirement must include these main output fields:
 - workflow
 - state
 - error_handling
+- clarifying_questions
 
 Each requirement may also include useful metadata:
 - module_name
@@ -50,6 +51,7 @@ Rules:
 - source_reference should briefly indicate where the requirement came from in the text.
 - confidence_score must be between 0 and 1.
 - status should be "ai_generated" if clear, otherwise "needs_review".
+- IMPORTANT: After extracting the requirement, act as a skeptical QA lead. Identify 3 to 5 specific gaps, ambiguities, or missing boundary conditions in the document that a tester would need answered to write accurate test cases. Store these as the `clarifying_questions` list. Each question must be concrete and reference a specific scenario (e.g., "What error message should appear if the project name exceeds the character limit?"). If the document is fully explicit, return an empty array [].
 
 Required JSON schema:
 
@@ -62,6 +64,7 @@ Required JSON schema:
       "workflow": ["string"],
       "state": ["string"],
       "error_handling": ["string"],
+      "clarifying_questions": ["string"],
       "module_name": "string or null",
       "feature_name": "string or null",
       "actor": "string or null",
