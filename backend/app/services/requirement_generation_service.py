@@ -274,15 +274,21 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
         doc_id_str = str(document.id)
         fallback_text = document.extracted_text
 
-        # RAG: Lấy các chunks liên quan nhất từ DB thay vì nhồi toàn bộ văn bản
+        # RAG: Lấy các chunks liên quan nhất từ DB thay vì nhồi toàn bộ văn bản.
+        # Ưu tiên filter theo project_id để tránh nhiễu từ documents của project khác.
         RAG_QUERY = (
             "software requirements, features, user stories, business rules, "
             "functional requirements, use cases, actors, workflows, validations, "
             "permissions, error handling, system behavior"
         )
         retrieved_chunks = await retrieve_relevant_chunks_async(
-            db, doc_id_str, RAG_QUERY, top_k=12
+            db,
+            RAG_QUERY,
+            top_k=12,
+            document_id=None,  # Bỏ lọc theo document_id
+            project_id=str(project_id) if project_id else None, # Lọc theo toàn bộ Project
         )
+
 
     # Nếu chưa có chunks trong DB (chưa embed xong), fallback về extracted_text
     if retrieved_chunks:

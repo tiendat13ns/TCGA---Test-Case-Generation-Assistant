@@ -20,7 +20,9 @@ def create_agent_tools(document_id: str):
         hoặc kiểm tra thông tin cụ thể trong tài liệu dài.
         """
         with SessionLocal() as db:
-            chunks = retrieve_relevant_chunks(db, document_id, query, top_k=5)
+            chunks = retrieve_relevant_chunks(
+                db, query, top_k=5, document_id=document_id
+            )
 
         if not chunks:
             return "Không tìm thấy thông tin liên quan trong tài liệu."

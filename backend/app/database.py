@@ -36,6 +36,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_document_columns()
+    _ensure_document_chunk_columns()
     _ensure_requirement_columns()
     _ensure_agent_log_columns()
     _ensure_test_case_columns()
@@ -83,6 +84,7 @@ def _ensure_test_case_columns() -> None:
 
 def _ensure_document_columns() -> None:
     statements = [
+        "ALTER TABLE documents ADD COLUMN IF NOT EXISTS project_id UUID",
         "ALTER TABLE documents ADD COLUMN IF NOT EXISTS extracted_text TEXT",
         "ALTER TABLE documents ADD COLUMN IF NOT EXISTS error_message TEXT",
         "ALTER TABLE documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
@@ -91,6 +93,19 @@ def _ensure_document_columns() -> None:
     with engine.begin() as connection:
         for statement in statements:
             connection.execute(text(statement))
+
+
+def _ensure_document_chunk_columns() -> None:
+    statements = [
+        "ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS project_id UUID",
+    ]
+
+    with engine.begin() as connection:
+        for statement in statements:
+            try:
+                connection.execute(text(statement))
+            except Exception as e:
+                pass # Bỏ qua nếu table chưa tồn tại (create_all sẽ tạo sau, nhưng create_all chạy trước rồi)
 
 
 def _ensure_requirement_columns() -> None:

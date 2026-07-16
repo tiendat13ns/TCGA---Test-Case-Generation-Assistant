@@ -5,6 +5,7 @@ import type { DocumentItem } from "../App";
 const API_URL = "http://localhost:8000/api/documents/upload";
 
 type DocumentUploadProps = {
+  projectId: string | null;
   onUploadSuccess: (documents: DocumentItem[]) => void;
 };
 
@@ -44,7 +45,7 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
+function DocumentUpload({ projectId, onUploadSuccess }: DocumentUploadProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -86,12 +87,15 @@ function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
     const formData = new FormData();
     selectedFiles.forEach((file) => formData.append("files", file));
 
+    // Append project_id as query param if a project is selected
+    const url = projectId ? `${API_URL}?project_id=${projectId}` : API_URL;
+
     setIsUploading(true);
     setIsError(false);
     setMessage("");
 
     try {
-      const response = await fetch(API_URL, { method: "POST", body: formData });
+      const response = await fetch(url, { method: "POST", body: formData });
       const data = await response.json().catch(() => null);
 
       if (!response.ok) throw new Error(data?.detail || "Upload failed.");
@@ -114,11 +118,18 @@ function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
     <section className="panel animate-in">
       <div className="panel-header">
         <span className="panel-title">Upload Documents</span>
-        {selectedFiles.length > 0 && (
-          <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-            {selectedFiles.length} file{selectedFiles.length === 1 ? "" : "s"} selected
-          </span>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {!projectId && (
+            <span style={{ fontSize: "11px", color: "var(--warning)", display: "flex", alignItems: "center", gap: "4px" }}>
+              ⚠ Select a project first
+            </span>
+          )}
+          {selectedFiles.length > 0 && (
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+              {selectedFiles.length} file{selectedFiles.length === 1 ? "" : "s"} selected
+            </span>
+          )}
+        </div>
       </div>
       <div className="panel-body">
         <form ref={formRef} onSubmit={handleSubmit}>

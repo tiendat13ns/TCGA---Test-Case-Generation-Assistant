@@ -52,6 +52,7 @@ def _format_datetime(value) -> str:
 def _document_model_to_schema(document: Document) -> DocumentMetadata:
     return DocumentMetadata(
         id=str(document.id),
+        project_id=str(document.project_id) if document.project_id else None,
         original_filename=document.original_filename,
         stored_filename=document.stored_filename,
         file_type=document.file_type,
@@ -81,9 +82,14 @@ def _delete_uploaded_file(file_path: str) -> None:
         raise
 
 
-def _save_documents_to_database(documents: list[DocumentMetadata]) -> list[DocumentMetadata]:
+def _save_documents_to_database(
+    documents: list[DocumentMetadata],
+    project_id: str | None = None,
+) -> list[DocumentMetadata]:
     if not is_database_configured():
         return documents
+
+    project_uuid = UUID(project_id) if project_id else None
 
     with SessionLocal() as db:
         saved_documents: list[Document] = []
@@ -91,6 +97,7 @@ def _save_documents_to_database(documents: list[DocumentMetadata]) -> list[Docum
         for document in documents:
             document_model = Document(
                 id=UUID(document.id),
+                project_id=project_uuid,
                 original_filename=document.original_filename,
                 stored_filename=document.stored_filename,
                 file_type=document.file_type,
@@ -133,6 +140,22 @@ def _extract_saved_documents(documents: list[DocumentMetadata]) -> list[Document
         extract_document_text(document.id)
 
     return _get_documents_from_database([document.id for document in documents])
+
+
+def list_documents_by_project(project_id: str) -> list[DocumentMetadata]:
+    """Lấy danh sách documents thuộc một project cụ thể."""
+    if not is_database_configured():
+        return []
+
+    project_uuid = UUID(project_id)
+    with SessionLocal() as db:
+        documents = (
+            db.query(Document)
+            .filter(Document.project_id == project_uuid)
+            .order_by(Document.uploaded_at.desc())
+            .all()
+        )
+        return [_document_model_to_schema(doc) for doc in documents]
 
 
 def _safe_filename(filename: str) -> str:
@@ -306,7 +329,10 @@ def delete_documents_by_ids(document_ids: list[str]) -> int:
     return deleted_count
 
 
-async def save_upload_file(file: UploadFile) -> list[DocumentMetadata]:
+async def save_upload_file(
+    file: UploadFile,
+    project_id: str | None = None,
+) -> list[DocumentMetadata]:
     if not file or not file.filename:
         raise ValueError("File is required")
 
@@ -326,7 +352,7 @@ async def save_upload_file(file: UploadFile) -> list[DocumentMetadata]:
         raise ValueError(f"Invalid file type for {file.filename}. Allowed types: {allowed}")
 
     if is_database_configured():
-        saved_documents = _save_documents_to_database(uploaded_documents)
+        saved_documents = _save_documents_to_database(uploaded_documents, project_id=project_id)
         return _extract_saved_documents(saved_documents)
 
     documents = _read_metadata()
@@ -336,12 +362,15 @@ async def save_upload_file(file: UploadFile) -> list[DocumentMetadata]:
     return uploaded_documents
 
 
-async def save_upload_files(files: list[UploadFile]) -> list[DocumentMetadata]:
+async def save_upload_files(
+    files: list[UploadFile],
+    project_id: str | None = None,
+) -> list[DocumentMetadata]:
     if not files:
         raise ValueError("At least one file is required")
 
     uploaded_documents: list[DocumentMetadata] = []
     for file in files:
-        uploaded_documents.extend(await save_upload_file(file))
+        uploaded_documents.extend(await save_upload_file(file, project_id=project_id))
 
     return uploaded_documents
