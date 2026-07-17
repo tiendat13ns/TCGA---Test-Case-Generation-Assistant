@@ -8,7 +8,7 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 - Text extraction & Vectorization: `pdfplumber`, `python-docx`, `openpyxl`, `langchain` text splitters
 - AI Provider abstraction: hỗ trợ OpenAI-compatible endpoint (vd. `api.vilao.ai`)
 - Database: PostgreSQL (Supabase) + `pgvector` qua SQLAlchemy
-- Preprocessing pipeline: extract → chunking (size=800, overlap=150) → embedding (1536 chiều) → RAG retrieval
+- Preprocessing pipeline: extract → Markdown Header Chunking (chia theo Heading cấp độ, fallback size=1500) → embedding (1536 chiều) → RAG retrieval
 
 **Frontend** — React + TypeScript + Vite
 - Dark/light mode toggle (lưu localStorage)
@@ -35,7 +35,7 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 
 ### AI Test Case Generation (Tích hợp RAG)
 - Sinh test case từ requirement đã extract
-- Lấy thêm bối cảnh (**Top-5 Chunks** trong Project) bằng query dựa trên Requirement Title + Description để bổ sung ngữ cảnh cho LLM
+- Lấy thêm bối cảnh (**Top-15 Chunks** trong Project) bằng query dựa trên Requirement Title + Description để bổ sung ngữ cảnh cho LLM
 - Output bảng phẳng 7 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output**
 - Cột *Test Item* hiển thị mục đích/ngữ cảnh test case bằng ngôn ngữ tự nhiên.
 - Không merge cell, không block thống kê QA, không ma trận trình duyệt
