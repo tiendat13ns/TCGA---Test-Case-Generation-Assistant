@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import DocumentList from "./components/DocumentList";
 import DocumentUpload from "./components/DocumentUpload";
 import ProjectManager, { Project } from "./components/ProjectManager";
+import RequirementViewer, { GenerateRequirementsResponse } from "./components/RequirementViewer";
 
 export type DocumentItem = {
   id: string;
@@ -58,6 +59,8 @@ function FolderIcon() {
 function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newUploadedDocuments, setNewUploadedDocuments] = useState<DocumentItem[]>([]);
+  const [activeRequirements, setActiveRequirements] = useState<GenerateRequirementsResponse | null>(null);
+  const [activeDocument, setActiveDocument] = useState<DocumentItem | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
   });
@@ -68,12 +71,19 @@ function App() {
     localStorage.setItem("tcga-theme", theme);
   }, [theme]);
 
-  // Reset docs list when project changes
+  // Reset state when project changes
   useEffect(() => {
     setNewUploadedDocuments([]);
+    setActiveRequirements(null);
+    setActiveDocument(null);
   }, [selectedProject?.id]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
+  const handleViewRequirements = (reqs: GenerateRequirementsResponse, doc: DocumentItem) => {
+    setActiveRequirements(reqs);
+    setActiveDocument(doc);
+  };
 
   return (
     <div className="app-shell">
@@ -110,7 +120,7 @@ function App() {
         </button>
       </nav>
 
-      {/* Main layout — 2 columns: sidebar + content */}
+      {/* Main layout — project sidebar + content */}
       <div className="app-workspace">
         <ProjectManager
           selectedProjectId={selectedProject?.id ?? null}
@@ -131,14 +141,29 @@ function App() {
                 )}
               </div>
 
-              <DocumentUpload
-                projectId={selectedProject.id}
-                onUploadSuccess={setNewUploadedDocuments}
-              />
-              <DocumentList
-                projectId={selectedProject.id}
-                newUploadedDocuments={newUploadedDocuments}
-              />
+              {/* Main content grid: Requirement Viewer (left) + right sidebar (Upload + List) */}
+              <div className="workspace-content-grid">
+                {/* Left main area: Requirement & Test Case Viewer */}
+                <RequirementViewer
+                  requirements={activeRequirements}
+                  document={activeDocument}
+                  onClose={() => { setActiveRequirements(null); setActiveDocument(null); }}
+                  onRequirementsUpdate={setActiveRequirements}
+                />
+
+                {/* Right sidebar: Upload on top, Document List below */}
+                <div className="workspace-right-sidebar">
+                  <DocumentUpload
+                    projectId={selectedProject.id}
+                    onUploadSuccess={setNewUploadedDocuments}
+                  />
+                  <DocumentList
+                    projectId={selectedProject.id}
+                    newUploadedDocuments={newUploadedDocuments}
+                    onViewRequirements={handleViewRequirements}
+                  />
+                </div>
+              </div>
             </>
           ) : (
             /* Empty state — no project selected */

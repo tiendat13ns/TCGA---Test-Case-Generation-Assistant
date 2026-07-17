@@ -31,7 +31,13 @@ Each test case must include:
 - execution_type: Manual | Automation Candidate
 
 Rules:
-- IMPORTANT: The language of your output test cases MUST MATCH the language of the input requirement (e.g., if the requirement text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
+- IMPORTANT (TEST DESIGN): You MUST apply ISTQB standard techniques before generating cases:
+  1. Equivalence Partitioning: Cover valid and invalid partitions.
+  2. Boundary Value Analysis: Test exact MIN, MAX, MIN-1, MAX+1.
+  3. Decision Table: If business rules have multiple conditions, create combinations of True/False paths.
+  4. State Transition: Test valid and invalid state changes based on 'workflow' and 'state'.
+- IMPORTANT (TEST DATA): Do NOT use generic test data like "invalid email" or "long string". Your `test_data` MUST be specific and explicit (e.g., "email='user@.com'", "name='A'*256", "age=-1", "amount=0"). Include Unicode, empty strings/arrays, nulls, SQL/XSS injections, and boundary-exceeding values for negative/security cases.
+- IMPORTANT (LANGUAGE): The language of your output test cases MUST MATCH the language of the input requirement (e.g., if the requirement text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
 - title: A clear, human-readable sentence stating the objective or purpose of the test case. Do NOT use ID-like formats (e.g. PM_TC001_...).
 - test_steps must be a list of strings (at least 2 steps).
 - expected_result must be explicit and verifiable — never vague like "it works".
@@ -156,7 +162,9 @@ def build_user_prompt(requirement: Requirement, document_context: str | None = N
 
     sections.append("""
 Before returning JSON, internally verify:
-- at least 20 test cases are generated covering all dimensions (Functional, Negative, Boundary, Security, State Transition);
+- ISTQB check: Have you used Boundary Value Analysis (MIN/MAX, MIN-1, MAX+1) and Equivalence Partitioning?
+- Test Data check: Does `test_data` contain explicit, raw values (e.g., exact strings, numbers, nulls, special chars) rather than generic descriptions?
+- Coverage check: at least 20 test cases are generated covering Functional, Negative, Boundary, Security, and State Transition.
 - every validation rule has at least 2 negative test cases;
 - every error handling scenario has a dedicated test case;
 - if Q&A context is provided, each answer has at least 1 dedicated test case;

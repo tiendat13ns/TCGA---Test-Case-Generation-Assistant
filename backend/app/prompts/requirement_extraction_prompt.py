@@ -100,8 +100,8 @@ Each excerpt is separated by "---". Analyze ALL excerpts thoroughly to extract r
 {retrieved_context}
 
 Before returning JSON, internally check that:
-- every important use case covered in the excerpts has been extracted;
-- each requirement is atomic and testable;
+- ALL behaviors, rules, and flows covered in the excerpts have been synthesized into EXACTLY ONE single, comprehensive requirement object.
+- DO NOT return an array of multiple requirements. The "requirements" array MUST contain exactly ONE item.
 - list fields contain useful detail when the source text supports it;
 - the response is ONLY valid JSON matching the required schema.
 """
