@@ -231,12 +231,33 @@ select {
   border-color: var(--accent);
 }
 
+.icon-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  padding: 0;
+}
+
+.icon-btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 /* ── 2-Column Workspace Layout ─────────────────────────── */
 .app-workspace {
   display: grid;
   grid-template-columns: 240px 1fr;
   min-height: calc(100dvh - 56px);
   overflow: hidden;
+  transition: grid-template-columns var(--transition-slow);
 }
 
 .app-main {
@@ -1104,8 +1125,10 @@ select {
 
 /* ── Test Cases ──────────────────────────────────────────── */
 .tc-panel {
-  border-top: 1px solid var(--border-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
   background: var(--bg);
+  overflow: hidden;
 }
 
 .tc-panel-header {
@@ -1426,6 +1449,171 @@ input[type="checkbox"] {
   border-color: var(--border);
 }
 
+/* ── Workspace Content Grid ───────────────────────────────── */
+.workspace-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.workspace-right-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .workspace-content-grid {
+    grid-template-columns: 1fr;
+  }
+  .workspace-right-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ── RequirementViewer ────────────────────────────────────── */
+.rv-panel {
+  min-height: 300px;
+}
+
+.rv-req-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.rv-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  min-height: 300px;
+  gap: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.rv-empty-icon {
+  font-size: 40px;
+  opacity: 0.4;
+}
+
+.rv-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.rv-empty-body {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 340px;
+  line-height: 1.6;
+}
+
+.rv-preview-panel {
+  margin: 18px 18px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rv-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+
+.rv-preview-header:hover {
+  background: var(--bg-hover);
+}
+
+.rv-preview-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rv-preview-body {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+  max-height: 300px;
+}
+
+/* ── Document Card List ───────────────────────────────────── */
+.doc-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 14px;
+}
+
+.doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+
+.doc-card:hover {
+  border-color: var(--border-focus);
+}
+
+.doc-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.doc-card-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.doc-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .app-main {
@@ -1448,4 +1636,89 @@ input[type="checkbox"] {
   .app-nav {
     padding: 0 16px;
   }
+}
+
+/* ── HITL Q&A Panel ── */
+.hitl-qa-panel {
+  margin: 12px 0 4px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.04);
+  overflow: hidden;
+}
+
+.hitl-qa-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: rgba(251, 191, 36, 0.07);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.18);
+}
+
+.hitl-qa-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.hitl-qa-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fbbf24;
+  letter-spacing: 0.01em;
+}
+
+.hitl-qa-body {
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hitl-qa-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.hitl-qa-question {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.hitl-q-num {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-top: 1px;
+}
+
+.hitl-qa-answer {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  padding: 7px 10px;
+  resize: vertical;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.hitl-qa-answer:focus {
+  outline: none;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.12);
 }

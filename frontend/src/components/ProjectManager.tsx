@@ -18,6 +18,14 @@ const PlusIcon = () => (
     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
+const PanelLeftCloseIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <line x1="9" y1="3" x2="9" y2="21" />
+    <polyline points="16 16 12 12 16 8" />
+  </svg>
+);
+
 const TrashIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
@@ -53,9 +61,10 @@ function formatDate(d: string) {
 type ProjectManagerProps = {
   selectedProjectId: string | null;
   onSelectProject: (project: Project | null) => void;
+  onCloseSidebar: () => void;
 };
 
-function ProjectManager({ selectedProjectId, onSelectProject }: ProjectManagerProps) {
+function ProjectManager({ selectedProjectId, onSelectProject, onCloseSidebar }: ProjectManagerProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -113,9 +122,19 @@ function ProjectManager({ selectedProjectId, onSelectProject }: ProjectManagerPr
         <span className="sidebar-title">
           <FolderIcon /> Projects
         </span>
-        <button className="btn btn-primary btn-xs" onClick={() => setShowCreate((v) => !v)}>
-          <PlusIcon /> New
-        </button>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <button className="btn btn-primary btn-xs" onClick={() => setShowCreate((v) => !v)} style={{ padding: "4px 8px" }} title="New Project">
+            <PlusIcon />
+          </button>
+          <button 
+            type="button"
+            className="icon-btn-ghost" 
+            onClick={onCloseSidebar} 
+            title="Close sidebar" 
+          >
+            <PanelLeftCloseIcon />
+          </button>
+        </div>
       </div>
 
       {showCreate && (

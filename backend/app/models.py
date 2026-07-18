@@ -116,6 +116,9 @@ class Requirement(Base):
     created_by = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True)
+    # Human-in-the-Loop Q&A columns
+    clarifying_questions = Column(JSON, nullable=True)   # list[str]: questions AI raised
+    user_answers = Column(JSON, nullable=True)            # list[str]: QA/BA answers
 
 
 class AgentLog(Base):

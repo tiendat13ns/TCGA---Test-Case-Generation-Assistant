@@ -75,6 +75,7 @@ class OpenAICompatibleProvider(BaseAIProvider):
                     json={
                         "model": self.model,
                         "messages": messages,
+                        "max_tokens": 8192,
                     },
                 )
 

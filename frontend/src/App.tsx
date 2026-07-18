@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import DocumentList from "./components/DocumentList";
 import DocumentUpload from "./components/DocumentUpload";
 import ProjectManager, { Project } from "./components/ProjectManager";
+import RequirementViewer, { GenerateRequirementsResponse } from "./components/RequirementViewer";
 
 export type DocumentItem = {
   id: string;
@@ -55,12 +56,35 @@ function FolderIcon() {
   );
 }
 
+function PanelLeftCloseIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <polyline points="16 16 12 12 16 8" />
+    </svg>
+  );
+}
+
+function PanelLeftOpenIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <polyline points="14 8 18 12 14 16" />
+    </svg>
+  );
+}
+
 function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newUploadedDocuments, setNewUploadedDocuments] = useState<DocumentItem[]>([]);
+  const [activeRequirements, setActiveRequirements] = useState<GenerateRequirementsResponse | null>(null);
+  const [activeDocument, setActiveDocument] = useState<DocumentItem | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
   });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -68,17 +92,36 @@ function App() {
     localStorage.setItem("tcga-theme", theme);
   }, [theme]);
 
-  // Reset docs list when project changes
+  // Reset state when project changes
   useEffect(() => {
     setNewUploadedDocuments([]);
+    setActiveRequirements(null);
+    setActiveDocument(null);
   }, [selectedProject?.id]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
+  const handleViewRequirements = (reqs: GenerateRequirementsResponse, doc: DocumentItem) => {
+    setActiveRequirements(reqs);
+    setActiveDocument(doc);
+  };
 
   return (
     <div className="app-shell">
       {/* Navigation */}
       <nav className="app-nav">
+        {!isSidebarOpen && (
+          <button
+            className="icon-btn-ghost"
+            onClick={() => setIsSidebarOpen(true)}
+            title="Open sidebar"
+            aria-label="Open sidebar"
+            style={{ marginLeft: -12, marginRight: 2 }}
+          >
+            <PanelLeftOpenIcon />
+          </button>
+        )}
+
         <div className="app-nav-logo">
           <div className="app-nav-logo-mark">
             <TCGAMark />
@@ -110,11 +153,12 @@ function App() {
         </button>
       </nav>
 
-      {/* Main layout — 2 columns: sidebar + content */}
-      <div className="app-workspace">
+      {/* Main layout — project sidebar + content */}
+      <div className="app-workspace" style={{ gridTemplateColumns: isSidebarOpen ? "240px 1fr" : "0px 1fr" }}>
         <ProjectManager
           selectedProjectId={selectedProject?.id ?? null}
           onSelectProject={setSelectedProject}
+          onCloseSidebar={() => setIsSidebarOpen(false)}
         />
 
         <main className="app-main">
@@ -131,14 +175,29 @@ function App() {
                 )}
               </div>
 
-              <DocumentUpload
-                projectId={selectedProject.id}
-                onUploadSuccess={setNewUploadedDocuments}
-              />
-              <DocumentList
-                projectId={selectedProject.id}
-                newUploadedDocuments={newUploadedDocuments}
-              />
+              {/* Main content grid: Requirement Viewer (left) + right sidebar (Upload + List) */}
+              <div className="workspace-content-grid">
+                {/* Left main area: Requirement & Test Case Viewer */}
+                <RequirementViewer
+                  requirements={activeRequirements}
+                  document={activeDocument}
+                  onClose={() => { setActiveRequirements(null); setActiveDocument(null); }}
+                  onRequirementsUpdate={setActiveRequirements}
+                />
+
+                {/* Right sidebar: Upload on top, Document List below */}
+                <div className="workspace-right-sidebar">
+                  <DocumentUpload
+                    projectId={selectedProject.id}
+                    onUploadSuccess={setNewUploadedDocuments}
+                  />
+                  <DocumentList
+                    projectId={selectedProject.id}
+                    newUploadedDocuments={newUploadedDocuments}
+                    onViewRequirements={handleViewRequirements}
+                  />
+                </div>
+              </div>
             </>
           ) : (
             /* Empty state — no project selected */

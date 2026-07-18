@@ -57,15 +57,33 @@ def _extract_json_from_text(text: str) -> Any:
     cleaned = _clean_json_text(text)
     decoder = json.JSONDecoder()
 
+    # Try to parse the whole string first
     for index, character in enumerate(cleaned):
         if character not in "{[":
             continue
-
         try:
             data, _ = decoder.raw_decode(cleaned[index:])
             return data
         except json.JSONDecodeError:
-            continue
+            break  # Break to fallback if outer JSON is broken
+
+    # Fallback: scan and extract all complete test case objects (useful for truncated responses)
+    objects = []
+    index = 0
+    while index < len(cleaned):
+        if cleaned[index] == "{":
+            try:
+                obj, length = decoder.raw_decode(cleaned[index:])
+                if isinstance(obj, dict) and "title" in obj and "expected_result" in obj:
+                    objects.append(obj)
+                index += length
+                continue
+            except json.JSONDecodeError:
+                pass
+        index += 1
+
+    if objects:
+        return {"test_cases": objects}
 
     raise json.JSONDecodeError("No valid JSON object or array found", cleaned, 0)
 
@@ -146,7 +164,7 @@ def _prompt_preview(prompt: str) -> str:
 def _raw_output_preview(raw_output: str | None) -> str | None:
     if raw_output is None:
         return None
-    return raw_output[:5000]
+    return raw_output[:50000]
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +242,7 @@ async def generate_test_cases_from_requirement(requirement_id: str) -> GenerateT
             chunks = await retrieve_relevant_chunks_async(
                 db,
                 rag_query,
-                top_k=5,
+                top_k=15,
                 document_id=None,  # Bỏ lọc theo document_id
                 project_id=str(project_id) if project_id else None, # Lọc theo toàn bộ Project
             )
