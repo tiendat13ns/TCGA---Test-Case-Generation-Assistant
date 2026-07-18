@@ -265,12 +265,11 @@ export default function RequirementViewer({ requirements, document, onClose, onR
       )}
 
       {/* Requirements list */}
-      <div style={{ padding: "0 18px 18px" }}>
+      <div style={{ padding: "18px" }}>
         <div className="req-list">
           {requirements.requirements.map((req, idx) => (
             <article className="req-card animate-in" key={req.id} data-status={req.status}>
-              <div className="req-card-header">
-                <span className="req-card-title">REQ-{String(idx + 1).padStart(2, "0")}</span>
+              <div className="req-card-header" style={{ justifyContent: "flex-end" }}>
                 <div className="req-card-actions">
                   <StatusBadge status={req.status} />
                   {!req.user_answers?.length && req.clarifying_questions?.length ? (
@@ -386,7 +385,7 @@ export default function RequirementViewer({ requirements, document, onClose, onR
 
                 {/* Test Cases Panel */}
                 {expandedTestCasesId === req.id && testCasesMap[req.id] && (
-                  <div className="tc-panel" style={{ margin: "4px -14px -12px", borderRadius: "0 0 7px 7px" }}>
+                  <div className="tc-panel">
                     <div className="tc-panel-header">
                       <span className="tc-panel-title">Test Cases</span>
                       <span className="tc-count-badge">{testCasesMap[req.id]!.total_test_cases}</span>

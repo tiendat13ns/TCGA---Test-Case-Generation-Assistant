@@ -231,12 +231,33 @@ select {
   border-color: var(--accent);
 }
 
+.icon-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  padding: 0;
+}
+
+.icon-btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 /* ── 2-Column Workspace Layout ─────────────────────────── */
 .app-workspace {
   display: grid;
   grid-template-columns: 240px 1fr;
   min-height: calc(100dvh - 56px);
   overflow: hidden;
+  transition: grid-template-columns var(--transition-slow);
 }
 
 .app-main {
@@ -1104,8 +1125,10 @@ select {
 
 /* ── Test Cases ──────────────────────────────────────────── */
 .tc-panel {
-  border-top: 1px solid var(--border-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
   background: var(--bg);
+  overflow: hidden;
 }
 
 .tc-panel-header {
@@ -1498,7 +1521,7 @@ input[type="checkbox"] {
 }
 
 .rv-preview-panel {
-  margin: 0 18px 12px;
+  margin: 18px 18px 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;

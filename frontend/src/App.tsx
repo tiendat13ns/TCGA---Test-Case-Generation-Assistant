@@ -56,6 +56,26 @@ function FolderIcon() {
   );
 }
 
+function PanelLeftCloseIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <polyline points="16 16 12 12 16 8" />
+    </svg>
+  );
+}
+
+function PanelLeftOpenIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <polyline points="14 8 18 12 14 16" />
+    </svg>
+  );
+}
+
 function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newUploadedDocuments, setNewUploadedDocuments] = useState<DocumentItem[]>([]);
@@ -64,6 +84,7 @@ function App() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
   });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -89,6 +110,18 @@ function App() {
     <div className="app-shell">
       {/* Navigation */}
       <nav className="app-nav">
+        {!isSidebarOpen && (
+          <button
+            className="icon-btn-ghost"
+            onClick={() => setIsSidebarOpen(true)}
+            title="Open sidebar"
+            aria-label="Open sidebar"
+            style={{ marginLeft: -12, marginRight: 2 }}
+          >
+            <PanelLeftOpenIcon />
+          </button>
+        )}
+
         <div className="app-nav-logo">
           <div className="app-nav-logo-mark">
             <TCGAMark />
@@ -121,10 +154,11 @@ function App() {
       </nav>
 
       {/* Main layout — project sidebar + content */}
-      <div className="app-workspace">
+      <div className="app-workspace" style={{ gridTemplateColumns: isSidebarOpen ? "240px 1fr" : "0px 1fr" }}>
         <ProjectManager
           selectedProjectId={selectedProject?.id ?? null}
           onSelectProject={setSelectedProject}
+          onCloseSidebar={() => setIsSidebarOpen(false)}
         />
 
         <main className="app-main">

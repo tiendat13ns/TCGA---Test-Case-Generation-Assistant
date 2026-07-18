@@ -46,13 +46,27 @@ class AITestCaseItem(BaseModel):
     @field_validator("test_steps", mode="before")
     @classmethod
     def normalize_test_steps(cls, value: Any) -> list[str]:
+        import re
+        
+        def _clean_step(step: str) -> str:
+            # Loại bỏ các tiền tố như "Bước 1:", "Step 1:", "1.", "1)"
+            cleaned = re.sub(r"^(?:Bước\s*\d+\s*[:.-]*|Step\s*\d+\s*[:.-]*|\d+\s*[:.-]+|\d+\))\s*", "", step, flags=re.IGNORECASE)
+            # Loại bỏ dấu gạch ngang đầu dòng
+            cleaned = re.sub(r"^(?:-|\*)\s*", "", cleaned)
+            return cleaned.strip()
+
         if value is None:
             return []
+            
+        steps = []
         if isinstance(value, str):
-            return [value.strip()] if value.strip() else []
-        if isinstance(value, list):
-            return [str(item).strip() for item in value if item is not None and str(item).strip()]
-        return [str(value).strip()] if str(value).strip() else []
+            steps = [value.strip()] if value.strip() else []
+        elif isinstance(value, list):
+            steps = [str(item).strip() for item in value if item is not None and str(item).strip()]
+        else:
+            steps = [str(value).strip()] if str(value).strip() else []
+            
+        return [_clean_step(step) for step in steps]
 
     @field_validator("priority", mode="before")
     @classmethod

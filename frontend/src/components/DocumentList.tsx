@@ -151,6 +151,28 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
     finally { setGeneratingRequirementsId(null); }
   };
 
+  const deleteDocument = async (doc: DocumentItem) => {
+    if (!window.confirm(`Are you sure you want to delete "${doc.original_filename}"?`)) return;
+    try {
+      const r = await fetch(`${API_URL}/selected`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [doc.id] }),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(d?.detail || "Could not delete document.");
+      
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+      setExistingRequirements((prev) => {
+        const next = { ...prev };
+        delete next[doc.id];
+        return next;
+      });
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Cannot connect to backend.");
+    }
+  };
+
   return (
     <section className="panel animate-in" style={{ animationDelay: "60ms" }}>
       {/* Header */}
@@ -248,11 +270,11 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
                 </div>
                 <div className="doc-card-actions">
                   {doc.status === "completed" && hasReqs ? (
-                    <>
+                    <div style={{ display: "flex", gap: "6px", width: "100%" }}>
                       <button
                         type="button"
                         className="btn btn-primary"
-                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                        style={{ fontSize: "11px", padding: "4px 8px", flex: 1 }}
                         onClick={() => onViewRequirements(existingRequirements[doc.id]!, doc)}
                       >
                         <EyeIcon /> View Requirement
@@ -267,18 +289,47 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
                       >
                         {isGenerating ? <SpinnerIcon /> : <RefreshIcon />}
                       </button>
-                    </>
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                        onClick={() => deleteDocument(doc)}
+                        title="Delete document"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   ) : doc.status === "completed" ? (
+                    <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ fontSize: "11px", padding: "4px 8px", flex: 1 }}
+                        disabled={isGenerating || isLoadingReqs}
+                        onClick={() => generateRequirements(doc)}
+                      >
+                        {isGenerating ? <><SpinnerIcon /> Generating...</> : isLoadingReqs ? <><SpinnerIcon /> Loading...</> : <><ZapIcon /> Generate</>}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                        onClick={() => deleteDocument(doc)}
+                        title="Delete document"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      className="btn btn-primary"
-                      style={{ fontSize: "11px", padding: "4px 8px", width: "100%" }}
-                      disabled={isGenerating || isLoadingReqs}
-                      onClick={() => generateRequirements(doc)}
+                      className="btn btn-danger"
+                      style={{ fontSize: "11px", padding: "4px 8px", width: "100%", justifyContent: "center" }}
+                      onClick={() => deleteDocument(doc)}
                     >
-                      {isGenerating ? <><SpinnerIcon /> Generating...</> : isLoadingReqs ? <><SpinnerIcon /> Loading...</> : <><ZapIcon /> Generate Requirement</>}
+                      <TrashIcon /> Delete Document
                     </button>
-                  ) : null}
+                  )}
                 </div>
               </div>
             );

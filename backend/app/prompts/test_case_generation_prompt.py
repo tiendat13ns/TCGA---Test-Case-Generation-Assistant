@@ -39,7 +39,7 @@ Rules:
 - IMPORTANT (TEST DATA): Do NOT use generic test data like "invalid email" or "long string". Your `test_data` MUST be specific and explicit (e.g., "email='user@.com'", "name='A'*256", "age=-1", "amount=0"). Include Unicode, empty strings/arrays, nulls, SQL/XSS injections, and boundary-exceeding values for negative/security cases.
 - IMPORTANT (LANGUAGE): The language of your output test cases MUST MATCH the language of the input requirement (e.g., if the requirement text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
 - title: A clear, human-readable sentence stating the objective or purpose of the test case. Do NOT use ID-like formats (e.g. PM_TC001_...).
-- test_steps must be a list of strings (at least 2 steps).
+- test_steps must be a list of strings (at least 2 steps). Do NOT include numbering or prefixes like "Step 1:", "Bước 1:", "1.", "- " in the strings (the UI will handle numbering automatically).
 - expected_result must be explicit and verifiable — never vague like "it works".
 - IMPORTANT: This is a comprehensive use case. Generate a thorough test suite of at LEAST 20 test cases. Cover all dimensions: Functional (happy path), Negative (invalid input/actions), Boundary (min/max/edge values), Security (authorization checks), and State Transition (status change flows).
 - Every validation rule MUST have at least 2 negative test cases (one for each boundary).
