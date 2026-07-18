@@ -65,8 +65,8 @@ def export_test_cases(requirement_id: str):
         try:
             with SessionLocal() as db:
                 req = db.get(Requirement, UUID(requirement_id))
-                if req and req.functional_requirement:
-                    feature_name = req.functional_requirement
+                if req:
+                    feature_name = req.feature_name or req.module_name or req.title or "Unknown Feature"
         except Exception:
             pass
 
