@@ -10,6 +10,7 @@ from app.routers.projects import router as projects_router
 from app.routers.requirements import router as requirements_router
 from app.routers.test_cases import router as test_cases_router
 from app.routers.agent import router as agent_router
+from app.routers.chat import router as chat_router
 
 app = FastAPI(title="AI Test Case Generation Assistant")
 
@@ -17,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,6 +30,7 @@ app.include_router(ai_router)
 app.include_router(requirements_router)
 app.include_router(test_cases_router)
 app.include_router(agent_router)
+app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 
 
 

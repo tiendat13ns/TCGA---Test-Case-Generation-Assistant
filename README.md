@@ -41,6 +41,11 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 - Không merge cell, không block thống kê QA, không ma trận trình duyệt
 - Export ra file `.xlsx` trực tiếp từ UI
 
+### AI Chat Workspace / Copilot (Mới)
+- Không gian tương tác trực tiếp với Agent AI thông qua giao diện Chat.
+- Cung cấp các nút Hành Động Nhanh (Quick Actions): Phân tích tài liệu, Tạo Requirement, Tạo Test Case.
+- AI Agent (ReAct) tự động gọi các công cụ (Tools) backend tương ứng, thao tác DB và format kết quả chi tiết dưới dạng Markdown ngay trong khung chat.
+
 ---
 
 ## Cấu Trúc Thư Mục
@@ -50,27 +55,31 @@ backend/
   app/
     main.py
     models.py
-    routers/          # documents, requirements, test_cases, ai
+    routers/          # documents, requirements, test_cases, ai, chat
     schemas/
     services/
+      agent/          # LangGraph ReAct agents & workflows
       ai/             # provider abstraction, openai_compatible_provider
       extractors/     # pdf, docx, xlsx, txt extractors
-      chunk_storage_service.py # Xử lý lưu vector vào pgvector
-      embedding_service.py     # Gọi API lấy embedding vector
-      retrieval_service.py     # Thực hiện Semantic Search (Cosine Distance)
+      chunk_storage_service.py 
+      embedding_service.py     
+      retrieval_service.py     
       file_service.py
       requirement_generation_service.py
       test_case_generation_service.py
+      chat_service.py # Xử lý logic hội thoại
   uploads/
   requirements.txt
 
 frontend/
   src/
-    App.tsx           # theme toggle (dark/light)
+    App.tsx           # theme toggle (dark/light) & layout chính
     styles.css        # design tokens Zinc/Emerald
     components/
       DocumentUpload.tsx
-      DocumentList.tsx  # bảng test case 7 cột + export
+      DocumentList.tsx  
+      ChatWorkspace.tsx # Giao diện Chat Copilot & Quick Actions
+      DocumentContextSidebar.tsx # Quản lý tài liệu context cho chat
 ```
 
 ---
@@ -88,63 +97,27 @@ frontend/
 | `GET` | `/api/v1/requirements/{id}/test-cases` | Lấy test cases |
 | `POST` | `/api/v1/requirements/{id}/test-cases/generate` | Sinh test cases từ requirement |
 | `GET` | `/api/v1/requirements/{id}/test-cases/export` | Export Excel 7 cột |
+| `POST` | `/api/chat/message` | AI Chat Agent - Nhận tin nhắn và gọi tools |
 | `GET` | `/api/v1/ai/health` | Kiểm tra kết nối AI provider |
 
 ---
 
 ## Cách Khởi Chạy Dự Án
 
-Dự án hỗ trợ chạy thông qua **Docker (Khuyến nghị)** hoặc chạy thủ công (Local).
-
-### Cách 1: Chạy bằng Docker 
+Dự án hiện tại được tối ưu hóa để khởi chạy hoàn toàn thông qua **Docker**.
 
 Yêu cầu: Đã cài đặt [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-1. Tại thư mục gốc của dự án, mở Terminal.
-2. Chạy lệnh:
+1. Tại thư mục gốc của dự án, thiết lập file biến môi trường (nếu cần đổi API Key):
+   Tạo hoặc chỉnh sửa `.env` trong thư mục `backend/` (tham khảo `.env.example`).
+   
+2. Mở Terminal và chạy lệnh:
    ```bash
    docker-compose up --build
    ```
-3. Truy cập:
-   - **Frontend:** `http://localhost:5173`
-   - **Backend API Docs:** `http://localhost:8000/docs`
 
-> **Lưu ý:** Database PostgreSQL đã được tích hợp sẵn bên trong Docker. File cấu hình `.env` trong thư mục `backend/` sẽ tự động được Docker nạp vào.
+3. Mở trình duyệt và truy cập:
+   - **Giao diện người dùng (Frontend):** `http://localhost:5173`
+   - **Tài liệu API Backend (Swagger UI):** `http://localhost:8000/docs`
 
----
-
-### Cách 2: Chạy Thủ Công 
-
-#### 1. Chạy Backend
-
-```bash
-cd backend
-copy .env.example .env   # Điền DATABASE_URL và AI provider config
-pip install -r requirements.txt
-python -m uvicorn app.main:app --reload
-```
-
-Ví dụ `.env` với OpenAI-compatible provider:
-```env
-DATABASE_URL=postgresql://postgres:<password>@localhost:5432/postgres
-AI_PROVIDER=openai_compatible
-OPENAI_COMPATIBLE_BASE_URL=https://api.vilao.ai/v1
-OPENAI_COMPATIBLE_API_KEY=your_key
-OPENAI_COMPATIBLE_MODEL=ram/gemini-3.5-flash-low
-```
-Backend chạy tại: `http://localhost:8000`
-
-#### 2. Chạy Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Frontend chạy tại: `http://localhost:5173`
-
----
-
-## 📝 Ghi Chú
-
-- `uvicorn.exe` có thể bị chặn bởi hệ thống bảo mật của Windows (AppLocker/Device Guard) — Khuyến nghị **Sử dụng Docker** để khắc phục triệt để vấn đề này, hoặc dùng lệnh `python -m uvicorn` nếu vẫn muốn chạy local.
+> **Lưu ý:** Cơ sở dữ liệu PostgreSQL (`pgvector`) đã được tích hợp sẵn và tự động khởi tạo khi chạy lệnh Docker. Mọi thay đổi đối với file cấu hình `.env` trong thư mục `backend/` sẽ tự động được Docker nạp vào hệ thống. Cấu hình mặc định đã sử dụng mô hình OpenAI-compatible của Vilao.

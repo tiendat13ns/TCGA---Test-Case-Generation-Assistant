@@ -12,7 +12,5 @@ frontend/*.tsbuildinfo
 skills-lock.json
 SRS_AI_Test_Case_Generation_Assistant.md
 anti.md
-claude/
-RAG_IMPLEMENTATION_PLAN_FOR_CLAUDE.md
 dataflow.md
 .vscode/
