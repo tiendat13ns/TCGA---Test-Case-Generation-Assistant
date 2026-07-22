@@ -1,0 +1,16 @@
+# Thư mục môi trường ảo Python - không cần copy vào container
+venv/
+
+# Cache của Python
+__pycache__/
+*.pyc
+*.pyo
+
+# File môi trường chứa API key và mật khẩu - QUAN TRỌNG, không được copy!
+.env
+
+# Log files
+*.log
+
+# Thư mục uploads nếu không muốn mount, bỏ comment dòng dưới
+# uploads/

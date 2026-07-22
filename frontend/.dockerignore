@@ -1,0 +1,8 @@
+# Thư mục chứa thư viện npm - rất nặng, không cần copy
+node_modules/
+
+# Thư mục build output
+dist/
+
+# Log files
+*.log
