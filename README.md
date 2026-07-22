@@ -92,41 +92,59 @@ frontend/
 
 ---
 
-## Chạy Backend
+## Cách Khởi Chạy Dự Án
+
+Dự án hỗ trợ chạy thông qua **Docker (Khuyến nghị)** hoặc chạy thủ công (Local).
+
+### Cách 1: Chạy bằng Docker 
+
+Yêu cầu: Đã cài đặt [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+1. Tại thư mục gốc của dự án, mở Terminal.
+2. Chạy lệnh:
+   ```bash
+   docker-compose up --build
+   ```
+3. Truy cập:
+   - **Frontend:** `http://localhost:5173`
+   - **Backend API Docs:** `http://localhost:8000/docs`
+
+> **Lưu ý:** Database PostgreSQL đã được tích hợp sẵn bên trong Docker. File cấu hình `.env` trong thư mục `backend/` sẽ tự động được Docker nạp vào.
+
+---
+
+### Cách 2: Chạy Thủ Công 
+
+#### 1. Chạy Backend
 
 ```bash
 cd backend
-copy .env.example .env   # điền DATABASE_URL và AI provider config
+copy .env.example .env   # Điền DATABASE_URL và AI provider config
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
 
 Ví dụ `.env` với OpenAI-compatible provider:
-
 ```env
-DATABASE_URL=postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres:<password>@localhost:5432/postgres
 AI_PROVIDER=openai_compatible
 OPENAI_COMPATIBLE_BASE_URL=https://api.vilao.ai/v1
 OPENAI_COMPATIBLE_API_KEY=your_key
 OPENAI_COMPATIBLE_MODEL=ram/gemini-3.5-flash-low
 ```
-
 Backend chạy tại: `http://localhost:8000`
 
----
-
-## Chạy Frontend
+#### 2. Chạy Frontend
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
 Frontend chạy tại: `http://localhost:5173`
 
 ---
 
-## Ghi Chú
+## 📝 Ghi Chú
 
-- `uvicorn.exe` có thể bị chặn bởi Device Guard — dùng `python -m uvicorn` thay thế.
+- `uvicorn.exe` có thể bị chặn bởi hệ thống bảo mật của Windows (AppLocker/Device Guard) — Khuyến nghị **Sử dụng Docker** để khắc phục triệt để vấn đề này, hoặc dùng lệnh `python -m uvicorn` nếu vẫn muốn chạy local.

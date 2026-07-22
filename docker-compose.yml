@@ -1,0 +1,73 @@
+services:
+  # ============================================
+  # 🗄️  DATABASE - PostgreSQL với pgvector
+  # ============================================
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: tcga_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      # Lưu dữ liệu database vào máy thật, không mất khi container dừng
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # ⚙️  BACKEND - FastAPI / Uvicorn
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tcga_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code để hot-reload hoạt động khi bạn chỉnh code
+      - ./backend:/app
+      # Mount thư mục uploads để file được lưu lại
+      - ./backend/uploads:/app/uploads
+    env_file:
+      # Tự động đọc biến môi trường từ file .env trong thư mục backend
+      - ./backend/.env
+    environment:
+      # Ghi đè DATABASE_URL để trỏ tới service "db" thay vì localhost
+      - DATABASE_URL=postgresql://postgres:password@db:5432/postgres
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ============================================
+  # 🌐  FRONTEND - React + Vite
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tcga_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount source code để hot-reload hoạt động khi bạn chỉnh code
+      - ./frontend:/app
+      # Ngăn không cho host ghi đè node_modules trong container
+      - /app/node_modules
+    depends_on:
+      - backend
+
+# ============================================
+# 💾  VOLUMES - Nơi lưu dữ liệu
+# ============================================
+volumes:
+  postgres_data:

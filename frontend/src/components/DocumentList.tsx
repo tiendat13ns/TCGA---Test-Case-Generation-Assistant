@@ -310,6 +310,7 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
                       >
                         {isGenerating ? <><SpinnerIcon /> Generating...</> : isLoadingReqs ? <><SpinnerIcon /> Loading...</> : <><ZapIcon /> Generate</>}
                       </button>
+                      <div style={{ width: "30px", flexShrink: 0 }} />
                       <button
                         type="button"
                         className="btn btn-danger"
