@@ -117,7 +117,7 @@ function ProjectManager({ selectedProjectId, onSelectProject, onCloseSidebar }: 
   };
 
   return (
-    <aside className="project-sidebar">
+    <aside className="project-sidebar" style={{ width: "240px", height: "100%" }}>
       <div className="sidebar-header">
         <span className="sidebar-title">
           <FolderIcon /> Projects

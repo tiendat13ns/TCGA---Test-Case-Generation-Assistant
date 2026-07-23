@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
-type Message = {
+export type Message = {
   id: string;
   role: "user" | "ai" | "system";
   content: string;
@@ -11,24 +12,52 @@ type Message = {
 type ChatWorkspaceProps = {
   projectId: string;
   selectedDocumentIds: string[];
+  initialMessages?: Message[];
+  onMessagesChange?: (messages: Message[]) => void;
 };
 
-export default function ChatWorkspace({ projectId, selectedDocumentIds }: ChatWorkspaceProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "ai",
-      content: "Xin chào! Bạn đã chọn tài liệu, hãy đặt câu hỏi hoặc yêu cầu phân tích.",
-    },
-  ]);
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14H6L5 6" />
+    <path d="M10 11v6M14 11v6" />
+    <path d="M9 6V4h6v2" />
+  </svg>
+);
+
+export default function ChatWorkspace({ projectId, selectedDocumentIds, initialMessages, onMessagesChange }: ChatWorkspaceProps) {
+  const [messages, setMessages] = useState<Message[]>(
+    initialMessages ?? [
+      { id: "1", role: "ai", content: "Xin chào! Bạn đã chọn tài liệu, hãy đặt câu hỏi hoặc yêu cầu phân tích." },
+    ]
+  );
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Track whether we're past the initial mount to avoid redundant save on first render
+  const isMounted = useRef(false);
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Persist messages to parent whenever they change (after initial mount)
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    onMessagesChange?.(messages);
+  }, [messages]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clearChat = () => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử chat không?")) {
+      setMessages([
+        { id: Date.now().toString(), role: "ai", content: "Xin chào! Lịch sử đã được làm mới. Hãy đặt câu hỏi hoặc yêu cầu phân tích." },
+      ]);
+    }
+  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || selectedDocumentIds.length === 0) return;
@@ -79,8 +108,17 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds }: ChatWo
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", background: "var(--bg-elevated)", borderRadius: "12px", border: "1px solid var(--border)", overflow: "hidden" }}>
       {/* Header */}
-      <div style={{ padding: "16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <h3 style={{ margin: 0, fontWeight: 500, color: "var(--text-primary)" }}>Cuộc trò chuyện</h3>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ width: "28px" }}></div> {/* Placeholder for centering balance */}
+        <h3 style={{ margin: 0, fontWeight: 500, color: "var(--text-primary)", fontSize: "14px" }}>TCGA Agent</h3>
+        <button 
+          onClick={clearChat}
+          className="icon-btn-ghost"
+          style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--danger)", padding: 0 }}
+          title="Xóa lịch sử chat"
+        >
+          <TrashIcon />
+        </button>
       </div>
       
       {/* Chat History */}
@@ -94,19 +132,21 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds }: ChatWo
             )}
             <div
               style={{
-                maxWidth: "80%",
-                padding: "12px 16px",
+                maxWidth: msg.role === "user" ? "80%" : "95%",
+                width: msg.role === "ai" ? "100%" : "auto",
+                padding: msg.role === "ai" ? "16px 20px" : "12px 16px",
                 borderRadius: "16px",
                 background: msg.role === "user" ? "var(--bg-active)" : "var(--bg-hover)",
                 color: "var(--text-primary)",
                 border: msg.role === "user" ? "1px solid var(--accent)" : "1px solid var(--border)",
-                lineHeight: 1.5,
+                lineHeight: 1.6,
                 fontSize: "14px",
+                boxShadow: msg.role === "ai" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
               }}
             >
               {msg.role === "ai" ? (
-                <div className="markdown-body" style={{ fontSize: "14px" }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                <div className="markdown-body" style={{ width: "100%", overflowX: "auto" }}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{msg.content}</ReactMarkdown>
                 </div>
               ) : (
                 msg.content
@@ -124,11 +164,11 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds }: ChatWo
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} style={{ height: "20px", flexShrink: 0 }} />
       </div>
 
       {/* Quick Actions */}
-      <div style={{ padding: "0 16px 8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+      <div className="chat-quick-actions" style={{ padding: "8px 16px 12px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <button
           onClick={() => sendMessage("Phân tích tài liệu tổng quan, tóm tắt các tính năng chính và luồng nghiệp vụ.")}
           className="btn btn-secondary btn-xs"

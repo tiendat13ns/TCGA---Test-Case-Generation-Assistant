@@ -151,7 +151,14 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
                 raise RequirementGenerationNotFoundError("Document not found.")
 
             repository = RequirementRepository(db)
-            version = repository.get_latest_version_by_document_id(document.id) + 1
+
+            # Xóa requirements cũ + test cases liên quan trước khi tạo mới
+            deleted_count = repository.delete_by_document_id(document.id)
+            if deleted_count > 0:
+                logger.info(
+                    "Replaced %d old requirement(s) for document %s before generating new ones.",
+                    deleted_count, doc_id_str,
+                )
 
             requirements = [
                 Requirement(
@@ -177,7 +184,7 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
                     source_reference=item.source_reference,
                     confidence_score=item.confidence_score,
                     status="ai_generated",
-                    version=version,
+                    version=1,
                     updated_at=datetime.now(),
                 )
                 for item in result.requirements
@@ -206,7 +213,7 @@ def list_requirements_by_document(document_id: str) -> ListRequirementsResponse:
 
     with SessionLocal() as db:
         repository = RequirementRepository(db)
-        requirements = repository.list_by_document_id(document_uuid)
+        requirements = repository.list_latest_by_document_id(document_uuid)
 
         return ListRequirementsResponse(
             document_id=str(document_uuid),
