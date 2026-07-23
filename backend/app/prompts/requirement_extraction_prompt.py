@@ -13,6 +13,8 @@ Extract detailed requirements that are useful for QA test case generation.
 Analyze the document as a set of use cases, actors, triggers, main flows, alternative flows, validations, permissions, states, and failure scenarios.
 
 Each requirement must include these main output fields:
+- title
+- description
 - functional_requirement
 - validation_rule
 - permission
@@ -33,8 +35,11 @@ Rules:
 - Do not invent unsupported business logic.
 - If information is missing for text metadata, use null.
 - If information is missing for list fields, use an empty array [].
-- IMPORTANT: Synthesize the entire document or use case into ONE highly detailed, comprehensive requirement that captures all behaviors, rules, and flows. DO NOT fragment the use case into multiple small requirements.
+- IMPORTANT: Synthesize the entire document or use case into EXACTLY ONE highly detailed, comprehensive requirement. DO NOT fragment the use case into multiple small requirements. The `requirements` array MUST contain exactly ONE item.
+- QUAN TRỌNG TỐI THƯỢNG: Bạn BẮT BUỘC phải gộp TẤT CẢ thông tin thành MỘT (1) requirement duy nhất. KHÔNG ĐƯỢC tách nhỏ thành nhiều requirement. Mảng `requirements` CHỈ ĐƯỢC PHÉP chứa CHÍNH XÁC 1 phần tử duy nhất.
 - IMPORTANT: The language of your output MUST MATCH the language of the input document (e.g., if the input text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
+- The `title` field must be a short, clear name for the requirement.
+- The `description` field must be a high-level summary.
 - The `functional_requirement` field must be highly detailed, thoroughly describing the actor, the trigger, the main flow, and the expected business outcome in multiple complete sentences. Do not use brief or vague summaries.
 - Put validation constraints into validation_rule.
 - Put access control, role, authorization, and permission details into permission.
@@ -58,6 +63,8 @@ Required JSON schema:
 {
   "requirements": [
     {
+      "title": "string",
+      "description": "string",
       "functional_requirement": "string",
       "validation_rule": ["string"],
       "permission": ["string"],

@@ -123,7 +123,8 @@ select {
 .app-shell {
   display: grid;
   grid-template-rows: 56px 1fr;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .app-nav {
@@ -262,10 +263,10 @@ select {
 
 .app-main {
   padding: 24px;
-  overflow-y: auto;
-  display: grid;
+  overflow: hidden; /* Changed from auto to hidden to let children scroll */
+  display: flex;
+  flex-direction: column;
   gap: 20px;
-  align-content: start;
 }
 
 /* ── Project Sidebar ────────────────────────────────────── */
@@ -1454,7 +1455,8 @@ input[type="checkbox"] {
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 20px;
-  align-items: start;
+  flex: 1;
+  min-height: 0;
 }
 
 .workspace-right-sidebar {
@@ -1722,3 +1724,4 @@ input[type="checkbox"] {
   border-color: #fbbf24;
   box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.12);
 }
+.markdown-body { font-family: inherit; } .markdown-body p { margin-bottom: 8px; } .markdown-body ul { margin-left: 20px; margin-bottom: 8px; } .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin-top: 16px; margin-bottom: 8px; } .markdown-body code { background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; font-family: monospace; }

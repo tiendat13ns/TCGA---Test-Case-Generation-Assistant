@@ -1,9 +1,9 @@
 import "./styles.css";
 import { useEffect, useState } from "react";
-import DocumentList from "./components/DocumentList";
 import DocumentUpload from "./components/DocumentUpload";
 import ProjectManager, { Project } from "./components/ProjectManager";
-import RequirementViewer, { GenerateRequirementsResponse } from "./components/RequirementViewer";
+import ChatWorkspace from "./components/ChatWorkspace";
+import DocumentContextSidebar from "./components/DocumentContextSidebar";
 
 export type DocumentItem = {
   id: string;
@@ -79,8 +79,7 @@ function PanelLeftOpenIcon() {
 function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newUploadedDocuments, setNewUploadedDocuments] = useState<DocumentItem[]>([]);
-  const [activeRequirements, setActiveRequirements] = useState<GenerateRequirementsResponse | null>(null);
-  const [activeDocument, setActiveDocument] = useState<DocumentItem | null>(null);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
   });
@@ -95,16 +94,10 @@ function App() {
   // Reset state when project changes
   useEffect(() => {
     setNewUploadedDocuments([]);
-    setActiveRequirements(null);
-    setActiveDocument(null);
+    setSelectedDocumentIds([]);
   }, [selectedProject?.id]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-
-  const handleViewRequirements = (reqs: GenerateRequirementsResponse, doc: DocumentItem) => {
-    setActiveRequirements(reqs);
-    setActiveDocument(doc);
-  };
 
   return (
     <div className="app-shell">
@@ -175,26 +168,25 @@ function App() {
                 )}
               </div>
 
-              {/* Main content grid: Requirement Viewer (left) + right sidebar (Upload + List) */}
+              {/* Main content grid: 3-column layout */}
               <div className="workspace-content-grid">
-                {/* Left main area: Requirement & Test Case Viewer */}
-                <RequirementViewer
-                  requirements={activeRequirements}
-                  document={activeDocument}
-                  onClose={() => { setActiveRequirements(null); setActiveDocument(null); }}
-                  onRequirementsUpdate={setActiveRequirements}
+                {/* Middle column: Chat Workspace */}
+                <ChatWorkspace
+                  projectId={selectedProject.id}
+                  selectedDocumentIds={selectedDocumentIds}
                 />
 
-                {/* Right sidebar: Upload on top, Document List below */}
+                {/* Right sidebar: Upload on top, Document Context Sidebar below */}
                 <div className="workspace-right-sidebar">
                   <DocumentUpload
                     projectId={selectedProject.id}
                     onUploadSuccess={setNewUploadedDocuments}
                   />
-                  <DocumentList
+                  <DocumentContextSidebar
                     projectId={selectedProject.id}
                     newUploadedDocuments={newUploadedDocuments}
-                    onViewRequirements={handleViewRequirements}
+                    selectedDocumentIds={selectedDocumentIds}
+                    onSelectionChange={setSelectedDocumentIds}
                   />
                 </div>
               </div>
