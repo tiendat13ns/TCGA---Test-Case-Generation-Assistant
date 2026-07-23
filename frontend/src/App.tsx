@@ -1,9 +1,31 @@
 import "./styles.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import DocumentUpload from "./components/DocumentUpload";
 import ProjectManager, { Project } from "./components/ProjectManager";
-import ChatWorkspace from "./components/ChatWorkspace";
+import ChatWorkspace, { Message } from "./components/ChatWorkspace";
 import DocumentContextSidebar from "./components/DocumentContextSidebar";
+
+const CHAT_STORAGE_KEY = (projectId: string) => `tcga-chat-${projectId}`;
+
+function loadChatHistory(projectId: string): Message[] {
+  try {
+    const raw = localStorage.getItem(CHAT_STORAGE_KEY(projectId));
+    if (raw) return JSON.parse(raw) as Message[];
+  } catch {
+    // ignore parse errors
+  }
+  return [
+    { id: "1", role: "ai", content: `Xin chào! Bạn đã chọn tài liệu, hãy đặt câu hỏi hoặc yêu cầu phân tích.` },
+  ];
+}
+
+function saveChatHistory(projectId: string, messages: Message[]) {
+  try {
+    localStorage.setItem(CHAT_STORAGE_KEY(projectId), JSON.stringify(messages));
+  } catch {
+    // quota exceeded or private mode — silent fail
+  }
+}
 
 export type DocumentItem = {
   id: string;
@@ -85,17 +107,32 @@ function App() {
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  // Chat histories keyed by projectId — persisted to localStorage
+  const [chatHistories, setChatHistories] = useState<Record<string, Message[]>>({});
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     document.documentElement.style.colorScheme = theme;
     localStorage.setItem("tcga-theme", theme);
   }, [theme]);
 
-  // Reset state when project changes
+  // When project changes, reset document selection (not chat — chat loads from history)
   useEffect(() => {
     setNewUploadedDocuments([]);
     setSelectedDocumentIds([]);
   }, [selectedProject?.id]);
+
+  // Load chat history for a project on first visit
+  const getProjectMessages = useCallback((projectId: string): Message[] => {
+    if (chatHistories[projectId]) return chatHistories[projectId];
+    return loadChatHistory(projectId);
+  }, [chatHistories]);
+
+  // Called by ChatWorkspace whenever messages change
+  const handleMessagesChange = useCallback((projectId: string, messages: Message[]) => {
+    setChatHistories(prev => ({ ...prev, [projectId]: messages }));
+    saveChatHistory(projectId, messages);
+  }, []);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
@@ -147,14 +184,25 @@ function App() {
       </nav>
 
       {/* Main layout — project sidebar + content */}
-      <div className="app-workspace" style={{ gridTemplateColumns: isSidebarOpen ? "240px 1fr" : "0px 1fr" }}>
-        <ProjectManager
-          selectedProjectId={selectedProject?.id ?? null}
-          onSelectProject={setSelectedProject}
-          onCloseSidebar={() => setIsSidebarOpen(false)}
-        />
+      <div className="app-workspace">
+        <div 
+          style={{ 
+            width: isSidebarOpen ? "240px" : "0px",
+            minWidth: isSidebarOpen ? "240px" : "0px",
+            overflow: "hidden",
+            transition: "width var(--transition-slow), min-width var(--transition-slow)",
+            flexShrink: 0,
+            borderRight: isSidebarOpen ? "1px solid var(--border)" : "none",
+          }}
+        >
+          <ProjectManager
+            selectedProjectId={selectedProject?.id ?? null}
+            onSelectProject={setSelectedProject}
+            onCloseSidebar={() => setIsSidebarOpen(false)}
+          />
+        </div>
 
-        <main className="app-main">
+        <main className="app-main" style={{ flex: 1, minWidth: 0 }}>
           {selectedProject ? (
             <>
               {/* Project context banner */}
@@ -172,8 +220,11 @@ function App() {
               <div className="workspace-content-grid">
                 {/* Middle column: Chat Workspace */}
                 <ChatWorkspace
+                  key={selectedProject.id}
                   projectId={selectedProject.id}
                   selectedDocumentIds={selectedDocumentIds}
+                  initialMessages={getProjectMessages(selectedProject.id)}
+                  onMessagesChange={(msgs) => handleMessagesChange(selectedProject.id, msgs)}
                 />
 
                 {/* Right sidebar: Upload on top, Document Context Sidebar below */}

@@ -99,23 +99,58 @@ export default function DocumentContextSidebar({
       <div className="panel-header">
         <h2 className="panel-title">Nguồn tài liệu</h2>
         <div className="header-actions">
-          <span className="badge badge-uploaded">{selectedDocumentIds.length} đã chọn</span>
+          <span 
+            className={`badge ${selectedDocumentIds.length > 0 ? "" : "badge-uploaded"}`}
+            style={selectedDocumentIds.length > 0 ? {
+              background: "var(--accent-dim)",
+              color: "var(--accent)",
+              border: "1px solid var(--accent-glow-strong)"
+            } : {}}
+          >
+            {selectedDocumentIds.length} đã chọn
+          </span>
         </div>
       </div>
       <div className="panel-body" style={{ padding: "12px", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-        <input
-          type="text"
-          className="input"
-          placeholder="Tìm nguồn (File name)..."
-          name="filename"
-          value={filters.filename}
-          onChange={(e) => setFilters({ ...filters, filename: e.target.value })}
-          style={{ marginBottom: "12px", width: "100%" }}
-        />
+        <div style={{ position: "relative", marginBottom: "14px" }}>
+          <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)", display: "flex", pointerEvents: "none" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            className="input"
+            placeholder="Tìm tài liệu..."
+            name="filename"
+            value={filters.filename}
+            onChange={(e) => setFilters({ ...filters, filename: e.target.value })}
+            style={{ 
+              width: "100%", 
+              padding: "8px 16px 8px 34px", 
+              borderRadius: "8px", 
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              fontSize: "13px",
+              outline: "none",
+              transition: "border-color 0.2s, box-shadow 0.2s"
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "var(--accent)";
+              e.target.style.boxShadow = "0 0 0 2px var(--accent-glow)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "var(--border)";
+              e.target.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)";
+            }}
+          />
+        </div>
 
         {message && <div className="alert alert-error">{message}</div>}
 
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "13px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "13px", paddingLeft: "12px" }}>
           <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", color: "var(--text-primary)" }}>
             <input
               type="checkbox"
@@ -135,32 +170,47 @@ export default function DocumentContextSidebar({
           <div style={{ textAlign: "center", padding: "20px", color: "var(--text-secondary)" }}>Không có tài liệu nào.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, minHeight: 0, overflowY: "auto", paddingRight: "4px" }}>
-            {filteredDocuments.map((doc) => (
-              <label
-                key={doc.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  background: selectedDocumentIds.includes(doc.id) ? "var(--bg-active)" : "var(--bg-elevated)",
-                  border: `1px solid ${selectedDocumentIds.includes(doc.id) ? "var(--accent)" : "var(--border)"}`,
-                  cursor: "pointer",
-                  transition: "all 0.2s"
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedDocumentIds.includes(doc.id)}
-                  onChange={() => handleToggleSelection(doc.id)}
-                />
-                <FileTextIcon />
-                <span style={{ fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)" }}>
-                  {doc.original_filename}
-                </span>
-              </label>
-            ))}
+            {filteredDocuments.map((doc) => {
+              const getFileIcon = (filename: string) => {
+                const ext = filename.split('.').pop()?.toLowerCase();
+                switch (ext) {
+                  case 'pdf': return <img src="https://img.icons8.com/color/48/pdf.png" alt="PDF" style={{ width: 18, height: 18, flexShrink: 0 }} />;
+                  case 'doc':
+                  case 'docx': return <img src="https://img.icons8.com/color/48/word.png" alt="Word" style={{ width: 18, height: 18, flexShrink: 0 }} />;
+                  case 'xls':
+                  case 'xlsx': return <img src="https://img.icons8.com/color/48/xls.png" alt="Excel" style={{ width: 18, height: 18, flexShrink: 0 }} />;
+                  case 'txt': return <img src="https://img.icons8.com/color/48/txt.png" alt="Text" style={{ width: 18, height: 18, flexShrink: 0 }} />;
+                  default: return <FileTextIcon />;
+                }
+              };
+
+              return (
+                <label
+                  key={doc.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    background: selectedDocumentIds.includes(doc.id) ? "var(--bg-active)" : "var(--bg-elevated)",
+                    border: `1px solid ${selectedDocumentIds.includes(doc.id) ? "var(--accent)" : "var(--border)"}`,
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedDocumentIds.includes(doc.id)}
+                    onChange={() => handleToggleSelection(doc.id)}
+                  />
+                  {getFileIcon(doc.original_filename)}
+                  <span style={{ fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)" }}>
+                    {doc.original_filename}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         )}
       </div>

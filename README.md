@@ -11,8 +11,11 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 - Preprocessing pipeline: extract → Markdown Header Chunking (chia theo Heading cấp độ, fallback size=1500) → embedding (1536 chiều) → RAG retrieval
 
 **Frontend** — React + TypeScript + Vite
-- Dark/light mode toggle (lưu localStorage)
-- Test case hiển thị dạng bảng phẳng 7 cột, có nút Export Excel
+- Giao diện UI/UX tối ưu theo hướng hiện đại (Hover effect xanh lá đặc trưng, bo góc, bóng đổ).
+- Hỗ trợ render Markdown đa dạng bao gồm cả Table phức tạp và HTML tag (tích hợp `rehype-raw`).
+- Khung quản lý tài liệu (Context) tự động nhận diện định dạng file và hiển thị bộ logo 3D tương ứng.
+- Dark/light mode toggle (lưu localStorage).
+- Test case hiển thị dạng bảng phẳng 6-7 cột (fixed layout), chống vỡ khung, có nút Export Excel.
 
 ---
 

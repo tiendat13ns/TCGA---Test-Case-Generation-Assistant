@@ -1,6 +1,51 @@
 import logging
 from typing import List, Dict
 
+
+def _format_test_cases_as_markdown_table(req_id: str, res) -> str:
+    """
+    Build bảng Markdown đầy đủ 6 cột theo yêu cầu:
+    TC ID | Mục đích kiểm thử | Pre-condition | Các bước thực hiện | Test Data | Kết quả mong muốn
+    """
+    tc_list = res.test_cases
+    total = res.total_test_cases
+
+    lines = []
+    lines.append(f"**Tổng hợp {total} Test Case** cho Requirement `{req_id}`\n")
+
+    # Header bảng
+    lines.append("| Mã THKT | Mục đích kiểm thử | Environment / Pre-condition | Các bước thực hiện | Test Data | Kết quả mong muốn |")
+    lines.append("|---------|-------------------|----------------------------|-------------------|-----------|-------------------|")
+
+    for i, tc in enumerate(tc_list, start=1):
+        tc_id = f"TC-{i:02d}"
+
+        # Mục đích = title + (test_type, priority)
+        title = (tc.title or "").replace("|", "/").replace("\n", " ")
+        test_type = tc.test_type or ""
+        priority = tc.priority or ""
+        test_item = f"{title}<br/>*({test_type} · {priority})*" if test_type or priority else title
+
+        # Pre-condition
+        precond = (tc.preconditions or "").replace("|", "/").replace("\n", " ")
+
+        # Test steps — join thành chuỗi đánh số, dùng <br/> để xuống dòng trong ô bảng
+        steps = tc.test_steps or []
+        steps_str = "<br/>".join(f"{j}. {s.replace('|', '/').replace(chr(10), ' ')}" for j, s in enumerate(steps, start=1))
+        if not steps_str:
+            steps_str = "(none)"
+
+        # Test data
+        test_data = (tc.test_data or "").replace("|", "/").replace("\n", " ")
+
+        # Expected result
+        expected = (tc.expected_result or "").replace("|", "/").replace("\n", " ")
+
+        lines.append(f"| {tc_id} | {test_item} | {precond} | {steps_str} | {test_data} | {expected} |")
+
+    return "\n".join(lines)
+
+
 from langchain_core.messages import BaseMessage
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
@@ -104,7 +149,7 @@ def list_requirements_tool(document_id: str) -> str:
     """
     Lấy danh sách và CHI TIẾT các requirement đã được tạo cho một tài liệu cụ thể.
     Sử dụng tool này để xem lại requirement hoặc biết ID của requirement trước khi tạo Test Case.
-    Kết quả trả về là JSON. BẠN PHẢI FORMAT JSON NÀY THÀNH MARKDOWN CHI TIẾT để hiển thị cho người dùng.
+    Kết quả trả về đã được format sẵn — KHÔNG cần xử lý thêm, chỉ cần lấy các requirement_id từ danh sách để truyền vào generate_test_case_tool.
     
     Args:
         document_id: ID của tài liệu.
@@ -113,8 +158,16 @@ def list_requirements_tool(document_id: str) -> str:
         res = list_requirements_by_document(document_id)
         if not res.requirements:
             return f"Tài liệu {document_id} chưa có requirement nào. Bạn cần tạo requirement trước."
-        
-        return res.model_dump_json(indent=2)
+
+        lines = [f"Tìm thấy {len(res.requirements)} requirement cho tài liệu `{document_id}`:\n"]
+        for i, req in enumerate(res.requirements, start=1):
+            lines.append(f"{i}. **{req.title}**")
+            lines.append(f"   - ID: `{req.id}`")
+            lines.append(f"   - Trạng thái: {req.status}")
+            if req.description:
+                lines.append(f"   - Mô tả: {req.description[:150]}{'...' if len(req.description or '') > 150 else ''}")
+            lines.append("")
+        return "\n".join(lines)
     except Exception as e:
         return f"Lỗi khi lấy danh sách requirement: {str(e)}"
 
@@ -123,8 +176,9 @@ async def generate_test_case_tool(requirement_ids: List[str]) -> str:
     """
     Sử dụng tool này khi người dùng yêu cầu tạo Test Case từ Requirement.
     Nó sẽ sinh Test Case (tuân thủ ISTQB) và lưu vào cơ sở dữ liệu.
-    Kết quả trả về là JSON chứa danh sách Test Case. BẠN PHẢI FORMAT JSON NÀY THÀNH MARKDOWN CHI TIẾT (bảng hoặc list) để hiển thị cho người dùng xem các Test Case vừa được tạo.
-    
+    Kết quả trả về ĐÃ ĐƯỢC FORMAT SẴN thành Markdown table — KHÔNG cần xử lý hay format lại.
+    Chỉ cần hiển thị nguyên văn kết quả này cho người dùng.
+
     Args:
         requirement_ids: Danh sách ID của các Requirement cần tạo Test Case.
     """
@@ -132,10 +186,11 @@ async def generate_test_case_tool(requirement_ids: List[str]) -> str:
     results = []
     try:
         for req_id in requirement_ids:
-            # Need to import here to avoid circular imports if any, but we already imported at top
             from app.services.test_case_generation_service import generate_test_cases_from_requirement
             res = await generate_test_cases_from_requirement(req_id)
-            results.append(f"Kết quả Test Cases cho Requirement {req_id}:\n" + res.model_dump_json(indent=2))
+            # Format thành Markdown table ngay tại đây — AI không cần xử lý thêm
+            markdown_output = _format_test_cases_as_markdown_table(req_id, res)
+            results.append(markdown_output)
         return "\n\n".join(results)
     except Exception as e:
         logger.error(f"Error in generate_test_case_tool: {e}")
