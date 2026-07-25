@@ -57,7 +57,7 @@ services:
     container_name: tcga_frontend
     restart: unless-stopped
     ports:
-      - "1302:5173"
+      - "1302:1302"
     volumes:
       # Mount source code để hot-reload hoạt động khi bạn chỉnh code
       - ./frontend:/app

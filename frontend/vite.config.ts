@@ -10,7 +10,7 @@ export default defineConfig({
     proxy: {
       // Tự động chuyển tiếp các request /api sang backend
       "/api": {
-        target: "http://backend:1303",
+        target: "http://backend:8000",
         changeOrigin: true,
       },
     },
