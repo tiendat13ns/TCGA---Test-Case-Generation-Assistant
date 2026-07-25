@@ -1,7 +1,8 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import type { DocumentItem } from "../App";
 
-const API_URL = "/api/documents";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const API_URL = `${API_BASE}/api/documents`;
 
 type DocumentContextSidebarProps = {
   projectId: string;

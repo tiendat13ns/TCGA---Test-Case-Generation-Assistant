@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, ChangeEvent, FormEvent } from "react";
 import "../styles.css";
 
-const API_BASE = "";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 /* ─── Types ──────────────────────────────────────────────── */
 export type Project = {

@@ -74,7 +74,8 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
     setInputValue("");
     
     try {
-      const response = await fetch("/api/chat/message", {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+      const response = await fetch(`${API_BASE}/api/chat/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

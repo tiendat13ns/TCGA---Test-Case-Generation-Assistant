@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
-const API_V1_REQUIREMENTS_URL = "/api/v1/requirements";
-const API_V1_DOCUMENTS_URL = "/api/v1/documents";
-const API_URL = "/api/documents";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const API_V1_REQUIREMENTS_URL = `${API_BASE}/api/v1/requirements`;
+const API_V1_DOCUMENTS_URL = `${API_BASE}/api/v1/documents`;
+const API_URL = `${API_BASE}/api/documents`;
 
 export type RequirementItem = {
   id: string; title: string; description: string;

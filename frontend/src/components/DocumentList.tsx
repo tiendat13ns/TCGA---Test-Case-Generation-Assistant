@@ -2,8 +2,9 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import type { DocumentItem } from "../App";
 import type { GenerateRequirementsResponse } from "./RequirementViewer";
 
-const API_URL = "/api/documents";
-const API_V1_DOCUMENTS_URL = "/api/v1/documents";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const API_URL = `${API_BASE}/api/documents`;
+const API_V1_DOCUMENTS_URL = `${API_BASE}/api/v1/documents`;
 
 type DocumentListProps = {
   projectId: string | null;
