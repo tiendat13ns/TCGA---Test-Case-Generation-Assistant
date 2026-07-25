@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       # Lưu dữ liệu database vào máy thật, không mất khi container dừng
       - postgres_data:/var/lib/postgresql/data
@@ -31,7 +31,7 @@ services:
     container_name: tcga_backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "1303:8000"
     volumes:
       # Mount source code để hot-reload hoạt động khi bạn chỉnh code
       - ./backend:/app
@@ -57,7 +57,7 @@ services:
     container_name: tcga_frontend
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "1302:5173"
     volumes:
       # Mount source code để hot-reload hoạt động khi bạn chỉnh code
       - ./frontend:/app

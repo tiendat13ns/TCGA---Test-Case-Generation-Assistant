@@ -121,6 +121,6 @@ Yêu cầu: Đã cài đặt [Docker Desktop](https://www.docker.com/products/do
 
 3. Mở trình duyệt và truy cập:
    - **Giao diện người dùng (Frontend):** `http://localhost:5173`
-   - **Tài liệu API Backend (Swagger UI):** `http://localhost:8000/docs`
+   - **Tài liệu API Backend (Swagger UI):** `http://localhost:1303/docs`
 
 > **Lưu ý:** Cơ sở dữ liệu PostgreSQL (`pgvector`) đã được tích hợp sẵn và tự động khởi tạo khi chạy lệnh Docker. Mọi thay đổi đối với file cấu hình `.env` trong thư mục `backend/` sẽ tự động được Docker nạp vào hệ thống. Cấu hình mặc định đã sử dụng mô hình OpenAI-compatible của Vilao.
