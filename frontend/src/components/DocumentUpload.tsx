@@ -2,7 +2,7 @@ import "../styles.css";
 import { ChangeEvent, FormEvent, useRef, useState } from "react";
 import type { DocumentItem } from "../App";
 
-const API_URL = "http://localhost:8000/api/documents/upload";
+const API_URL = "http://localhost:1303/api/documents/upload";
 
 type DocumentUploadProps = {
   projectId: string | null;

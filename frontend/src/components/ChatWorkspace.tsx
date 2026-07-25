@@ -74,7 +74,7 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
     setInputValue("");
     
     try {
-      const response = await fetch("http://localhost:8000/api/chat/message", {
+      const response = await fetch("http://localhost:1303/api/chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
