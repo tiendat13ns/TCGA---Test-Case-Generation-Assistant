@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, ChangeEvent, FormEvent } from "react";
 import "../styles.css";
 
-const API_BASE = "http://localhost:1303";
+const API_BASE = "";
 
 /* ─── Types ──────────────────────────────────────────────── */
 export type Project = {

@@ -1,7 +1,7 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import type { DocumentItem } from "../App";
 
-const API_URL = "http://localhost:1303/api/documents";
+const API_URL = "/api/documents";
 
 type DocumentContextSidebarProps = {
   projectId: string;

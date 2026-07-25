@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-const API_V1_REQUIREMENTS_URL = "http://localhost:1303/api/v1/requirements";
-const API_V1_DOCUMENTS_URL = "http://localhost:1303/api/v1/documents";
-const API_URL = "http://localhost:1303/api/documents";
+const API_V1_REQUIREMENTS_URL = "/api/v1/requirements";
+const API_V1_DOCUMENTS_URL = "/api/v1/documents";
+const API_URL = "/api/documents";
 
 export type RequirementItem = {
   id: string; title: string; description: string;
