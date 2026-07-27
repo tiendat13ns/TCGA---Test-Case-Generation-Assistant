@@ -2,6 +2,7 @@ import { useState, FormEvent } from "react";
 import { Project } from "./ProjectManager";
 import { useProjects, useCreateProject, useDeleteProject } from "../hooks/useProjects";
 import ConfirmDialog from "./ConfirmDialog";
+import ModalDialog from "./ModalDialog";
 
 function FolderIcon() {
   return (
@@ -246,48 +247,51 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
         </div>
       )}
 
-      {/* Very simple modal for creation */}
-      {showCreateModal && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center"
-        }}>
-          <div style={{
-            backgroundColor: "var(--bg-surface)", padding: "24px", borderRadius: "12px",
-            width: "400px", maxWidth: "90vw", border: "1px solid var(--border)",
-            boxShadow: "0 24px 48px rgba(0,0,0,0.2)"
-          }}>
-            <h3 style={{ margin: "0 0 16px 0" }}>Create New Project</h3>
-            <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <input
-                className="filter-control"
-                placeholder="Project name *"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                style={{ padding: "10px", fontSize: "14px" }}
-              />
-              <textarea
-                className="filter-control"
-                placeholder="Description (optional)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                style={{ padding: "10px", fontSize: "14px", minHeight: "80px", resize: "vertical" }}
-              />
-              {error && <div className="msg msg-error"><AlertIcon /> {error}</div>}
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "12px" }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowCreateModal(false); setError(""); }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={isCreating}>
-                  {isCreating ? <><SpinnerIcon /> Creating...</> : "Create Project"}
-                </button>
-              </div>
-            </form>
+      <ModalDialog
+        isOpen={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setError(""); setName(""); setDescription(""); }}
+        title="Create Project"
+        width="400px"
+      >
+        <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "8px" }}>
+          {error && <div className="error-message" style={{ color: "var(--danger)", fontSize: "14px", padding: "8px", backgroundColor: "rgba(220, 38, 38, 0.1)", borderRadius: "6px" }}>{error}</div>}
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" }}>Project Name</label>
+            <input 
+              autoFocus
+              type="text" 
+              className="filter-control" 
+              value={name} 
+              onChange={e => setName(e.target.value)} 
+              placeholder="e.g. Acme E-commerce"
+              required
+              style={{ fontSize: "14px", padding: "10px 12px" }}
+            />
           </div>
-        </div>
-      )}
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" }}>Description <span style={{ color: "var(--text-muted)", fontWeight: "400" }}>(Optional)</span></label>
+            <textarea 
+              className="filter-control" 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              placeholder="Briefly describe the project..."
+              rows={3}
+              style={{ resize: "vertical", fontSize: "14px", padding: "10px 12px", minHeight: "80px" }}
+            />
+          </div>
+          
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
+            <button type="button" className="btn btn-secondary" style={{ padding: "8px 16px", fontSize: "13px" }} onClick={() => { setShowCreateModal(false); setError(""); setName(""); setDescription(""); }}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }} disabled={isCreating}>
+              {isCreating ? <><SpinnerIcon /> Creating...</> : "Create Project"}
+            </button>
+          </div>
+        </form>
+      </ModalDialog>
 
       <ConfirmDialog
         isOpen={!!projectToDelete}

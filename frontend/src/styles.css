@@ -2058,3 +2058,76 @@ input[type="checkbox"] {
 [data-theme="light"] .markdown-body tbody tr:hover {
   background: rgba(0, 0, 0, 0.02);
 }
+
+
+/* ── SideDrawer Dialog (Native) ────────────────────────────── */
+dialog.side-drawer-dialog {
+  margin: 0;
+  margin-left: auto;
+  height: 100vh;
+  width: var(--drawer-width, 450px);
+  max-width: 100vw;
+  max-height: 100vh;
+  border: none;
+  background-color: var(--bg-surface);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-left: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), display 0.3s allow-discrete, overlay 0.3s allow-discrete;
+  transform: translateX(100%);
+}
+dialog.side-drawer-dialog[open] {
+  transform: translateX(0);
+}
+@starting-style {
+  dialog.side-drawer-dialog[open] {
+    transform: translateX(100%);
+  }
+}
+dialog.side-drawer-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  transition: background-color 0.3s ease, backdrop-filter 0.3s ease, display 0.3s allow-discrete, overlay 0.3s allow-discrete;
+}
+dialog.side-drawer-dialog[open]::backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+@starting-style {
+  dialog.side-drawer-dialog[open]::backdrop {
+    background-color: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+  }
+}
+
+/* ── Confirm Dialog ────────────────────────────── */
+dialog.confirm-dialog {
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-card);
+  max-width: 90vw;
+  width: 400px;
+  /* Centering */
+  margin: auto;
+  position: fixed;
+  inset: 0;
+}
+dialog.confirm-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  transition: background-color 0.3s ease, backdrop-filter 0.3s ease, display 0.3s allow-discrete, overlay 0.3s allow-discrete;
+}
+dialog.confirm-dialog[open]::backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+@starting-style {
+  dialog.confirm-dialog[open]::backdrop {
+    background-color: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+  }
+}
