@@ -1071,8 +1071,6 @@ select {
   gap: 10px;
 }
 
-.req-field {}
-
 .req-field-label {
   font-size: 10px;
   font-weight: 700;
@@ -1253,8 +1251,6 @@ select {
   display: grid;
   gap: 8px;
 }
-
-.tc-field {}
 
 .tc-field-label {
   font-size: 10px;
