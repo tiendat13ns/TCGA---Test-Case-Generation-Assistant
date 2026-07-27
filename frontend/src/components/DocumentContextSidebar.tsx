@@ -1,8 +1,6 @@
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DocumentItem } from "../App";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
-const API_URL = `${API_BASE}/api/documents`;
+import { useProjectDocuments, useAddDocumentsToCache } from "../hooks/useDocuments";
 
 type DocumentContextSidebarProps = {
   projectId: string;
@@ -27,36 +25,15 @@ export default function DocumentContextSidebar({
   selectedDocumentIds,
   onSelectionChange,
 }: DocumentContextSidebarProps) {
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const { data: documents = [], isLoading, error } = useProjectDocuments(projectId);
+  const addToCache = useAddDocumentsToCache(projectId);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const message = error instanceof Error ? error.message : "";
 
-  useEffect(() => {
-    const loadDocuments = async () => {
-      setIsLoading(true);
-      setMessage("");
-      try {
-        const url = projectId ? `${API_URL}?project_id=${projectId}` : API_URL;
-        const response = await fetch(url);
-        const data = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(data?.detail || "Could not load documents.");
-        setDocuments(data);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Cannot connect to backend.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadDocuments();
-  }, [projectId]);
-
+  // Add newly uploaded docs to cache
   useEffect(() => {
     if (newUploadedDocuments.length === 0) return;
-    setDocuments((current) => {
-      const currentIds = new Set(current.map((d) => d.id));
-      return [...newUploadedDocuments.filter((d) => !currentIds.has(d.id)), ...current];
-    });
+    addToCache(newUploadedDocuments);
   }, [newUploadedDocuments]);
 
   const filteredDocuments = useMemo(() => {

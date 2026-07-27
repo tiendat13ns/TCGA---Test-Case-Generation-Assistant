@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, ChangeEvent, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import "../styles.css";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+import { useProjects, useCreateProject, useDeleteProject } from "../hooks/useProjects";
 
 /* ─── Types ──────────────────────────────────────────────── */
 export type Project = {
@@ -10,6 +9,9 @@ export type Project = {
   description?: string | null;
   created_at: string;
   updated_at?: string | null;
+  file_count?: number;
+  req_count?: number;
+  test_case_count?: number;
 };
 
 /* ─── Icons ──────────────────────────────────────────────── */
@@ -65,55 +67,43 @@ type ProjectManagerProps = {
 };
 
 function ProjectManager({ selectedProjectId, onSelectProject, onCloseSidebar }: ProjectManagerProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: projects = [], isLoading } = useProjects();
+  const createMutation = useCreateProject();
+  const deleteMutation = useDeleteProject();
+
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const r = await fetch(`${API_BASE}/api/v1/projects`);
-        const d = await r.json();
-        setProjects(d.projects || []);
-      } catch { }
-      finally { setIsLoading(false); }
-    };
-    load();
-  }, []);
+  const isCreating = createMutation.isPending;
 
-  const handleCreate = async (e: FormEvent) => {
+  const handleCreate = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { setError("Project name is required."); return; }
-    setIsCreating(true); setError("");
-    try {
-      const r = await fetch(`${API_BASE}/api/v1/projects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || null }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d?.detail || "Failed to create project.");
-      setProjects((prev) => [d, ...prev]);
-      setName(""); setDescription(""); setShowCreate(false);
-      onSelectProject(d);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error creating project.");
-    } finally { setIsCreating(false); }
+    setError("");
+    createMutation.mutate(
+      { name: name.trim(), description: description.trim() || null },
+      {
+        onSuccess: (newProject) => {
+          setName(""); setDescription(""); setShowCreate(false);
+          onSelectProject(newProject);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Error creating project.");
+        },
+      }
+    );
   };
 
-  const handleDelete = async (project: Project, e: React.MouseEvent) => {
+  const handleDelete = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm(`Xóa project "${project.name}"? Toàn bộ tài liệu và test case liên quan sẽ bị xóa.`)) return;
-    try {
-      await fetch(`${API_BASE}/api/v1/projects/${project.id}`, { method: "DELETE" });
-      setProjects((prev) => prev.filter((p) => p.id !== project.id));
-      if (selectedProjectId === project.id) onSelectProject(null);
-    } catch { }
+    deleteMutation.mutate(project.id, {
+      onSuccess: () => {
+        if (selectedProjectId === project.id) onSelectProject(null);
+      },
+    });
   };
 
   return (

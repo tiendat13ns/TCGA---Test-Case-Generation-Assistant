@@ -1,9 +1,10 @@
 import "./styles.css";
 import { useEffect, useState, useCallback } from "react";
-import DocumentUpload from "./components/DocumentUpload";
-import ProjectManager, { Project } from "./components/ProjectManager";
-import ChatWorkspace, { Message } from "./components/ChatWorkspace";
-import DocumentContextSidebar from "./components/DocumentContextSidebar";
+import GlobalSidebar from "./components/GlobalSidebar";
+import ProjectsGrid from "./components/ProjectsGrid";
+import ProjectDetailDashboard from "./components/ProjectDetailDashboard";
+import { Project } from "./components/ProjectManager";
+import { Message } from "./components/ChatWorkspace";
 
 const CHAT_STORAGE_KEY = (projectId: string) => `tcga-chat-${projectId}`;
 
@@ -78,16 +79,6 @@ function FolderIcon() {
   );
 }
 
-function PanelLeftCloseIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-      <line x1="9" y1="3" x2="9" y2="21" />
-      <polyline points="16 16 12 12 16 8" />
-    </svg>
-  );
-}
-
 function PanelLeftOpenIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -99,9 +90,9 @@ function PanelLeftOpenIcon() {
 }
 
 function App() {
+  const [activeView, setActiveView] = useState<"overview" | "projects" | "project_detail">("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [newUploadedDocuments, setNewUploadedDocuments] = useState<DocumentItem[]>([]);
-  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
   });
@@ -116,12 +107,6 @@ function App() {
     localStorage.setItem("tcga-theme", theme);
   }, [theme]);
 
-  // When project changes, reset document selection (not chat — chat loads from history)
-  useEffect(() => {
-    setNewUploadedDocuments([]);
-    setSelectedDocumentIds([]);
-  }, [selectedProject?.id]);
-
   // Load chat history for a project on first visit
   const getProjectMessages = useCallback((projectId: string): Message[] => {
     if (chatHistories[projectId]) return chatHistories[projectId];
@@ -135,6 +120,16 @@ function App() {
   }, []);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
+  const handleNavigate = (view: "overview" | "projects") => {
+    setActiveView(view);
+    setSelectedProject(null);
+  };
+
+  const handleSelectProject = (project: Project) => {
+    setSelectedProject(project);
+    setActiveView("project_detail");
+  };
 
   return (
     <div className="app-shell">
@@ -163,7 +158,7 @@ function App() {
         <span className="app-nav-badge">AI-powered</span>
 
         {/* Active Project Breadcrumb */}
-        {selectedProject && (
+        {selectedProject && activeView === "project_detail" && (
           <>
             <div className="app-nav-divider" />
             <span className="app-nav-project-crumb">
@@ -183,7 +178,7 @@ function App() {
         </button>
       </nav>
 
-      {/* Main layout — project sidebar + content */}
+      {/* Main layout */}
       <div className="app-workspace">
         <div 
           style={{ 
@@ -195,63 +190,40 @@ function App() {
             borderRight: isSidebarOpen ? "1px solid var(--border)" : "none",
           }}
         >
-          <ProjectManager
-            selectedProjectId={selectedProject?.id ?? null}
-            onSelectProject={setSelectedProject}
+          <GlobalSidebar 
+            activeView={activeView}
+            onNavigate={handleNavigate}
             onCloseSidebar={() => setIsSidebarOpen(false)}
           />
         </div>
 
-        <main className="app-main" style={{ flex: 1, minWidth: 0 }}>
-          {selectedProject ? (
-            <>
-              {/* Project context banner */}
-              <div className="project-context-banner">
-                <FolderIcon />
-                <span>
-                  Project: <strong>{selectedProject.name}</strong>
-                </span>
-                {selectedProject.description && (
-                  <span className="project-context-desc">— {selectedProject.description}</span>
-                )}
-              </div>
-
-              {/* Main content grid: 3-column layout */}
-              <div className="workspace-content-grid">
-                {/* Middle column: Chat Workspace */}
-                <ChatWorkspace
-                  key={selectedProject.id}
-                  projectId={selectedProject.id}
-                  selectedDocumentIds={selectedDocumentIds}
-                  initialMessages={getProjectMessages(selectedProject.id)}
-                  onMessagesChange={(msgs) => handleMessagesChange(selectedProject.id, msgs)}
-                />
-
-                {/* Right sidebar: Upload on top, Document Context Sidebar below */}
-                <div className="workspace-right-sidebar">
-                  <DocumentUpload
-                    projectId={selectedProject.id}
-                    onUploadSuccess={setNewUploadedDocuments}
-                  />
-                  <DocumentContextSidebar
-                    projectId={selectedProject.id}
-                    newUploadedDocuments={newUploadedDocuments}
-                    selectedDocumentIds={selectedDocumentIds}
-                    onSelectionChange={setSelectedDocumentIds}
-                  />
+        <main className="app-main" style={{ flex: 1, minWidth: 0, padding: 0 }}>
+          {activeView === "overview" && (
+            <div style={{ padding: "32px", height: "100%", overflowY: "auto" }}>
+              <h2>Overview</h2>
+              <div className="workspace-empty" style={{ marginTop: "64px" }}>
+                <div className="workspace-empty-icon">📊</div>
+                <div className="workspace-empty-title">Dashboard Coming Soon</div>
+                <div className="workspace-empty-body">
+                  Statistics and global overview will be available in a future update.
                 </div>
-              </div>
-            </>
-          ) : (
-            /* Empty state — no project selected */
-            <div className="workspace-empty">
-              <div className="workspace-empty-icon">📂</div>
-              <div className="workspace-empty-title">Select a project to get started</div>
-              <div className="workspace-empty-body">
-                Choose an existing project from the sidebar, or create a new one to begin uploading
-                documents and generating test cases.
+                <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => handleNavigate("projects")}>
+                  Go to Projects
+                </button>
               </div>
             </div>
+          )}
+          
+          {activeView === "projects" && (
+            <ProjectsGrid onSelectProject={handleSelectProject} />
+          )}
+
+          {activeView === "project_detail" && selectedProject && (
+            <ProjectDetailDashboard 
+              project={selectedProject}
+              chatMessages={getProjectMessages(selectedProject.id)}
+              onChatMessagesChange={(msgs) => handleMessagesChange(selectedProject.id, msgs)}
+            />
           )}
         </main>
       </div>

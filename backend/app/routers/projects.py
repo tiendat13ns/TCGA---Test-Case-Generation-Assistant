@@ -3,22 +3,35 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.database import SessionLocal
-from app.models import Project
+from app.models import Project, Document, Requirement, TestCase
 from app.schemas.project_schema import ProjectCreate, ProjectListResponse, ProjectResponse
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 
-def _project_to_response(project: Project) -> ProjectResponse:
+def _project_to_response(project: Project, file_count: int = 0, req_count: int = 0, test_case_count: int = 0) -> ProjectResponse:
     return ProjectResponse(
         id=str(project.id),
         name=project.name,
         description=project.description,
         created_at=project.created_at.isoformat(timespec="seconds") if project.created_at else "",
         updated_at=project.updated_at.isoformat(timespec="seconds") if project.updated_at else None,
+        file_count=file_count,
+        req_count=req_count,
+        test_case_count=test_case_count
     )
+
+
+def _get_project_stats(db: Session, project_id: UUID) -> tuple[int, int, int]:
+    file_count = db.query(Document).filter(Document.project_id == project_id).count()
+    req_count = db.query(Requirement).filter(Requirement.project_id == project_id).count()
+    # Count how many requirements have test cases generated, instead of individual test case rows
+    test_case_count = db.query(TestCase.requirement_id).join(Requirement, TestCase.requirement_id == Requirement.id).filter(Requirement.project_id == project_id).distinct().count()
+    return file_count, req_count, test_case_count
 
 
 @router.post("", response_model=ProjectResponse, status_code=201)
@@ -40,10 +53,15 @@ def list_projects():
     """Trả về danh sách tất cả projects, sắp xếp theo thời gian tạo mới nhất."""
     try:
         with SessionLocal() as db:
+            # We use N+1 for simplicity on local since count is low, but optimized query is:
             projects = db.query(Project).order_by(Project.created_at.desc()).all()
+            result = []
+            for p in projects:
+                fc, rc, tcc = _get_project_stats(db, p.id)
+                result.append(_project_to_response(p, fc, rc, tcc))
             return ProjectListResponse(
-                total=len(projects),
-                projects=[_project_to_response(p) for p in projects],
+                total=len(result),
+                projects=result,
             )
     except SQLAlchemyError as exc:
         raise HTTPException(status_code=500, detail="Database error while listing projects") from exc
@@ -62,7 +80,8 @@ def get_project(project_id: str):
             project = db.get(Project, project_uuid)
             if project is None:
                 raise HTTPException(status_code=404, detail="Project not found")
-            return _project_to_response(project)
+            fc, rc, tcc = _get_project_stats(db, project.id)
+            return _project_to_response(project, fc, rc, tcc)
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
@@ -87,7 +106,8 @@ def update_project(project_id: str, payload: ProjectCreate):
             project.updated_at = datetime.now()
             db.commit()
             db.refresh(project)
-            return _project_to_response(project)
+            fc, rc, tcc = _get_project_stats(db, project.id)
+            return _project_to_response(project, fc, rc, tcc)
     except HTTPException:
         raise
     except SQLAlchemyError as exc:

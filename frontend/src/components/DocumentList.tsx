@@ -1,9 +1,9 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import type { DocumentItem } from "../App";
 import type { GenerateRequirementsResponse } from "./RequirementViewer";
+import { useProjectDocuments, useDeleteDocument, useClearDocuments, useAddDocumentsToCache } from "../hooks/useDocuments";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
-const API_URL = `${API_BASE}/api/documents`;
 const API_V1_DOCUMENTS_URL = `${API_BASE}/api/v1/documents`;
 
 type DocumentListProps = {
@@ -44,10 +44,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function DocumentList({ projectId, newUploadedDocuments, onViewRequirements }: DocumentListProps) {
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const { data: documents = [], isLoading, error: fetchError } = useProjectDocuments(projectId);
+  const deleteDocMutation = useDeleteDocument(projectId);
+  const clearDocsMutation = useClearDocuments(projectId);
+  const addToCache = useAddDocumentsToCache(projectId);
+
   const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
   const [generatingRequirementsId, setGeneratingRequirementsId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
@@ -76,34 +78,10 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
     });
   }, [documents, existingRequirements, isLoadingRequirements]);
 
-  // Load documents on project change
-  useEffect(() => {
-    const loadDocuments = async () => {
-      setIsLoading(true);
-      setMessage("");
-      setExistingRequirements({});
-      try {
-        const url = projectId ? `${API_URL}?project_id=${projectId}` : API_URL;
-        const response = await fetch(url);
-        const data = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(data?.detail || "Could not load documents.");
-        setDocuments(data);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Cannot connect to backend.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadDocuments();
-  }, [projectId]);
-
-  // Add newly uploaded docs to list
+  // Add newly uploaded docs to cache
   useEffect(() => {
     if (newUploadedDocuments.length === 0) return;
-    setDocuments((current) => {
-      const currentIds = new Set(current.map((d) => d.id));
-      return [...newUploadedDocuments.filter((d) => !currentIds.has(d.id)), ...current];
-    });
+    addToCache(newUploadedDocuments);
   }, [newUploadedDocuments]);
 
   const filteredDocuments = useMemo(() => {
@@ -130,14 +108,14 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
 
   const clearUploadHistory = async () => {
     if (!window.confirm("Clear all uploaded document history?")) return;
-    setIsClearing(true); setMessage("");
-    try {
-      const r = await fetch(API_URL, { method: "DELETE" });
-      const d = await r.json().catch(() => null);
-      if (!r.ok) throw new Error(d?.detail || "Could not clear history.");
-      setDocuments([]); setFilters(defaultFilters); setExistingRequirements({});
-    } catch (e) { setMessage(e instanceof Error ? e.message : "Cannot connect to backend."); }
-    finally { setIsClearing(false); }
+    setMessage("");
+    clearDocsMutation.mutate(undefined, {
+      onSuccess: () => {
+        setFilters(defaultFilters);
+        setExistingRequirements({});
+      },
+      onError: (e) => setMessage(e instanceof Error ? e.message : "Cannot connect to backend."),
+    });
   };
 
   const generateRequirements = async (doc: DocumentItem) => {
@@ -154,25 +132,19 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
 
   const deleteDocument = async (doc: DocumentItem) => {
     if (!window.confirm(`Are you sure you want to delete "${doc.original_filename}"?`)) return;
-    try {
-      const r = await fetch(`${API_URL}/selected`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [doc.id] }),
-      });
-      const d = await r.json().catch(() => null);
-      if (!r.ok) throw new Error(d?.detail || "Could not delete document.");
-      
-      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
-      setExistingRequirements((prev) => {
-        const next = { ...prev };
-        delete next[doc.id];
-        return next;
-      });
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Cannot connect to backend.");
-    }
+    deleteDocMutation.mutate(doc.id, {
+      onSuccess: () => {
+        setExistingRequirements((prev) => {
+          const next = { ...prev };
+          delete next[doc.id];
+          return next;
+        });
+      },
+      onError: (e) => setMessage(e instanceof Error ? e.message : "Cannot connect to backend."),
+    });
   };
+
+  const displayError = message || (fetchError instanceof Error ? fetchError.message : "");
 
   return (
     <section className="panel animate-in" style={{ animationDelay: "60ms" }}>
@@ -190,8 +162,8 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
           <button type="button" className="btn btn-secondary" onClick={() => setShowFilters((f) => !f)}>
             <FilterIcon /> {showFilters ? "Hide" : "Filter"}
           </button>
-          <button type="button" className="btn btn-danger" disabled={isClearing || documents.length === 0} onClick={clearUploadHistory}>
-            {isClearing ? <><SpinnerIcon /> Clearing...</> : <><TrashIcon /> Clear</>}
+          <button type="button" className="btn btn-danger" disabled={clearDocsMutation.isPending || documents.length === 0} onClick={clearUploadHistory}>
+            {clearDocsMutation.isPending ? <><SpinnerIcon /> Clearing...</> : <><TrashIcon /> Clear</>}
           </button>
         </div>
       </div>
@@ -223,9 +195,9 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
       )}
 
       {/* Error */}
-      {message && (
+      {displayError && (
         <div className="msg msg-error" style={{ margin: "0 14px 0" }}>
-          <AlertIcon />{message}
+          <AlertIcon />{displayError}
         </div>
       )}
 
@@ -252,84 +224,96 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
             const hasReqs = !!existingRequirements[doc.id];
             const isGenerating = generatingRequirementsId === doc.id;
             const isLoadingReqs = !!isLoadingRequirements[doc.id];
+            
+            const getFileIcon = (filename: string) => {
+              const ext = filename.split('.').pop()?.toLowerCase();
+              switch (ext) {
+                case 'pdf': return <img src="https://img.icons8.com/color/48/pdf.png" alt="PDF" style={{ width: 24, height: 24 }} />;
+                case 'doc':
+                case 'docx': return <img src="https://img.icons8.com/color/48/word.png" alt="Word" style={{ width: 24, height: 24 }} />;
+                case 'xls':
+                case 'xlsx': return <img src="https://img.icons8.com/color/48/xls.png" alt="Excel" style={{ width: 24, height: 24 }} />;
+                case 'txt': return <img src="https://img.icons8.com/color/48/txt.png" alt="Text" style={{ width: 24, height: 24 }} />;
+                default: return <FileTextIcon />;
+              }
+            };
+
             return (
-              <div key={doc.id} className="doc-card">
-                <div className="doc-card-main">
+              <div key={doc.id} className="doc-card-row">
+                <div className="doc-card-icon">
+                  {getFileIcon(doc.original_filename)}
+                </div>
+                <div className="doc-card-info">
                   <div className="doc-card-name" title={doc.original_filename}>
                     {doc.original_filename}
                   </div>
                   <div className="doc-card-meta">
-                    <span className="badge badge-filetype">{doc.file_type.toUpperCase()}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--text-muted)" }}>
-                      {formatFileSize(doc.file_size)}
+                    <span className="badge badge-filetype" style={{ padding: "1px 5px", fontSize: "10px" }}>
+                      {doc.file_type.toUpperCase()}
                     </span>
+                    <span className="meta-dot">&middot;</span>
+                    <span>{formatFileSize(doc.file_size)}</span>
+                    <span className="meta-dot">&middot;</span>
+                    <span>{formatDate(doc.uploaded_at)}</span>
+                    <span className="meta-dot">&middot;</span>
                     <StatusBadge status={doc.status} />
                   </div>
-                  <div style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: "2px" }}>
-                    {formatDate(doc.uploaded_at)}
-                  </div>
                 </div>
+                
                 <div className="doc-card-actions">
                   {doc.status === "completed" && hasReqs ? (
-                    <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+                    <>
                       <button
                         type="button"
                         className="btn btn-primary"
-                        style={{ fontSize: "11px", padding: "4px 8px", flex: 1 }}
                         onClick={() => onViewRequirements(existingRequirements[doc.id]!, doc)}
                       >
-                        <EyeIcon /> View Requirement
+                        <EyeIcon /> View Req
                       </button>
                       <button
                         type="button"
                         className="btn btn-secondary"
-                        style={{ fontSize: "11px", padding: "4px 8px" }}
                         disabled={isGenerating}
                         onClick={() => generateRequirements(doc)}
-                        title="Re-generate requirements"
+                        title="Re-generate"
                       >
                         {isGenerating ? <SpinnerIcon /> : <RefreshIcon />}
                       </button>
                       <button
                         type="button"
                         className="btn btn-danger"
-                        style={{ fontSize: "11px", padding: "4px 8px" }}
                         onClick={() => deleteDocument(doc)}
-                        title="Delete document"
+                        title="Delete"
                       >
                         <TrashIcon />
                       </button>
-                    </div>
+                    </>
                   ) : doc.status === "completed" ? (
-                    <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+                    <>
                       <button
                         type="button"
                         className="btn btn-primary"
-                        style={{ fontSize: "11px", padding: "4px 8px", flex: 1 }}
                         disabled={isGenerating || isLoadingReqs}
                         onClick={() => generateRequirements(doc)}
                       >
-                        {isGenerating ? <><SpinnerIcon /> Generating...</> : isLoadingReqs ? <><SpinnerIcon /> Loading...</> : <><ZapIcon /> Generate</>}
+                        {isGenerating ? <><SpinnerIcon /> Gen...</> : isLoadingReqs ? <><SpinnerIcon /> Ldg...</> : <><ZapIcon /> Generate</>}
                       </button>
-                      <div style={{ width: "30px", flexShrink: 0 }} />
                       <button
                         type="button"
                         className="btn btn-danger"
-                        style={{ fontSize: "11px", padding: "4px 8px" }}
                         onClick={() => deleteDocument(doc)}
-                        title="Delete document"
+                        title="Delete"
                       >
                         <TrashIcon />
                       </button>
-                    </div>
+                    </>
                   ) : (
                     <button
                       type="button"
                       className="btn btn-danger"
-                      style={{ fontSize: "11px", padding: "4px 8px", width: "100%", justifyContent: "center" }}
                       onClick={() => deleteDocument(doc)}
                     >
-                      <TrashIcon /> Delete Document
+                      <TrashIcon /> Delete
                     </button>
                   )}
                 </div>

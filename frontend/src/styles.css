@@ -1569,34 +1569,79 @@ input[type="checkbox"] {
   max-height: 300px;
 }
 
-/* ── Document Card List ───────────────────────────────────── */
+/* ── Document Card Row (Redesign) ────────────────────────── */
 .doc-card-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 10px 12px 14px;
 }
 
-.doc-card {
+.doc-card-row {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 7px;
-  background: var(--bg-elevated);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  transition: border-color 0.15s;
+  transition: all var(--transition);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.doc-card:hover {
-  border-color: var(--border-focus);
+.doc-card-row:hover {
+  background: var(--bg-elevated);
+  border-color: #3f3f46;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.doc-card-main {
+.doc-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-soft);
+  flex-shrink: 0;
+}
+
+.doc-card-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
+}
+
+.doc-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.meta-dot {
+  color: var(--border);
+}
+
+.doc-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .doc-card-name {

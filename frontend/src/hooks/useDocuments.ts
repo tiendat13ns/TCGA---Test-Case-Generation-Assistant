@@ -1,0 +1,94 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { DocumentItem } from "../App";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const API_URL = `${API_BASE}/api/documents`;
+
+/* ── Query Keys ─────────────────────────────────────────── */
+export const documentKeys = {
+  all: ["documents"] as const,
+  byProject: (projectId: string | null) => ["documents", projectId ?? "all"] as const,
+};
+
+/* ── Fetchers ───────────────────────────────────────────── */
+async function fetchDocuments(projectId: string | null): Promise<DocumentItem[]> {
+  const url = projectId ? `${API_URL}?project_id=${projectId}` : API_URL;
+  const r = await fetch(url);
+  const d = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(d?.detail || "Could not load documents.");
+  return d;
+}
+
+async function deleteDocumentAPI(docId: string): Promise<string> {
+  const r = await fetch(`${API_URL}/selected`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids: [docId] }),
+  });
+  const d = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(d?.detail || "Could not delete document.");
+  return docId;
+}
+
+async function clearDocumentsAPI(): Promise<void> {
+  const r = await fetch(API_URL, { method: "DELETE" });
+  const d = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(d?.detail || "Could not clear history.");
+}
+
+/* ── Hooks ──────────────────────────────────────────────── */
+
+/** Fetch all documents for a project. Cached per projectId for the session. */
+export function useProjectDocuments(projectId: string | null) {
+  return useQuery({
+    queryKey: documentKeys.byProject(projectId),
+    queryFn: () => fetchDocuments(projectId),
+  });
+}
+
+/** Delete a single document and update the cache. */
+export function useDeleteDocument(projectId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteDocumentAPI,
+    onSuccess: (deletedId) => {
+      queryClient.setQueryData<DocumentItem[]>(
+        documentKeys.byProject(projectId),
+        (old) => old ? old.filter((d) => d.id !== deletedId) : []
+      );
+      // Also invalidate project stats since file count changed
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+/** Clear all documents and update the cache. */
+export function useClearDocuments(projectId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: clearDocumentsAPI,
+    onSuccess: () => {
+      queryClient.setQueryData<DocumentItem[]>(
+        documentKeys.byProject(projectId),
+        []
+      );
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+/** Manually add newly uploaded documents to the cache. */
+export function useAddDocumentsToCache(projectId: string | null) {
+  const queryClient = useQueryClient();
+  return (newDocs: DocumentItem[]) => {
+    queryClient.setQueryData<DocumentItem[]>(
+      documentKeys.byProject(projectId),
+      (old) => {
+        const currentIds = new Set((old || []).map((d) => d.id));
+        return [...newDocs.filter((d) => !currentIds.has(d.id)), ...(old || [])];
+      }
+    );
+    // Invalidate project stats since file count changed
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+  };
+}
