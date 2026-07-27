@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import "../styles.css";
 
 function CloseIcon() {
@@ -18,65 +18,69 @@ type SideDrawerProps = {
 };
 
 export default function SideDrawer({ isOpen, onClose, title, children, width = "450px" }: SideDrawerProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen && !dialog.open) {
+      dialog.showModal();
+      // Need to force a reflow for transition to work if not using @starting-style
+      // But we will use @starting-style in CSS
+    } else if (!isOpen && dialog.open) {
+      dialog.close();
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    onClose();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+      && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+    if (!isInDialog) {
+      onClose();
+    }
+  };
+
   return (
-    <>
-      {/* Backdrop */}
-      {isOpen && (
-        <div 
-          style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.3)",
-            zIndex: 998,
-            transition: "opacity 0.3s ease",
-          }}
-          onClick={onClose}
-        />
-      )}
-      
-      {/* Drawer */}
+    <dialog
+      ref={dialogRef}
+      onClose={handleClose}
+      onClick={handleBackdropClick}
+      className="side-drawer-dialog"
+      style={{ "--drawer-width": width } as React.CSSProperties}
+    >
       <div 
         style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: width,
-          backgroundColor: "var(--surface)",
-          boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
-          zIndex: 999,
-          transform: isOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+          padding: "16px 20px",
+          borderBottom: "1px solid var(--border)",
           display: "flex",
-          flexDirection: "column",
-          borderLeft: "1px solid var(--border)"
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "var(--bg)",
+          flexShrink: 0
         }}
       >
-        <div 
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            backgroundColor: "var(--bg)"
-          }}
+        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>{title}</h3>
+        <button 
+          type="button" 
+          className="icon-btn-ghost" 
+          onClick={onClose} 
+          title="Close"
         >
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>{title}</h3>
-          <button 
-            type="button" 
-            className="icon-btn-ghost" 
-            onClick={onClose} 
-            title="Close"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-        
-        <div style={{ flex: 1, overflowY: "auto", position: "relative" }}>
-          {children}
-        </div>
+          <CloseIcon />
+        </button>
       </div>
-    </>
+      
+      <div style={{ flex: 1, overflowY: "auto", position: "relative", display: "flex", flexDirection: "column" }}>
+        {children}
+      </div>
+    </dialog>
   );
 }

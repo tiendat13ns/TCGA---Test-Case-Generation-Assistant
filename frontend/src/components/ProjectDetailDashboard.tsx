@@ -47,7 +47,7 @@ export default function ProjectDetailDashboard({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        backgroundColor: "var(--surface)"
+        backgroundColor: "var(--bg-surface)"
       }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -114,6 +114,10 @@ export default function ProjectDetailDashboard({
           />
           {/* Right sidebar: Document Context */}
           <div className="workspace-right-sidebar">
+            <DocumentUpload
+              projectId={project.id}
+              onUploadSuccess={setNewUploadedDocuments}
+            />
             <DocumentContextSidebar
               projectId={project.id}
               newUploadedDocuments={newUploadedDocuments}

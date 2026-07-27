@@ -203,9 +203,9 @@ export default function RequirementViewer({ requirements, document, onClose, onR
   }
 
   return (
-    <section className="panel animate-in rv-panel">
+    <section className="animate-in rv-panel" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       {/* Header */}
-      <div className="panel-header" style={{ alignItems: "flex-start" }}>
+      <div className="panel-header" style={{ alignItems: "flex-start", backgroundColor: "var(--bg-surface)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span className="panel-title">Requirements for: {internalDoc?.original_filename || "Document"}</span>
@@ -225,9 +225,6 @@ export default function RequirementViewer({ requirements, document, onClose, onR
             onClick={loadDocumentPreview}
           >
             {loadingPreviewId ? <><SpinnerIcon /> Loading...</> : <><EyeIcon /> Source Preview</>}
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
-            <XIcon /> Close
           </button>
         </div>
       </div>

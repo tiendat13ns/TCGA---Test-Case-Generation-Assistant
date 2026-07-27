@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import type { DocumentItem } from "../App";
 import type { GenerateRequirementsResponse } from "./RequirementViewer";
 import { useProjectDocuments, useDeleteDocument, useClearDocuments, useAddDocumentsToCache } from "../hooks/useDocuments";
+import ConfirmDialog from "./ConfirmDialog";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_V1_DOCUMENTS_URL = `${API_BASE}/api/v1/documents`;
@@ -55,6 +56,8 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [existingRequirements, setExistingRequirements] = useState<Record<string, GenerateRequirementsResponse | null>>({});
   const [isLoadingRequirements, setIsLoadingRequirements] = useState<Record<string, boolean>>({});
+  const [documentToDelete, setDocumentToDelete] = useState<DocumentItem | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Load existing requirements for completed docs
   useEffect(() => {
@@ -106,8 +109,7 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
     setFilters((f) => ({ ...f, [name]: value }));
   };
 
-  const clearUploadHistory = async () => {
-    if (!window.confirm("Clear all uploaded document history?")) return;
+  const confirmClearUploadHistory = () => {
     setMessage("");
     clearDocsMutation.mutate(undefined, {
       onSuccess: () => {
@@ -130,13 +132,13 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
     finally { setGeneratingRequirementsId(null); }
   };
 
-  const deleteDocument = async (doc: DocumentItem) => {
-    if (!window.confirm(`Are you sure you want to delete "${doc.original_filename}"?`)) return;
-    deleteDocMutation.mutate(doc.id, {
+  const confirmDeleteDocument = () => {
+    if (!documentToDelete) return;
+    deleteDocMutation.mutate(documentToDelete.id, {
       onSuccess: () => {
         setExistingRequirements((prev) => {
           const next = { ...prev };
-          delete next[doc.id];
+          delete next[documentToDelete.id];
           return next;
         });
       },
@@ -162,7 +164,7 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
           <button type="button" className="btn btn-secondary" onClick={() => setShowFilters((f) => !f)}>
             <FilterIcon /> {showFilters ? "Hide" : "Filter"}
           </button>
-          <button type="button" className="btn btn-danger" disabled={clearDocsMutation.isPending || documents.length === 0} onClick={clearUploadHistory}>
+          <button type="button" className="btn btn-danger" disabled={clearDocsMutation.isPending || documents.length === 0} onClick={() => setShowClearConfirm(true)}>
             {clearDocsMutation.isPending ? <><SpinnerIcon /> Clearing...</> : <><TrashIcon /> Clear</>}
           </button>
         </div>
@@ -282,7 +284,7 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
                       <button
                         type="button"
                         className="btn btn-danger"
-                        onClick={() => deleteDocument(doc)}
+                        onClick={() => setDocumentToDelete(doc)}
                         title="Delete"
                       >
                         <TrashIcon />
@@ -301,7 +303,7 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
                       <button
                         type="button"
                         className="btn btn-danger"
-                        onClick={() => deleteDocument(doc)}
+                        onClick={() => setDocumentToDelete(doc)}
                         title="Delete"
                       >
                         <TrashIcon />
@@ -311,7 +313,7 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
                     <button
                       type="button"
                       className="btn btn-danger"
-                      onClick={() => deleteDocument(doc)}
+                      onClick={() => setDocumentToDelete(doc)}
                     >
                       <TrashIcon /> Delete
                     </button>
@@ -322,6 +324,25 @@ export default function DocumentList({ projectId, newUploadedDocuments, onViewRe
           })}
         </div>
       )}
+
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        isOpen={showClearConfirm}
+        title="Clear Upload History"
+        message="Are you sure you want to clear all uploaded document history?"
+        confirmText={clearDocsMutation.isPending ? "Clearing..." : "Clear"}
+        onConfirm={confirmClearUploadHistory}
+        onCancel={() => setShowClearConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!documentToDelete}
+        title="Delete Document"
+        message={`Are you sure you want to delete "${documentToDelete?.original_filename}"?`}
+        confirmText={deleteDocMutation.isPending ? "Deleting..." : "Delete"}
+        onConfirm={confirmDeleteDocument}
+        onCancel={() => setDocumentToDelete(null)}
+      />
     </section>
   );
 }

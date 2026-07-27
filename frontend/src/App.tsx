@@ -135,18 +135,6 @@ function App() {
     <div className="app-shell">
       {/* Navigation */}
       <nav className="app-nav">
-        {!isSidebarOpen && (
-          <button
-            className="icon-btn-ghost"
-            onClick={() => setIsSidebarOpen(true)}
-            title="Open sidebar"
-            aria-label="Open sidebar"
-            style={{ marginLeft: -12, marginRight: 2 }}
-          >
-            <PanelLeftOpenIcon />
-          </button>
-        )}
-
         <div className="app-nav-logo">
           <div className="app-nav-logo-mark">
             <TCGAMark />
@@ -168,6 +156,7 @@ function App() {
           </>
         )}
 
+        <div style={{ flex: 1 }} />
         <button
           className="theme-toggle"
           onClick={toggleTheme}
@@ -182,18 +171,21 @@ function App() {
       <div className="app-workspace">
         <div 
           style={{ 
-            width: isSidebarOpen ? "240px" : "0px",
-            minWidth: isSidebarOpen ? "240px" : "0px",
+            width: isSidebarOpen ? "240px" : "64px",
+            minWidth: isSidebarOpen ? "240px" : "64px",
             overflow: "hidden",
             transition: "width var(--transition-slow), min-width var(--transition-slow)",
             flexShrink: 0,
-            borderRight: isSidebarOpen ? "1px solid var(--border)" : "none",
+            borderRight: "1px solid var(--border)",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           <GlobalSidebar 
             activeView={activeView}
             onNavigate={handleNavigate}
-            onCloseSidebar={() => setIsSidebarOpen(false)}
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           />
         </div>
 

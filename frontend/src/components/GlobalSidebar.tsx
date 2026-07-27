@@ -26,39 +26,62 @@ function PanelLeftCloseIcon() {
   );
 }
 
+function MenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  );
+}
+
 type GlobalSidebarProps = {
   activeView: "overview" | "projects" | "project_detail";
   onNavigate: (view: "overview" | "projects") => void;
-  onCloseSidebar: () => void;
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
 };
 
-export default function GlobalSidebar({ activeView, onNavigate, onCloseSidebar }: GlobalSidebarProps) {
+export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, onToggleSidebar }: GlobalSidebarProps) {
   return (
-    <aside className="global-sidebar project-sidebar" style={{ width: "240px", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div className="sidebar-header" style={{ justifyContent: "space-between" }}>
-        <span className="sidebar-title">Menu</span>
-        <button type="button" className="icon-btn-ghost" onClick={onCloseSidebar} title="Close sidebar">
-          <PanelLeftCloseIcon />
-        </button>
+    <aside className="global-sidebar project-sidebar" style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+      <div className="sidebar-header" style={{ justifyContent: isSidebarOpen ? "space-between" : "center", padding: isSidebarOpen ? "14px 20px" : "14px 0" }}>
+        {isSidebarOpen ? (
+          <>
+            <span className="sidebar-title">Menu</span>
+            <button type="button" className="icon-btn-ghost" onClick={onToggleSidebar} title="Close sidebar">
+              <PanelLeftCloseIcon />
+            </button>
+          </>
+        ) : (
+          <button type="button" className="icon-btn-ghost" onClick={onToggleSidebar} title="Open sidebar">
+            <MenuIcon />
+          </button>
+        )}
       </div>
 
-      <ul className="project-list" style={{ marginTop: "12px", flex: 1 }}>
+      <ul className="project-list" style={{ marginTop: "12px", flex: 1, padding: isSidebarOpen ? "0 10px" : "0 4px" }}>
         <li 
           className={`project-item ${activeView === "overview" ? "active" : ""}`}
           onClick={() => onNavigate("overview")}
+          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "8px 14px" : "12px", margin: isSidebarOpen ? "2px 6px" : "8px 6px" }}
+          title={!isSidebarOpen ? "Overview" : undefined}
         >
-          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row" }}>
+          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
             <PieChartIcon />
-            <div className="project-item-name">Overview</div>
+            {isSidebarOpen && <div className="project-item-name">Overview</div>}
           </div>
         </li>
         <li 
           className={`project-item ${activeView === "projects" || activeView === "project_detail" ? "active" : ""}`}
           onClick={() => onNavigate("projects")}
+          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "8px 14px" : "12px", margin: isSidebarOpen ? "2px 6px" : "8px 6px" }}
+          title={!isSidebarOpen ? "Projects" : undefined}
         >
-          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row" }}>
+          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
             <GridIcon />
-            <div className="project-item-name">Projects</div>
+            {isSidebarOpen && <div className="project-item-name">Projects</div>}
           </div>
         </li>
       </ul>

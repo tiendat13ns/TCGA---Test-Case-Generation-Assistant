@@ -1,6 +1,7 @@
 import { useState, FormEvent } from "react";
 import { Project } from "./ProjectManager";
-import { useProjects, useCreateProject } from "../hooks/useProjects";
+import { useProjects, useCreateProject, useDeleteProject } from "../hooks/useProjects";
+import ConfirmDialog from "./ConfirmDialog";
 
 function FolderIcon() {
   return (
@@ -14,6 +15,15 @@ function PlusIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
   );
 }
@@ -109,8 +119,10 @@ type ProjectsGridProps = {
 export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
   const { data: projects = [], isLoading } = useProjects();
   const createProject = useCreateProject();
+  const deleteProject = useDeleteProject();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
@@ -169,7 +181,7 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
               key={p.id} 
               className="project-card"
               style={{
-                backgroundColor: "var(--surface)",
+                backgroundColor: "var(--bg-surface)",
                 border: "1px solid var(--border)",
                 borderRadius: "12px",
                 padding: "20px",
@@ -195,7 +207,20 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
                 <div style={{ padding: "10px", backgroundColor: "var(--bg)", borderRadius: "8px", color: "var(--primary)" }}>
                   <FolderIcon />
                 </div>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>{p.name}</h3>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</h3>
+                <button
+                  type="button"
+                  className="icon-btn-ghost"
+                  style={{ marginLeft: "auto", color: "var(--danger)" }}
+                  title="Delete project"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProjectToDelete(p);
+                  }}
+                  disabled={deleteProject.isPending}
+                >
+                  <TrashIcon />
+                </button>
               </div>
               <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                 {p.description || "No description"}
@@ -229,7 +254,7 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
           display: "flex", alignItems: "center", justifyContent: "center"
         }}>
           <div style={{
-            backgroundColor: "var(--surface)", padding: "24px", borderRadius: "12px",
+            backgroundColor: "var(--bg-surface)", padding: "24px", borderRadius: "12px",
             width: "400px", maxWidth: "90vw", border: "1px solid var(--border)",
             boxShadow: "0 24px 48px rgba(0,0,0,0.2)"
           }}>
@@ -263,6 +288,19 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!projectToDelete}
+        title="Delete Project"
+        message={`Are you sure you want to delete "${projectToDelete?.name}"?`}
+        confirmText={deleteProject.isPending ? "Deleting..." : "Delete"}
+        onConfirm={() => {
+          if (projectToDelete) {
+            deleteProject.mutate(projectToDelete.id);
+          }
+        }}
+        onCancel={() => setProjectToDelete(null)}
+      />
     </div>
   );
 }
