@@ -128,7 +128,8 @@ async def extract_requirement_tool(document_ids: List[str]) -> str:
     """
     Sử dụng tool này khi người dùng yêu cầu tạo requirement, trích xuất requirement từ tài liệu.
     Nó sẽ phân tích tài liệu và tạo các requirement trong cơ sở dữ liệu.
-    Kết quả trả về là JSON chứa chi tiết các Requirement vừa tạo. BẠN PHẢI FORMAT JSON NÀY THÀNH MARKDOWN CHI TIẾT (bao gồm tiêu đề, mô tả, luồng nghiệp vụ, validation, v.v.) để hiển thị cho người dùng.
+    Kết quả trả về ĐÃ ĐƯỢC FORMAT SẴN thành Markdown — KHÔNG cần xử lý hay format lại.
+    Chỉ cần hiển thị nguyên văn kết quả này cho người dùng.
     
     Args:
         document_ids: Danh sách ID của các tài liệu cần phân tích.
@@ -138,7 +139,21 @@ async def extract_requirement_tool(document_ids: List[str]) -> str:
     try:
         for doc_id in document_ids:
             res = await generate_requirements_from_document(doc_id)
-            results.append(f"Kết quả cho tài liệu {doc_id}:\n" + res.model_dump_json(indent=2))
+            
+            lines = [f"### 📋 Requirements trích xuất từ tài liệu `{doc_id}`\n"]
+            for i, req in enumerate(res.requirements, start=1):
+                lines.append(f"#### {i}. {req.title}")
+                lines.append(f"**ID:** `{req.id}`")
+                lines.append(f"**Mô tả:** {req.description}")
+                if req.preconditions:
+                    lines.append(f"**Điều kiện tiên quyết:** {req.preconditions}")
+                if req.business_rules:
+                    lines.append("**Quy tắc nghiệp vụ:**")
+                    for rule in req.business_rules:
+                        lines.append(f"- {rule}")
+                lines.append("\n---")
+            
+            results.append("\n".join(lines))
         return "\n\n".join(results)
     except Exception as e:
         logger.error(f"Error in extract_requirement_tool: {e}")
