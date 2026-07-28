@@ -2,7 +2,7 @@ import { Project } from "./ProjectManager"; // Reusing type for now
 
 function PieChartIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21.21 15.89A10 10 0 118 2.83" /><path d="M22 12A10 10 0 0012 2v10z" />
     </svg>
   );
@@ -10,8 +10,18 @@ function PieChartIcon() {
 
 function GridIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
+function ClipboardCheckIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+      <path d="M9 14l2 2 4-4" />
     </svg>
   );
 }
@@ -37,8 +47,8 @@ function MenuIcon() {
 }
 
 type GlobalSidebarProps = {
-  activeView: "overview" | "projects" | "project_detail";
-  onNavigate: (view: "overview" | "projects") => void;
+  activeView: "overview" | "projects" | "project_detail" | "test_cases";
+  onNavigate: (view: "overview" | "projects" | "test_cases") => void;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
 };
@@ -61,14 +71,14 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
         )}
       </div>
 
-      <ul className="project-list" style={{ marginTop: "12px", flex: 1, padding: isSidebarOpen ? "0 10px" : "0 4px" }}>
+      <ul className="project-list" style={{ marginTop: "16px", flex: 1, padding: isSidebarOpen ? "0 12px" : "0 4px", display: "flex", flexDirection: "column", gap: "4px" }}>
         <li 
           className={`project-item ${activeView === "overview" ? "active" : ""}`}
           onClick={() => onNavigate("overview")}
-          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "8px 14px" : "12px", margin: isSidebarOpen ? "2px 6px" : "8px 6px" }}
+          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "10px 16px" : "12px", margin: 0 }}
           title={!isSidebarOpen ? "Overview" : undefined}
         >
-          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
+          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
             <PieChartIcon />
             {isSidebarOpen && <div className="project-item-name">Overview</div>}
           </div>
@@ -76,12 +86,23 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
         <li 
           className={`project-item ${activeView === "projects" || activeView === "project_detail" ? "active" : ""}`}
           onClick={() => onNavigate("projects")}
-          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "8px 14px" : "12px", margin: isSidebarOpen ? "2px 6px" : "8px 6px" }}
+          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "10px 16px" : "12px", margin: 0 }}
           title={!isSidebarOpen ? "Projects" : undefined}
         >
-          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
+          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
             <GridIcon />
             {isSidebarOpen && <div className="project-item-name">Projects</div>}
+          </div>
+        </li>
+        <li 
+          className={`project-item ${activeView === "test_cases" ? "active" : ""}`}
+          onClick={() => onNavigate("test_cases")}
+          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "10px 16px" : "12px", margin: 0 }}
+          title={!isSidebarOpen ? "Test Cases" : undefined}
+        >
+          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
+            <ClipboardCheckIcon />
+            {isSidebarOpen && <div className="project-item-name">Test Cases</div>}
           </div>
         </li>
       </ul>

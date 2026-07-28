@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import GlobalSidebar from "./components/GlobalSidebar";
 import ProjectsGrid from "./components/ProjectsGrid";
 import ProjectDetailDashboard from "./components/ProjectDetailDashboard";
+import TestCaseStudio from "./components/TestCaseStudio";
 import { Project } from "./components/ProjectManager";
 import { Message } from "./components/ChatWorkspace";
 
@@ -90,7 +91,7 @@ function PanelLeftOpenIcon() {
 }
 
 function App() {
-  const [activeView, setActiveView] = useState<"overview" | "projects" | "project_detail">("projects");
+  const [activeView, setActiveView] = useState<"overview" | "projects" | "project_detail" | "test_cases">("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -121,7 +122,7 @@ function App() {
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
-  const handleNavigate = (view: "overview" | "projects") => {
+  const handleNavigate = (view: "overview" | "projects" | "test_cases") => {
     setActiveView(view);
     setSelectedProject(null);
   };
@@ -171,8 +172,8 @@ function App() {
       <div className="app-workspace">
         <div 
           style={{ 
-            width: isSidebarOpen ? "240px" : "64px",
-            minWidth: isSidebarOpen ? "240px" : "64px",
+            width: isSidebarOpen ? "280px" : "64px",
+            minWidth: isSidebarOpen ? "280px" : "64px",
             overflow: "hidden",
             transition: "width var(--transition-slow), min-width var(--transition-slow)",
             flexShrink: 0,
@@ -216,6 +217,10 @@ function App() {
               chatMessages={getProjectMessages(selectedProject.id)}
               onChatMessagesChange={(msgs) => handleMessagesChange(selectedProject.id, msgs)}
             />
+          )}
+
+          {activeView === "test_cases" && (
+            <TestCaseStudio />
           )}
         </main>
       </div>

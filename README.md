@@ -46,6 +46,13 @@ Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệ
 - Không merge cell, không block thống kê QA, không ma trận trình duyệt
 - Export ra file `.xlsx` trực tiếp từ UI
 
+### Test Case Studio
+- Giao diện quản lý tập trung, xem và chỉnh sửa test case đã sinh ra từ AI.
+- Tổ chức theo luồng Drill-down trực quan: **Projects > Documents > Test Cases**.
+- Cơ chế **Global Bulk Edit (Chỉnh sửa hàng loạt):** Cho phép biến toàn bộ bảng test case thành form nhập liệu liền mạch (seamless input) không làm vỡ layout, tối ưu thao tác sửa nhiều dòng cùng lúc. Áp dụng lưu đa luồng (`Promise.all`) tốc độ cao.
+- Bộ lọc động theo Trạng thái (Status), Độ ưu tiên (Priority), Loại (Type).
+- Tính năng Export toàn bộ hoặc danh sách đã lọc ra file Excel chuẩn định dạng QA.
+
 ### AI Chat Workspace / Copilot
 - Không gian tương tác trực tiếp với Agent AI thông qua giao diện Chat.
 - AI Workspace chia màn hình thông minh: Giao diện Chat ở giữa và Bảng ngữ cảnh (Document Context Sidebar) bên phải để dễ dàng chọn lọc file làm nguồn tri thức cho AI.
@@ -107,7 +114,9 @@ frontend/
 | `POST` | `/api/v1/documents/{id}/requirements/generate` | Sinh requirements từ text |
 | `GET` | `/api/v1/requirements/{id}/test-cases` | Lấy test cases |
 | `POST` | `/api/v1/requirements/{id}/test-cases/generate` | Sinh test cases từ requirement |
-| `GET` | `/api/v1/requirements/{id}/test-cases/export` | Export Excel 7 cột |
+| `GET` | `/api/v1/test-cases` | Danh sách test cases (Global, lọc theo project_id/document_id) |
+| `PUT` | `/api/v1/test-cases/{id}` | Cập nhật nội dung một test case |
+| `GET` | `/api/v1/test-cases/export` | Export test cases ra Excel (Global) |
 | `POST` | `/api/chat/message` | AI Chat Agent - Nhận tin nhắn và gọi tools |
 | `GET` | `/api/v1/ai/health` | Kiểm tra kết nối AI provider |
 

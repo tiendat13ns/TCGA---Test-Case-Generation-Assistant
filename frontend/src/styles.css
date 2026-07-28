@@ -339,7 +339,7 @@ select {
 }
 
 .project-item-name {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
   overflow: hidden;
@@ -2127,3 +2127,500 @@ dialog.confirm-dialog[open]::backdrop {
     backdrop-filter: blur(0px);
   }
 }
+
+/* ── Test Case Studio ─────────────────────────────────── */
+@keyframes tcs-spin { to { transform: rotate(360deg); } }
+
+.tcs-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── View layout ── */
+.tcs-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.tcs-view-header {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.tcs-view-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tcs-view-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+/* ── Title ── */
+.tcs-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.tcs-title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--purple-dim);
+  color: var(--purple);
+  flex-shrink: 0;
+}
+
+/* ── Breadcrumb ── */
+.tcs-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tcs-breadcrumb svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.tcs-breadcrumb-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: all var(--transition);
+}
+
+.tcs-breadcrumb-btn:hover {
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.tcs-breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ── Project Grid (View 1) ── */
+.tcs-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 24px 28px;
+}
+
+.tcs-project-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.tcs-project-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08);
+}
+
+.tcs-project-card:active {
+  transform: translateY(0);
+}
+
+.tcs-project-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.tcs-project-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tcs-project-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tcs-project-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tcs-project-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tcs-project-card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tcs-project-card-arrow {
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--transition), transform var(--transition);
+  flex-shrink: 0;
+}
+
+.tcs-project-card:hover .tcs-project-card-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* ── Document List (View 2) ── */
+.tcs-doc-list {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 28px;
+  gap: 4px;
+}
+
+.tcs-doc-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius-card);
+  transition: background var(--transition);
+}
+
+.tcs-doc-row:hover {
+  background: var(--bg-elevated);
+}
+
+.tcs-doc-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.tcs-doc-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tcs-doc-row-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tcs-doc-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tcs-doc-row-meta span + span::before {
+  content: "·";
+  margin-right: 8px;
+  opacity: 0.5;
+}
+
+.tcs-doc-row-actions {
+  flex-shrink: 0;
+}
+
+/* ── Filters (View 3) ── */
+.tcs-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.tcs-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tcs-filter-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tcs-filter-select {
+  padding: 6px 10px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+  min-width: 120px;
+  height: 32px;
+}
+
+.tcs-filter-select:hover {
+  border-color: var(--text-muted);
+}
+
+.tcs-filter-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* ── Table ── */
+.tcs-table-wrap {
+  min-width: 1200px;
+}
+
+/* ── Editable Cells (Global Bulk Edit) ── */
+.tc-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Strictly maintain layout width */
+}
+
+.tcs-cell-seamless {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: inherit;
+  resize: vertical;
+  outline: none;
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: -5px -7px; /* Offset the padding to align visually with pure text */
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.tcs-cell-seamless:hover,
+.tcs-cell-seamless:focus {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+.tcs-cell-seamless:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.tcs-cell-seamless-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* ── Row States ── */
+.tcs-row-editing {
+  background: var(--accent-glow) !important;
+}
+
+.tcs-row-editing:hover {
+  background: var(--accent-glow) !important;
+}
+
+/* Action Buttons ── */
+.tcs-global-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tcs-btn-save,
+.tcs-btn-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.tcs-btn-save {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.tcs-btn-save:hover {
+  background: #059669;
+  transform: scale(1.05);
+}
+
+.tcs-btn-save:active {
+  transform: scale(0.95);
+}
+
+.tcs-btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tcs-btn-cancel {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.tcs-btn-cancel:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-dim);
+}
+
+.tcs-btn-cancel:active {
+  transform: scale(0.95);
+}
+
+.tcs-edit-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.tc-table tbody tr:hover .tcs-edit-hint {
+  opacity: 1;
+}
+
+/* ── Toast ── */
+.tcs-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 10px 18px;
+  border-radius: var(--radius-card);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-elevated);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: tcs-toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tcs-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Empty & Loading ── */
+.tcs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 10px;
+  color: var(--text-muted);
+  padding: 64px 24px;
+}
+
+.tcs-empty-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.tcs-empty-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.tcs-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  gap: 8px;
+  font-size: 13px;
+}
+
+.tc-table th.tcs-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-surface);
+}
+

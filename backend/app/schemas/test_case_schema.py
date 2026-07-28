@@ -31,3 +31,30 @@ class ListTestCasesResponse(BaseModel):
     requirement_id: str
     total_test_cases: int
     test_cases: list[TestCaseResponse]
+
+
+class StudioTestCaseItem(TestCaseResponse):
+    feature_name: str | None = None
+    requirement_title: str | None = None
+    project_id: str | None = None
+    module_name: str | None = None
+
+
+class StudioTestCaseListResponse(BaseModel):
+    total_test_cases: int
+    test_cases: list[StudioTestCaseItem]
+
+
+class TestCaseUpdatePayload(BaseModel):
+    title: str | None = None
+    scenario: str | None = None
+    preconditions: str | None = None
+    test_steps: list[str] | None = None
+    test_data: str | None = None
+    expected_result: str | None = None
+    priority: str | None = None
+    severity: str | None = None
+    test_type: str | None = None
+    automation_candidate: bool | None = None
+    execution_type: str | None = None
+    status: str | None = None
