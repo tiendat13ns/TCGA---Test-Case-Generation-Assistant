@@ -51,9 +51,67 @@ export function useUpdateTestCase() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateTestCaseAPI,
-    onSuccess: (updatedTC) => {
-      // Invalidate the testCases cache so it fetches fresh data
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: testCaseKeys.all });
+      const previousQueries = queryClient.getQueriesData({ queryKey: testCaseKeys.all });
+      
+      previousQueries.forEach(([key, oldData]: any) => {
+        if (oldData?.test_cases) {
+          queryClient.setQueryData(key, {
+            ...oldData,
+            test_cases: oldData.test_cases.map((tc: any) => 
+              tc.id === payload.id ? { ...tc, ...payload.data } : tc
+            )
+          });
+        }
+      });
+      return { previousQueries };
+    },
+    onError: (err, newTodo, context: any) => {
+      context?.previousQueries?.forEach(([key, oldData]: any) => {
+        queryClient.setQueryData(key, oldData);
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: testCaseKeys.all });
     },
+  });
+}
+
+async function createTestCaseAPI(payload: any): Promise<StudioTestCaseItem> {
+  const r = await fetch(`${API_BASE}/api/v1/test-cases`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.detail || "Failed to create test case.");
+  return d;
+}
+
+export function useCreateTestCase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createTestCaseAPI,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: testCaseKeys.all });
+    },
+  });
+}
+
+async function generateBugReportAPI(payload: { id: string; actual_result: string }): Promise<{ report: string }> {
+  const r = await fetch(`${API_BASE}/api/v1/test-cases/${payload.id}/bug-report`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actual_result: payload.actual_result }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.detail || "Failed to generate bug report.");
+  return d;
+}
+
+export function useGenerateBugReport() {
+  return useMutation({
+    mutationFn: generateBugReportAPI,
   });
 }

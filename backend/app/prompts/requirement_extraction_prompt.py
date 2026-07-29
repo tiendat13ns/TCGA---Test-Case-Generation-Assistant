@@ -33,7 +33,8 @@ Each requirement may also include useful metadata:
 
 Rules:
 - Do not invent unsupported business logic.
-- If information is missing for text metadata, use null.
+- If information is missing for text metadata (except module_name and feature_name), use null.
+- For `module_name` and `feature_name`: DO NOT return null. If not explicitly stated, infer a short, logical name based on the document's context and title (e.g., "Authentication", "Checkout").
 - If information is missing for list fields, use an empty array [].
 - IMPORTANT: Synthesize the entire document or use case into EXACTLY ONE highly detailed, comprehensive requirement. DO NOT fragment the use case into multiple small requirements. The `requirements` array MUST contain exactly ONE item.
 - QUAN TRỌNG TỐI THƯỢNG: Bạn BẮT BUỘC phải gộp TẤT CẢ thông tin thành MỘT (1) requirement duy nhất. KHÔNG ĐƯỢC tách nhỏ thành nhiều requirement. Mảng `requirements` CHỈ ĐƯỢC PHÉP chứa CHÍNH XÁC 1 phần tử duy nhất.

@@ -67,6 +67,7 @@ def _ensure_test_case_columns() -> None:
         "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS test_type TEXT",
         "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS automation_candidate BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS execution_type TEXT NOT NULL DEFAULT 'Manual'",
+        "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS execution_status TEXT NOT NULL DEFAULT 'Untested'",
         "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1",
         "ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
     ]

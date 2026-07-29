@@ -155,6 +155,7 @@ class TestCase(Base):
     test_type = Column(Text, nullable=True)           # Positive|Negative|Boundary|...
     automation_candidate = Column(Boolean, nullable=False, default=False)
     execution_type = Column(Text, nullable=False, default="Manual")  # Manual|Automation Candidate
+    execution_status = Column(Text, nullable=False, default="Untested")  # Untested|Pass|Fail|Blocked
     status = Column(Text, nullable=False, default="ai_generated")
     version = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

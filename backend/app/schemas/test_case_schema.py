@@ -16,6 +16,7 @@ class TestCaseResponse(BaseModel):
     test_type: str | None = None
     automation_candidate: bool
     execution_type: str
+    execution_status: str
     status: str
     version: int
 
@@ -57,4 +58,21 @@ class TestCaseUpdatePayload(BaseModel):
     test_type: str | None = None
     automation_candidate: bool | None = None
     execution_type: str | None = None
+    execution_status: str | None = None
     status: str | None = None
+
+class TestCaseCreatePayload(BaseModel):
+    requirement_id: str
+    title: str
+    scenario: str | None = None
+    preconditions: str | None = None
+    test_steps: list[str] | None = []
+    test_data: str | None = None
+    expected_result: str
+    priority: str = "Medium"
+    severity: str | None = None
+    test_type: str | None = "Functional"
+    automation_candidate: bool = False
+    execution_type: str = "Manual"
+    execution_status: str = "Untested"
+    status: str = "draft"

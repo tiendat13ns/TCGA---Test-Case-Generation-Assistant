@@ -11,6 +11,7 @@ from app.schemas.test_case_schema import (
     StudioTestCaseItem,
     StudioTestCaseListResponse,
     TestCaseUpdatePayload,
+    TestCaseCreatePayload,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ def _to_studio_item(tc: TestCase, req: Requirement) -> StudioTestCaseItem:
         test_type=tc.test_type,
         automation_candidate=tc.automation_candidate,
         execution_type=tc.execution_type,
+        execution_status=tc.execution_status,
         status=tc.status,
         version=tc.version,
         feature_name=req.feature_name,
@@ -189,3 +191,78 @@ def update_studio_test_case(test_case_id: str, payload: TestCaseUpdatePayload):
     except SQLAlchemyError as exc:
         logger.error(f"DB Error: {exc}")
         raise HTTPException(status_code=500, detail="Database error while updating test case") from exc
+
+@router.post("", response_model=StudioTestCaseItem)
+def create_studio_test_case(payload: TestCaseCreatePayload):
+    try:
+        req_uuid = UUID(payload.requirement_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid requirement_id format")
+        
+    try:
+        with SessionLocal() as db:
+            req = db.query(Requirement).filter(Requirement.id == req_uuid).first()
+            if not req:
+                raise HTTPException(status_code=404, detail="Requirement not found")
+                
+            tc = TestCase(
+                requirement_id=req_uuid,
+                document_id=req.document_id,
+                title=payload.title,
+                scenario=payload.scenario,
+                preconditions=payload.preconditions,
+                test_steps=payload.test_steps,
+                test_data=payload.test_data,
+                expected_result=payload.expected_result,
+                priority=payload.priority,
+                severity=payload.severity,
+                test_type=payload.test_type,
+                automation_candidate=payload.automation_candidate,
+                execution_type=payload.execution_type,
+                execution_status=payload.execution_status,
+                status=payload.status,
+            )
+            db.add(tc)
+            db.commit()
+            db.refresh(tc)
+            
+            return _to_studio_item(tc, req)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        logger.error(f"DB Error: {exc}")
+        raise HTTPException(status_code=500, detail="Database error while creating test case") from exc
+
+from pydantic import BaseModel
+class BugReportPayload(BaseModel):
+    actual_result: str
+
+@router.post("/{test_case_id}/bug-report")
+def generate_auto_bug_report(test_case_id: str, payload: BugReportPayload):
+    try:
+        tc_uuid = UUID(test_case_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid test_case_id format")
+        
+    try:
+        with SessionLocal() as db:
+            tc = db.query(TestCase).filter(TestCase.id == tc_uuid).first()
+            if not tc:
+                raise HTTPException(status_code=404, detail="Test case not found")
+                
+            tc_data = {
+                "title": tc.title,
+                "preconditions": tc.preconditions,
+                "test_steps": tc.test_steps,
+                "expected_result": tc.expected_result
+            }
+            
+        from app.services.agent.bug_report_service import generate_bug_report
+        report_content = generate_bug_report(tc_data, payload.actual_result)
+        
+        return {"report": report_content}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Error generating bug report: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

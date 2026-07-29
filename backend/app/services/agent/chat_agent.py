@@ -145,12 +145,40 @@ async def extract_requirement_tool(document_ids: List[str]) -> str:
                 lines.append(f"#### {i}. {req.title}")
                 lines.append(f"**ID:** `{req.id}`")
                 lines.append(f"**Mô tả:** {req.description}")
-                if req.preconditions:
-                    lines.append(f"**Điều kiện tiên quyết:** {req.preconditions}")
-                if req.business_rules:
-                    lines.append("**Quy tắc nghiệp vụ:**")
-                    for rule in req.business_rules:
+                
+                if req.functional_requirement and req.functional_requirement != req.description:
+                    lines.append(f"\n**Yêu cầu chức năng:**\n{req.functional_requirement}")
+                
+                if req.workflow:
+                    lines.append("\n**Luồng nghiệp vụ (Workflow):**")
+                    for step in req.workflow:
+                        lines.append(f"- {step}")
+                        
+                if req.validation_rule:
+                    lines.append("\n**Quy tắc kiểm tra (Validation):**")
+                    for rule in req.validation_rule:
                         lines.append(f"- {rule}")
+                        
+                if req.permission:
+                    lines.append("\n**Phân quyền (Permissions):**")
+                    for p in req.permission:
+                        lines.append(f"- {p}")
+                        
+                if req.state:
+                    lines.append("\n**Trạng thái (State):**")
+                    for s in req.state:
+                        lines.append(f"- {s}")
+                        
+                if req.error_handling:
+                    lines.append("\n**Xử lý lỗi (Error Handling):**")
+                    for e in req.error_handling:
+                        lines.append(f"- {e}")
+                        
+                if req.clarifying_questions:
+                    lines.append("\n> **❓ Câu hỏi làm rõ từ AI (Dành cho QA/BA):**")
+                    for q in req.clarifying_questions:
+                        lines.append(f"> - {q}")
+                        
                 lines.append("\n---")
             
             results.append("\n".join(lines))
