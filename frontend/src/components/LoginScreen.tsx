@@ -1,9 +1,27 @@
 import React, { useState } from "react";
-import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 
 type LoginScreenProps = {
   onLoginSuccess: (token: string) => void;
 };
+
+/* ── Animated circuit grid dots (pure CSS, no libs) ─────── */
+function GridPattern() {
+  return (
+    <svg
+      className="auth-grid-pattern"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="1" fill="rgba(0,212,170,0.18)" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)" />
+    </svg>
+  );
+}
 
 export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [isLogin, setIsLogin] = useState(true);
@@ -34,7 +52,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       setLoading(false);
       return;
     }
-
     if (password.length < 6) {
       setErrorMsg("Mật khẩu phải có ít nhất 6 ký tự");
       setLoading(false);
@@ -51,17 +68,14 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
       const contentType = res.headers.get("content-type");
       let data: any = {};
-
-      if (contentType && contentType.indexOf("application/json") !== -1) {
+      if (contentType?.includes("application/json")) {
         data = await res.json();
       } else {
         const text = await res.text();
         throw new Error(text || "Lỗi máy chủ, vui lòng thử lại");
       }
 
-      if (!res.ok) {
-        throw new Error(data.detail || data.message || "Đăng nhập thất bại");
-      }
+      if (!res.ok) throw new Error(data.detail || data.message || "Xác thực thất bại");
 
       if (isLogin) {
         onLoginSuccess(data.access_token);
@@ -82,43 +96,63 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   };
 
   return (
-    <div className="auth-container">
-      {/* Subtle background glow */}
-      <div className="auth-glow" />
+    <div className="auth2-root auth2-root--centered">
+      {/* Background decorations */}
+      <GridPattern />
+      <div className="auth2-glow-blob auth2-glow-blob--1" />
+      <div className="auth2-glow-blob auth2-glow-blob--2" />
 
-      <div className="auth-card">
+      {/* Centered glass card */}
+      <div className="auth2-glass-card">
         {/* Logo */}
-        <div className="auth-logo">
-          <div className="auth-logo-mark">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="auth2-brand" style={{ justifyContent: "center" }}>
+          <div className="auth2-brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
             </svg>
           </div>
-          <span className="auth-logo-text">TCGA</span>
+          <span className="auth2-brand-name">TCGA</span>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="auth2-tabs">
+          <button
+            type="button"
+            className={`auth2-tab ${isLogin ? "active" : ""}`}
+            onClick={() => switchMode(true)}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            className={`auth2-tab ${!isLogin ? "active" : ""}`}
+            onClick={() => switchMode(false)}
+          >
+            Register
+          </button>
+          <div className="auth2-tab-indicator" style={{ transform: `translateX(${isLogin ? "0%" : "100%"})` }} />
         </div>
 
         {/* Header */}
-        <div className="auth-header">
-          <h1 className="auth-title">
-            {isLogin ? "Welcome back" : "Create your account"}
+        <div className="auth2-form-header">
+          <h1 className="auth2-form-title">
+            {isLogin ? "Welcome back" : "Create account"}
           </h1>
-          <p className="auth-subtitle">
-            {isLogin
-              ? "Sign in to your TCGA account"
-              : "Start managing your test studio"}
+          <p className="auth2-form-sub">
+            {isLogin ? "Sign in to your workspace" : "Start your test journey for free"}
           </p>
         </div>
 
-        {/* Stepper (Only for Register) */}
+        {/* Register stepper */}
         {!isLogin && (
-          <div className="auth-stepper">
-            <div className="auth-step active">
-              <div className="auth-step-circle">1</div>
+          <div className="auth2-stepper">
+            <div className="auth2-step active">
+              <div className="auth2-step-num">1</div>
               <span>Account</span>
             </div>
-            <div className="auth-step-divider" />
-            <div className="auth-step">
-              <div className="auth-step-circle">2</div>
+            <div className="auth2-step-line" />
+            <div className="auth2-step">
+              <div className="auth2-step-num">2</div>
               <span>Verify</span>
             </div>
           </div>
@@ -126,28 +160,26 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         {/* Messages */}
         {successMsg && (
-          <div className="auth-message auth-message-success">
-            <CheckCircle2 size={16} />
+          <div className="auth2-msg auth2-msg--success">
+            <CheckCircle2 size={15} />
             {successMsg}
           </div>
         )}
         {errorMsg && (
-          <div className="auth-message auth-message-error">
+          <div className="auth2-msg auth2-msg--error">
             {errorMsg}
           </div>
         )}
 
         {/* Form */}
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="auth-form-group">
-            <label className="auth-form-label">Email</label>
-            <div className="auth-input-wrapper">
-              <div className="auth-input-icon">
-                <Mail size={18} />
-              </div>
+        <form className="auth2-form" onSubmit={handleSubmit}>
+          <div className="auth2-field">
+            <label className="auth2-label">Email</label>
+            <div className="auth2-input-wrap">
+              <Mail size={16} className="auth2-input-icon" />
               <input
                 type="email"
-                className="auth-input"
+                className="auth2-input"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -158,23 +190,17 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             </div>
           </div>
 
-          <div className="auth-form-group">
-            <div className="auth-form-label">
-              Password
-              {isLogin && (
-                <span className="auth-link" style={{ fontSize: "13px" }}>
-                  Forgot password?
-                </span>
-              )}
+          <div className="auth2-field">
+            <div className="auth2-label-row">
+              <label className="auth2-label">Password</label>
+              {isLogin && <span className="auth2-forgot">Forgot?</span>}
             </div>
-            <div className="auth-input-wrapper">
-              <div className="auth-input-icon">
-                <Lock size={18} />
-              </div>
+            <div className="auth2-input-wrap">
+              <Lock size={16} className="auth2-input-icon" />
               <input
                 type={showPassword ? "text" : "password"}
-                className="auth-input"
-                placeholder={isLogin ? "Enter your password" : "At least 6 characters"}
+                className="auth2-input"
+                placeholder={isLogin ? "Enter your password" : "Min. 6 characters"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -182,25 +208,25 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 autoComplete={isLogin ? "current-password" : "new-password"}
                 disabled={loading}
               />
-              <div
-                className="auth-input-icon-right"
+              <button
+                type="button"
+                className="auth2-eye-btn"
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </div>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 
           {!isLogin && (
-            <div className="auth-form-group">
-              <label className="auth-form-label">Confirm Password</label>
-              <div className="auth-input-wrapper">
-                <div className="auth-input-icon">
-                  <Lock size={18} />
-                </div>
+            <div className="auth2-field">
+              <label className="auth2-label">Confirm Password</label>
+              <div className="auth2-input-wrap">
+                <Lock size={16} className="auth2-input-icon" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  className="auth-input"
+                  className="auth2-input"
                   placeholder="Confirm your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -213,36 +239,28 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             </div>
           )}
 
-          <button type="submit" className="btn-neon" disabled={loading}>
+          <button type="submit" className="auth2-submit-btn" disabled={loading}>
             {loading ? (
-              <Loader2 size={18} className="auth-spinner" />
+              <Loader2 size={18} className="auth2-spinner" />
             ) : isLogin ? (
               "Sign In"
             ) : (
-              <>
-                Continue <ArrowRight size={16} />
-              </>
+              <>Continue <ArrowRight size={16} /></>
             )}
           </button>
         </form>
 
-        <div className="auth-footer">
+        <p className="auth2-switch-text">
           {isLogin ? (
-            <>
-              Don't have an account?{" "}
-              <span className="auth-link" onClick={() => switchMode(false)}>
-                Create one
-              </span>
+            <>Don't have an account?{" "}
+              <span className="auth2-switch-link" onClick={() => switchMode(false)}>Create one</span>
             </>
           ) : (
-            <>
-              Already have an account?{" "}
-              <span className="auth-link" onClick={() => switchMode(true)}>
-                Sign in
-              </span>
+            <>Already registered?{" "}
+              <span className="auth2-switch-link" onClick={() => switchMode(true)}>Sign in</span>
             </>
           )}
-        </div>
+        </p>
       </div>
     </div>
   );

@@ -36,6 +36,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_user_columns()
+    _ensure_project_columns()
     _ensure_document_columns()
     _ensure_document_chunk_columns()
     _ensure_requirement_columns()
@@ -188,6 +189,20 @@ def _ensure_user_columns() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance INTEGER NOT NULL DEFAULT 300",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            try:
+                connection.execute(text(statement))
+            except Exception:
+                pass
+
+
+def _ensure_project_columns() -> None:
+    """Thêm cột user_id vào bảng projects cho multi-tenant isolation."""
+    statements = [
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE",
+        "CREATE INDEX IF NOT EXISTS ix_projects_user_id ON projects(user_id)",
     ]
     with engine.begin() as connection:
         for statement in statements:
