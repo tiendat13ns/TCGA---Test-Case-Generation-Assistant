@@ -1,5 +1,5 @@
 import "./styles.css";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import GlobalSidebar from "./components/GlobalSidebar";
 import ProjectsGrid from "./components/ProjectsGrid";
 import ProjectDetailDashboard from "./components/ProjectDetailDashboard";
@@ -90,9 +90,15 @@ function PanelLeftOpenIcon() {
   );
 }
 
+import { useAuth } from "./contexts/AuthContext";
+import LoginScreen from "./components/LoginScreen";
+
 function App() {
+  const { isAuthenticated, isLoading, login, user, logout } = useAuth();
   const [activeView, setActiveView] = useState<"overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial">("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
@@ -107,6 +113,18 @@ function App() {
     document.documentElement.style.colorScheme = theme;
     localStorage.setItem("tcga-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsNavDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Load chat history for a project on first visit
   const getProjectMessages = useCallback((projectId: string): Message[] => {
@@ -131,6 +149,26 @@ function App() {
     setSelectedProject(project);
     setActiveView("project_detail");
   };
+
+  if (isLoading) {
+    return (
+      <div className="auth-container">
+        <div className="auth-glow" />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", zIndex: 1 }}>
+          <div className="auth-logo-mark" style={{ width: 48, height: 48 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+            </svg>
+          </div>
+          <div style={{ color: "var(--text-auth-muted)", fontSize: "14px" }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLoginSuccess={login} />;
+  }
 
   return (
     <div className="app-shell">
@@ -166,6 +204,35 @@ function App() {
         >
           {theme === "dark" ? <SunIcon /> : <MoonIcon />}
         </button>
+
+        {user && (
+          <div className="nav-user-container" style={{ position: "relative" }} ref={dropdownRef}>
+            <button 
+              className="nav-user-avatar"
+              onClick={() => setIsNavDropdownOpen(!isNavDropdownOpen)}
+            >
+              {user.email.charAt(0).toUpperCase()}
+            </button>
+            
+            {isNavDropdownOpen && (
+              <div className="nav-user-dropdown">
+                <div className="nav-dropdown-header">
+                  <div style={{ fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+                  <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                    Credits: <span style={{ color: "var(--neon-green)" }}>{user.credit_balance}</span>
+                  </div>
+                </div>
+                <div style={{ height: "1px", background: "var(--border)", margin: "4px 0" }} />
+                <button className="nav-dropdown-item" disabled style={{ opacity: 0.5, cursor: "not-allowed", width: "100%" }}>
+                  Settings
+                </button>
+                <button className="nav-dropdown-item" onClick={logout} style={{ color: "#ef4444", width: "100%" }}>
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* Main layout */}
@@ -187,6 +254,8 @@ function App() {
             onNavigate={handleNavigate}
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            user={user}
+            onLogout={logout}
           />
         </div>
 

@@ -35,6 +35,7 @@ def init_db() -> None:
     _ensure_pgvector_extension()
 
     Base.metadata.create_all(bind=engine)
+    _ensure_user_columns()
     _ensure_document_columns()
     _ensure_document_chunk_columns()
     _ensure_requirement_columns()
@@ -180,3 +181,17 @@ def check_database_connection() -> tuple[bool, str | None]:
         return True, None
     except Exception as exc:
         return False, str(exc)
+
+
+def _ensure_user_columns() -> None:
+    statements = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance INTEGER NOT NULL DEFAULT 300",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            try:
+                connection.execute(text(statement))
+            except Exception:
+                pass

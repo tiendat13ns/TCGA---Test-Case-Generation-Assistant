@@ -1,4 +1,5 @@
 import { Project } from "./ProjectManager"; // Reusing type for now
+import { LogOut, Zap } from "lucide-react";
 
 function PieChartIcon() {
   return (
@@ -70,9 +71,11 @@ type GlobalSidebarProps = {
   onNavigate: (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial") => void;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
+  user: { email: string; credit_balance: number } | null;
+  onLogout: () => void;
 };
 
-export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, onToggleSidebar }: GlobalSidebarProps) {
+export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, onToggleSidebar, user, onLogout }: GlobalSidebarProps) {
   return (
     <aside className="global-sidebar project-sidebar" style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
       <div className="sidebar-header" style={{ justifyContent: isSidebarOpen ? "space-between" : "center", padding: isSidebarOpen ? "14px 20px" : "14px 0" }}>
@@ -147,6 +150,33 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
           </div>
         </li>
       </ul>
+
+      {user && (
+        <>
+          <div style={{ height: "1px", background: "var(--border)", margin: "0 12px" }} />
+          <div className="sidebar-user-footer" style={{ padding: isSidebarOpen ? "16px" : "16px 0", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
+            <div className="sidebar-user-avatar">
+              {user.email.charAt(0).toUpperCase()}
+            </div>
+            {isSidebarOpen && (
+              <>
+                <div className="sidebar-user-info" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="sidebar-user-email" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "14px", fontWeight: 500, color: "var(--text-primary)" }}>
+                    {user.email}
+                  </div>
+                  <div className="sidebar-credit-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
+                    <Zap size={12} />
+                    <span>{user.credit_balance}</span>
+                  </div>
+                </div>
+                <button type="button" className="sidebar-logout-btn icon-btn-ghost" onClick={onLogout} title="Log out" style={{ padding: "6px" }}>
+                  <LogOut size={16} />
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </aside>
   );
 }

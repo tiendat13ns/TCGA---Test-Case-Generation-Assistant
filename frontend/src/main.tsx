@@ -15,10 +15,14 @@ const queryClient = new QueryClient({
   },
 });
 
+import { AuthProvider } from "./contexts/AuthContext";
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 );

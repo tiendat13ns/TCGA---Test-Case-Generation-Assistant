@@ -19,6 +19,17 @@ class Project(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True)
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True)  # Sẽ map 1-1 với auth.users của Supabase
+    email = Column(Text, unique=True, nullable=False, index=True)
+    role = Column(Text, nullable=False, default="user")
+    credit_balance = Column(Integer, nullable=False, default=300)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+
+
 class Document(Base):
     __tablename__ = "documents"
 
