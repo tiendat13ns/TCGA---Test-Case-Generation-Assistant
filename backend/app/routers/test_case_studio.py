@@ -29,6 +29,7 @@ def _to_studio_item(tc: TestCase, req: Requirement) -> StudioTestCaseItem:
         test_steps=tc.test_steps,
         test_data=tc.test_data,
         expected_result=tc.expected_result,
+        actual_result=tc.actual_result,
         priority=tc.priority,
         severity=tc.severity,
         test_type=tc.test_type,
@@ -36,6 +37,7 @@ def _to_studio_item(tc: TestCase, req: Requirement) -> StudioTestCaseItem:
         execution_type=tc.execution_type,
         execution_status=tc.execution_status,
         status=tc.status,
+        note=tc.note,
         version=tc.version,
         feature_name=req.feature_name,
         requirement_title=req.title,
@@ -65,12 +67,13 @@ def export_test_cases_studio(project_id: str | None = None):
                 except ValueError:
                     raise HTTPException(status_code=400, detail="Invalid project_id format")
             
+            query = query.order_by(TestCase.created_at.asc(), TestCase.id.asc())
             results = query.all()
             
         wb = Workbook()
         ws = wb.active
         ws.title = "Test Cases"
-        headers = ["Feature", "Test Case ID", "Title", "Precondition", "Test Steps", "Test Data", "Expected Output", "Priority", "Status", "Test Type"]
+        headers = ["Feature", "Test Case ID", "Title", "Precondition", "Test Steps", "Test Data", "Expected Output", "Priority", "Note", "Test Type"]
         ws.append(headers)
         
         header_font = Font(bold=True)
@@ -92,7 +95,7 @@ def export_test_cases_studio(project_id: str | None = None):
                 tc.test_data or "",
                 tc.expected_result,
                 tc.priority,
-                tc.status,
+                tc.note or "",
                 tc.test_type or ""
             ])
             
@@ -144,6 +147,7 @@ def get_studio_test_cases(
             if test_type:
                 query = query.filter(TestCase.test_type == test_type)
             
+            query = query.order_by(TestCase.created_at.asc(), TestCase.id.asc())
             results = query.all()
             items = [_to_studio_item(tc, req) for tc, req in results]
             
@@ -214,6 +218,7 @@ def create_studio_test_case(payload: TestCaseCreatePayload):
                 test_steps=payload.test_steps,
                 test_data=payload.test_data,
                 expected_result=payload.expected_result,
+                actual_result=payload.actual_result,
                 priority=payload.priority,
                 severity=payload.severity,
                 test_type=payload.test_type,
@@ -221,6 +226,7 @@ def create_studio_test_case(payload: TestCaseCreatePayload):
                 execution_type=payload.execution_type,
                 execution_status=payload.execution_status,
                 status=payload.status,
+                note=payload.note,
             )
             db.add(tc)
             db.commit()

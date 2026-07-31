@@ -2128,7 +2128,7 @@ dialog.confirm-dialog[open]::backdrop {
   }
 }
 
-/* ── Test Case Studio ─────────────────────────────────── */
+/* ── Tester Studio ─────────────────────────────────── */
 @keyframes tcs-spin { to { transform: rotate(360deg); } }
 
 .tcs-container {
@@ -2151,6 +2151,7 @@ dialog.confirm-dialog[open]::backdrop {
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
   flex-shrink: 0;
+  backdrop-filter: blur(8px);
 }
 
 .tcs-view-title-row {
@@ -2252,6 +2253,7 @@ dialog.confirm-dialog[open]::backdrop {
 
 .tcs-project-card:active {
   transform: translateY(0);
+  transition-duration: 0.08s;
 }
 
 .tcs-project-card-icon {
@@ -2437,34 +2439,47 @@ dialog.confirm-dialog[open]::backdrop {
 .tc-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* Strictly maintain layout width */
+  table-layout: fixed;
+}
+
+.tc-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.tc-table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 
 .tcs-cell-seamless {
   width: 100%;
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--bg);
+  border: 1px solid var(--border);
   color: var(--text-primary);
   font-size: 13px;
   font-family: inherit;
-  line-height: inherit;
+  line-height: 1.5;
   resize: vertical;
   outline: none;
-  border-radius: 4px;
-  padding: 4px 6px;
-  margin: -5px -7px; /* Offset the padding to align visually with pure text */
-  transition: background var(--transition), border-color var(--transition);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin: -4px -6px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.tcs-cell-seamless:hover,
-.tcs-cell-seamless:focus {
-  background: var(--bg-elevated);
-  border-color: var(--border);
+.tcs-cell-seamless:hover {
+  border-color: var(--text-muted);
 }
 
 .tcs-cell-seamless:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-glow);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  background: var(--bg-surface);
+}
+
+.tcs-cell-seamless::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-style: italic;
 }
 
 .tcs-cell-seamless-select {
@@ -2472,13 +2487,170 @@ dialog.confirm-dialog[open]::backdrop {
   cursor: pointer;
 }
 
+/* ── Edit Mode Banner ── */
+.tcs-edit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
+  border-bottom: 2px solid var(--accent);
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  animation: tcs-banner-in 0.25s ease-out;
+}
+
+@keyframes tcs-banner-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tcs-edit-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tcs-edit-banner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: tcs-dot-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes tcs-dot-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+
+.tcs-edit-banner-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.tcs-edit-banner-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.tcs-edit-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Edit Mode Buttons ── */
+.tcs-edit-btn-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tcs-edit-btn-save:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.tcs-edit-btn-save:active {
+  transform: translateY(0);
+}
+
+.tcs-edit-btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.tcs-edit-btn-cancel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tcs-edit-btn-cancel:hover {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 5%, transparent);
+}
+
+.tcs-edit-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Floating Edit Action Bar ── */
+.tcs-edit-floating-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  animation: tcs-float-in 0.3s ease-out;
+  backdrop-filter: blur(12px);
+}
+
+@keyframes tcs-float-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tcs-edit-floating-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* ── Row States ── */
 .tcs-row-editing {
-  background: var(--accent-glow) !important;
+  background: color-mix(in srgb, var(--accent) 3%, transparent) !important;
+}
+
+.tcs-row-editing:nth-child(even) {
+  background: color-mix(in srgb, var(--accent) 5%, transparent) !important;
 }
 
 .tcs-row-editing:hover {
-  background: var(--accent-glow) !important;
+  background: color-mix(in srgb, var(--accent) 7%, transparent) !important;
+}
+
+.tcs-row-editing td {
+  border-color: color-mix(in srgb, var(--accent) 10%, var(--border));
 }
 
 /* Action Buttons ── */
@@ -2622,5 +2794,26 @@ dialog.confirm-dialog[open]::backdrop {
   top: 0;
   z-index: 10;
   background: var(--bg-surface);
+  backdrop-filter: blur(8px);
+  border-bottom: 2px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 10px 12px;
+}
+
+/* ── Note column click-to-edit ── */
+.tcs-note-cell {
+  cursor: default;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background 0.15s ease;
+}
+
+.tcs-note-cell:hover {
+  background: var(--bg-elevated);
 }
 

@@ -14,22 +14,25 @@ def _format_test_cases_as_markdown_table(req_id: str, res) -> str:
     lines.append(f"**Tổng hợp {total} Test Case** cho Requirement `{req_id}`\n")
 
     # Header bảng
-    lines.append("| Mã THKT | Mục đích kiểm thử | Environment / Pre-condition | Các bước thực hiện | Test Data | Kết quả mong muốn |")
-    lines.append("|---------|-------------------|----------------------------|-------------------|-----------|-------------------|")
+    lines.append("| Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output |")
+    lines.append("|---------|--------------|-----------|--------------|------------|-----------|-----------------|")
 
     for i, tc in enumerate(tc_list, start=1):
         tc_id = f"TC-{i:02d}"
 
-        # Mục đích = title + (test_type, priority)
+        # Feature: Currently not directly in TestCaseResponse, fallback to requirement_id or empty
+        feature = getattr(tc, 'feature_name', None) or ""
+        
+        # Test Item = title + (test_type, priority)
         title = (tc.title or "").replace("|", "/").replace("\n", " ")
         test_type = tc.test_type or ""
         priority = tc.priority or ""
         test_item = f"{title}<br/>*({test_type} · {priority})*" if test_type or priority else title
 
-        # Pre-condition
+        # Precondition
         precond = (tc.preconditions or "").replace("|", "/").replace("\n", " ")
 
-        # Test steps — join thành chuỗi đánh số, dùng <br/> để xuống dòng trong ô bảng
+        # Test steps
         steps = tc.test_steps or []
         steps_str = "<br/>".join(f"{j}. {s.replace('|', '/').replace(chr(10), ' ')}" for j, s in enumerate(steps, start=1))
         if not steps_str:
@@ -40,8 +43,8 @@ def _format_test_cases_as_markdown_table(req_id: str, res) -> str:
 
         # Expected result
         expected = (tc.expected_result or "").replace("|", "/").replace("\n", " ")
-
-        lines.append(f"| {tc_id} | {test_item} | {precond} | {steps_str} | {test_data} | {expected} |")
+        
+        lines.append(f"| {feature} | {tc_id} | {test_item} | {precond} | {steps_str} | {test_data} | {expected} |")
 
     return "\n".join(lines)
 

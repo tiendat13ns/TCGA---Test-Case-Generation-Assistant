@@ -98,11 +98,11 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
           className={`project-item ${activeView === "test_cases" ? "active" : ""}`}
           onClick={() => onNavigate("test_cases")}
           style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "10px 16px" : "12px", margin: 0 }}
-          title={!isSidebarOpen ? "Test Cases" : undefined}
+          title={!isSidebarOpen ? "Tester Studio" : undefined}
         >
           <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
             <ClipboardCheckIcon />
-            {isSidebarOpen && <div className="project-item-name">Test Cases</div>}
+            {isSidebarOpen && <div className="project-item-name">Tester Studio</div>}
           </div>
         </li>
       </ul>

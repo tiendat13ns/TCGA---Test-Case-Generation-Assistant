@@ -30,6 +30,6 @@ class TestCaseRepository:
         return (
             self.db.query(TestCase)
             .filter(TestCase.requirement_id == requirement_id)
-            .order_by(TestCase.created_at.desc())
+            .order_by(TestCase.created_at.asc(), TestCase.id.asc())
             .all()
         )

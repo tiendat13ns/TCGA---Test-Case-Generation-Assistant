@@ -18,6 +18,7 @@ export type StudioTestCaseItem = {
   test_steps: string[];
   test_data?: string;
   expected_result?: string;
+  actual_result?: string;
   priority: string;
   severity?: string;
   test_type?: string;
@@ -25,6 +26,7 @@ export type StudioTestCaseItem = {
   execution_type?: string;
   execution_status?: string;
   status: string;
+  note?: string;
   version?: number;
   feature_name?: string;
   requirement_title?: string;
@@ -95,6 +97,11 @@ const CheckSquareIcon = () => (
     <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
   </svg>
 );
+const AlertCircleIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
 
 /* ── Helper components ── */
 function StatusBadge({ status }: { status: string }) {
@@ -149,14 +156,13 @@ function formatFileSize(bytes: number) {
 /* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════ */
-export default function TestCaseStudio() {
+export default function TesterStudio() {
   const [view, setView] = useState<StudioView>("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
 
   // TC Filters
   const [filterPriority, setFilterPriority] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
   const [filterTestType, setFilterTestType] = useState("");
 
   // Bulk Editing
@@ -187,7 +193,6 @@ export default function TestCaseStudio() {
     project_id: selectedProject?.id,
     document_id: selectedDocument?.id,
     priority: filterPriority,
-    status: filterStatus,
     test_type: filterTestType
   };
   
@@ -214,7 +219,6 @@ export default function TestCaseStudio() {
   const goToTestCases = (doc: DocumentItem) => {
     setSelectedDocument(doc);
     setFilterPriority("");
-    setFilterStatus("");
     setFilterTestType("");
     setIsGlobalEditing(false);
     setDraftTestCases({});
@@ -327,7 +331,7 @@ export default function TestCaseStudio() {
       
       if (newStatus === "Fail") {
         setBugReportTc(tc);
-        setActualResult("");
+        setActualResult(tc.actual_result || "");
         setGeneratedBug(null);
       }
     } catch (e) {
@@ -351,6 +355,20 @@ export default function TestCaseStudio() {
     }
   };
 
+  const handleSaveBugReport = async () => {
+    if (!bugReportTc) return;
+    try {
+      await updateTestCase.mutateAsync({
+        id: bugReportTc.id,
+        data: { actual_result: actualResult }
+      });
+      showToast("Bug report saved successfully!");
+      setBugReportTc(null);
+    } catch (e) {
+      alert("Failed to save bug report");
+    }
+  };
+
   /* ── Renderers ── */
   /* ══════════════════════════════════════════════════════════
      VIEW 1: PROJECT SELECTION
@@ -362,9 +380,9 @@ export default function TestCaseStudio() {
           <div className="tcs-title">
             <div className="tcs-title-icon"><FlaskIcon /></div>
             <div>
-              <div style={{ fontSize: "20px", fontWeight: 600 }}>Test Case Studio</div>
+              <div style={{ fontSize: "20px", fontWeight: 600 }}>Tester Studio</div>
               <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px" }}>
-                Select a project to browse its test cases
+                Select a project to start testing
               </div>
             </div>
           </div>
@@ -516,27 +534,14 @@ export default function TestCaseStudio() {
               <span className="tc-count-badge">{totalCount}</span>
             </div>
             
-            {testCases.length > 0 && (
+            {testCases.length > 0 && !isGlobalEditing && (
               <div className="tcs-global-edit-bar">
-                {!isGlobalEditing ? (
-                  <>
-                    <button className="btn btn-secondary" onClick={() => setIsAddingRow(true)} style={{ padding: "6px 14px", fontSize: "12px", gap: "6px" }}>
-                      + Add Row
-                    </button>
-                    <button className="btn btn-secondary" onClick={startGlobalEditing} style={{ padding: "6px 14px", fontSize: "12px", gap: "6px" }}>
-                      <EditIcon /> Edit All
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button className="btn btn-primary" onClick={saveBulkEditing} disabled={isBulkSaving} style={{ padding: "6px 14px", fontSize: "12px", gap: "6px" }}>
-                      {isBulkSaving ? <SpinnerIcon /> : <CheckIcon />} Save
-                    </button>
-                    <button className="btn" onClick={cancelGlobalEditing} disabled={isBulkSaving} style={{ padding: "6px 14px", fontSize: "12px", gap: "6px", background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
-                      <XIcon /> Cancel
-                    </button>
-                  </>
-                )}
+                <button className="btn btn-secondary" onClick={() => setIsAddingRow(true)} style={{ padding: "6px 14px", fontSize: "12px", gap: "6px" }}>
+                  + Add Row
+                </button>
+                <button className="btn btn-secondary" onClick={startGlobalEditing} style={{ padding: "6px 14px", fontSize: "12px", gap: "6px" }}>
+                  <EditIcon /> Edit All
+                </button>
               </div>
             )}
           </div>
@@ -550,16 +555,6 @@ export default function TestCaseStudio() {
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
                   <option value="Low">Low</option>
-                </select>
-              </div>
-              <div className="tcs-filter-group">
-                <label className="tcs-filter-label">Status</label>
-                <select className="tcs-filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                  <option value="">All</option>
-                  <option value="ai_generated">AI Generated</option>
-                  <option value="reviewed">Reviewed</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
                 </select>
               </div>
               <div className="tcs-filter-group">
@@ -599,19 +594,42 @@ export default function TestCaseStudio() {
           </div>
         ) : (
           <div className="tcs-table-wrap">
+            {/* Edit Mode Banner */}
+            {isGlobalEditing && (
+              <div className="tcs-edit-banner">
+                <div className="tcs-edit-banner-left">
+                  <div className="tcs-edit-banner-dot" />
+                  <span className="tcs-edit-banner-label">Edit Mode</span>
+                  <span className="tcs-edit-banner-hint">
+                    {Object.keys(draftTestCases).length > 0
+                      ? `${Object.keys(draftTestCases).length} row${Object.keys(draftTestCases).length > 1 ? "s" : ""} modified`
+                      : "Click any cell to edit"}
+                  </span>
+                </div>
+                <div className="tcs-edit-banner-actions">
+                  <button className="tcs-edit-btn-save" onClick={saveBulkEditing} disabled={isBulkSaving}>
+                    {isBulkSaving ? <SpinnerIcon /> : <CheckIcon />}
+                    {isBulkSaving ? "Saving..." : "Save Changes"}
+                  </button>
+                  <button className="tcs-edit-btn-cancel" onClick={cancelGlobalEditing} disabled={isBulkSaving}>
+                    <XIcon /> Discard
+                  </button>
+                </div>
+              </div>
+            )}
             <table className="tc-table">
               <thead>
                 <tr>
-                  <th className="tcs-sticky-header" style={{ width: "10%" }}>Feature</th>
-                  <th className="tcs-sticky-header" style={{ width: "6%" }}>TC ID</th>
-                  <th className="tcs-sticky-header" style={{ width: "14%" }}>Title</th>
-                  <th className="tcs-sticky-header" style={{ width: "12%" }}>Preconditions</th>
-                  <th className="tcs-sticky-header" style={{ width: "18%" }}>Test Steps</th>
-                  <th className="tcs-sticky-header" style={{ width: "10%" }}>Test Data</th>
+                  <th className="tcs-sticky-header" style={{ width: "9%" }}>Feature</th>
+                  <th className="tcs-sticky-header" style={{ width: "5%" }}>TC ID</th>
+                  <th className="tcs-sticky-header" style={{ width: "13%" }}>Title</th>
+                  <th className="tcs-sticky-header" style={{ width: "11%" }}>Preconditions</th>
+                  <th className="tcs-sticky-header" style={{ width: "16%" }}>Test Steps</th>
+                  <th className="tcs-sticky-header" style={{ width: "9%" }}>Test Data</th>
                   <th className="tcs-sticky-header" style={{ width: "12%" }}>Expected Result</th>
-                  <th className="tcs-sticky-header" style={{ width: "7%" }}>Priority</th>
-                  <th className="tcs-sticky-header" style={{ width: "12%" }}>Execution</th>
-                  <th className="tcs-sticky-header" style={{ width: "8%" }}>Status</th>
+                  <th className="tcs-sticky-header" style={{ width: "6%" }}>Priority</th>
+                  <th className="tcs-sticky-header" style={{ width: "10%" }}>Execution</th>
+                  <th className="tcs-sticky-header" style={{ width: "9%" }}>Note</th>
                 </tr>
               </thead>
               <tbody>
@@ -737,40 +755,61 @@ export default function TestCaseStudio() {
 
                       {/* Execution */}
                       <td>
-                        <select 
-                          className="tcs-dropdown"
-                          value={currentTC.execution_status || "Untested"}
-                          onChange={(e) => handleExecutionStatusChange(tc, e.target.value)}
-                          style={{
-                            fontWeight: 600,
-                            padding: "4px 8px",
-                            borderRadius: "6px",
-                            border: "1px solid var(--border)",
-                            background: "var(--bg)",
-                            cursor: "pointer",
-                            color: currentTC.execution_status === "Pass" ? "var(--accent)" :
-                                   currentTC.execution_status === "Fail" ? "var(--danger)" :
-                                   currentTC.execution_status === "Blocked" ? "var(--warning)" : "var(--text-muted)"
-                          }}
-                        >
-                          <option value="Untested">Untested</option>
-                          <option value="Pass">Pass</option>
-                          <option value="Fail">Fail</option>
-                          <option value="Blocked">Blocked</option>
-                        </select>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <select 
+                            className="tcs-dropdown"
+                            value={currentTC.execution_status || "Untested"}
+                            onChange={(e) => handleExecutionStatusChange(tc, e.target.value)}
+                            style={{
+                              fontWeight: 600,
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              border: "1px solid var(--border)",
+                              background: "var(--bg)",
+                              cursor: "pointer",
+                              color: currentTC.execution_status === "Pass" ? "var(--accent)" :
+                                     currentTC.execution_status === "Fail" ? "var(--danger)" :
+                                     currentTC.execution_status === "Blocked" ? "var(--warning)" : "var(--text-muted)"
+                            }}
+                          >
+                            <option value="Untested">Untested</option>
+                            <option value="Pass">Pass</option>
+                            <option value="Fail">Fail</option>
+                            <option value="Blocked">Blocked</option>
+                          </select>
+                          {currentTC.execution_status === "Fail" && (
+                            <button
+                              onClick={() => {
+                                setBugReportTc(currentTC as StudioTestCaseItem);
+                                setActualResult(currentTC.actual_result || "");
+                                setGeneratedBug(null);
+                              }}
+                              style={{
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                width: "26px", height: "26px", borderRadius: "6px",
+                                border: "1px solid color-mix(in srgb, var(--danger) 30%, transparent)",
+                                background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+                                color: "var(--danger)", cursor: "pointer"
+                              }}
+                              title="View/Edit Bug Report"
+                            >
+                              <AlertCircleIcon />
+                            </button>
+                          )}
+                        </div>
                       </td>
 
-                      {/* Status */}
+                      {/* Note */}
                       <td>
                         {isGlobalEditing ? (
-                          <select className="tcs-cell-seamless tcs-cell-seamless-select" value={currentTC.status || "ai_generated"}
-                            onChange={e => handleDraftChange(tc.id, "status", e.target.value)}>
-                            <option value="ai_generated">AI Generated</option>
-                            <option value="reviewed">Reviewed</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                          </select>
-                        ) : <StatusBadge status={currentTC.status} />}
+                          <textarea className="tcs-cell-seamless" value={currentTC.note || ""} rows={2}
+                            onChange={e => handleDraftChange(tc.id, "note", e.target.value)}
+                            placeholder="Add a note..." />
+                        ) : (
+                          <span style={{ fontSize: "12px", color: currentTC.note ? "var(--text-secondary)" : "var(--text-muted)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {currentTC.note || "—"}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -780,6 +819,30 @@ export default function TestCaseStudio() {
           </div>
         )}
       </div>
+
+      {/* Floating Edit Bar (always visible at bottom when editing) */}
+      {isGlobalEditing && view === "testcases" && (
+        <div className="tcs-edit-floating-bar">
+          <div className="tcs-edit-floating-left">
+            <div className="tcs-edit-banner-dot" />
+            <span style={{ fontWeight: 600, fontSize: "13px" }}>Editing</span>
+            <span style={{ color: "var(--text-muted)", fontSize: "12px" }}>
+              {Object.keys(draftTestCases).length > 0
+                ? `${Object.keys(draftTestCases).length} modified`
+                : "No changes yet"}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button className="tcs-edit-btn-cancel" onClick={cancelGlobalEditing} disabled={isBulkSaving}>
+              <XIcon /> Discard
+            </button>
+            <button className="tcs-edit-btn-save" onClick={saveBulkEditing} disabled={isBulkSaving}>
+              {isBulkSaving ? <SpinnerIcon /> : <CheckIcon />}
+              {isBulkSaving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -800,54 +863,82 @@ export default function TestCaseStudio() {
       <SideDrawer
         isOpen={!!bugReportTc}
         onClose={() => setBugReportTc(null)}
-        title="Bug Report Panel"
-        width="450px"
+        title="Bug Report"
+        width="480px"
       >
         {bugReportTc && (
-          <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>Test Case</div>
-              <div style={{ fontWeight: 500, fontSize: "14px", lineHeight: 1.5 }}>{bugReportTc.title}</div>
+          <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* TC Info Header */}
+            <div style={{ background: "var(--bg-elevated)", borderRadius: "10px", padding: "16px", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: "6px" }}>Test Case</div>
+              <div style={{ fontWeight: 600, fontSize: "14px", lineHeight: 1.5, color: "var(--text-primary)" }}>{bugReportTc.title}</div>
             </div>
             
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>Expected Result</div>
-              <div style={{ fontSize: "13px", background: "var(--bg)", padding: "10px", borderRadius: "6px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: "6px" }}>Expected Result</div>
+              <div style={{ fontSize: "13px", background: "var(--bg-elevated)", padding: "12px 14px", borderRadius: "8px", lineHeight: 1.6, color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                 {bugReportTc.expected_result || "N/A"}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>Actual Result (What went wrong?)</div>
+              <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: "6px" }}>Bug Report / Actual Result</div>
               <textarea 
                 value={actualResult}
                 onChange={(e) => setActualResult(e.target.value)}
-                style={{ width: "100%", padding: "10px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--text)", fontSize: "13px", minHeight: "80px", resize: "vertical" }}
-                placeholder="Describe what actually happened..."
+                style={{ width: "100%", padding: "12px 14px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--text)", fontSize: "13px", minHeight: "140px", resize: "vertical", lineHeight: 1.6, fontFamily: "inherit", transition: "border-color 0.2s" }}
+                placeholder="Describe the bug or what actually happened..."
               />
             </div>
             
-            <button 
-              onClick={handleGenerateBugReport}
-              disabled={generateBugReport.isPending}
-              style={{
-                background: "var(--accent)", color: "white", border: "none", padding: "10px", borderRadius: "6px",
-                fontWeight: 600, cursor: generateBugReport.isPending ? "not-allowed" : "pointer", opacity: generateBugReport.isPending ? 0.7 : 1,
-                marginTop: "8px", transition: "all 0.2s"
-              }}>
-              {generateBugReport.isPending ? "Generating..." : "Auto-Generate Bug Report"}
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button 
+                onClick={handleSaveBugReport}
+                disabled={updateTestCase.isPending}
+                style={{
+                  flex: 1,
+                  background: "var(--accent)", color: "white", border: "none", padding: "11px 16px", borderRadius: "8px",
+                  fontWeight: 600, fontSize: "13px", cursor: updateTestCase.isPending ? "not-allowed" : "pointer", opacity: updateTestCase.isPending ? 0.7 : 1,
+                  transition: "all 0.2s"
+                }}>
+                {updateTestCase.isPending ? "Saving..." : "Save"}
+              </button>
+
+              <button 
+                onClick={handleGenerateBugReport}
+                disabled={generateBugReport.isPending}
+                style={{
+                  flex: 1,
+                  background: "var(--bg-elevated)", color: "var(--text)", border: "1px solid var(--border)", padding: "11px 16px", borderRadius: "8px",
+                  fontWeight: 600, fontSize: "13px", cursor: generateBugReport.isPending ? "not-allowed" : "pointer", opacity: generateBugReport.isPending ? 0.7 : 1,
+                  transition: "all 0.2s"
+                }}
+                title="Use AI to generate a detailed bug report"
+              >
+                {generateBugReport.isPending ? "Generating..." : "AI Generate"}
+              </button>
+            </div>
 
             {generatedBug && (
-              <div style={{ marginTop: "12px" }}>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>AI Generated Bug Report</div>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: "8px" }}>AI Generated Report</div>
                 <div style={{ 
                   background: "color-mix(in srgb, var(--accent) 5%, transparent)", 
                   border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-                  padding: "16px", borderRadius: "8px", fontSize: "13px", lineHeight: 1.6, whiteSpace: "pre-wrap",
-                  color: "var(--text-secondary)"
+                  padding: "16px", borderRadius: "10px", fontSize: "13px", lineHeight: 1.7, whiteSpace: "pre-wrap",
+                  color: "var(--text-secondary)", position: "relative"
                 }}>
                   {generatedBug}
+                  <button
+                    onClick={() => setActualResult(generatedBug)}
+                    style={{
+                      position: "absolute", top: "10px", right: "10px",
+                      background: "var(--bg-surface)", border: "1px solid var(--border)", padding: "5px 10px", borderRadius: "6px",
+                      fontSize: "11px", fontWeight: 500, cursor: "pointer", transition: "all 0.15s"
+                    }}
+                  >
+                    ↑ Use this
+                  </button>
                 </div>
               </div>
             )}

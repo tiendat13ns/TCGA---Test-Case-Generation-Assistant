@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import GlobalSidebar from "./components/GlobalSidebar";
 import ProjectsGrid from "./components/ProjectsGrid";
 import ProjectDetailDashboard from "./components/ProjectDetailDashboard";
-import TestCaseStudio from "./components/TestCaseStudio";
+import TesterStudio from "./components/TestCaseStudio";
 import { Project } from "./components/ProjectManager";
 import { Message } from "./components/ChatWorkspace";
 
@@ -220,7 +220,7 @@ function App() {
           )}
 
           {activeView === "test_cases" && (
-            <TestCaseStudio />
+            <TesterStudio />
           )}
         </main>
       </div>

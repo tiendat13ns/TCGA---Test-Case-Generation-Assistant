@@ -43,7 +43,10 @@ def _test_case_to_response(tc: TestCase) -> TestCaseResponse:
         test_type=tc.test_type,
         automation_candidate=tc.automation_candidate,
         execution_type=tc.execution_type,
+        execution_status=tc.execution_status,
+        actual_result=tc.actual_result,
         status=tc.status,
+        note=tc.note,
         version=tc.version,
     )
 

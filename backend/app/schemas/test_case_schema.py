@@ -11,6 +11,7 @@ class TestCaseResponse(BaseModel):
     test_steps: list[str] | None = None
     test_data: str | None = None
     expected_result: str
+    actual_result: str | None = None
     priority: str
     severity: str | None = None
     test_type: str | None = None
@@ -18,6 +19,7 @@ class TestCaseResponse(BaseModel):
     execution_type: str
     execution_status: str
     status: str
+    note: str | None = None
     version: int
 
 
@@ -53,6 +55,7 @@ class TestCaseUpdatePayload(BaseModel):
     test_steps: list[str] | None = None
     test_data: str | None = None
     expected_result: str | None = None
+    actual_result: str | None = None
     priority: str | None = None
     severity: str | None = None
     test_type: str | None = None
@@ -60,6 +63,7 @@ class TestCaseUpdatePayload(BaseModel):
     execution_type: str | None = None
     execution_status: str | None = None
     status: str | None = None
+    note: str | None = None
 
 class TestCaseCreatePayload(BaseModel):
     requirement_id: str
@@ -69,6 +73,7 @@ class TestCaseCreatePayload(BaseModel):
     test_steps: list[str] | None = []
     test_data: str | None = None
     expected_result: str
+    actual_result: str | None = None
     priority: str = "Medium"
     severity: str | None = None
     test_type: str | None = "Functional"
@@ -76,3 +81,4 @@ class TestCaseCreatePayload(BaseModel):
     execution_type: str = "Manual"
     execution_status: str = "Untested"
     status: str = "draft"
+    note: str | None = None

@@ -150,6 +150,7 @@ class TestCase(Base):
     test_steps = Column(JSON, nullable=True)          # list[str]
     test_data = Column(Text, nullable=True)
     expected_result = Column(Text, nullable=False)
+    actual_result = Column(Text, nullable=True)
     priority = Column(Text, nullable=False, default="Medium")        # High|Medium|Low
     severity = Column(Text, nullable=True)            # Critical|Major|Minor|Trivial
     test_type = Column(Text, nullable=True)           # Positive|Negative|Boundary|...
@@ -157,6 +158,7 @@ class TestCase(Base):
     execution_type = Column(Text, nullable=False, default="Manual")  # Manual|Automation Candidate
     execution_status = Column(Text, nullable=False, default="Untested")  # Untested|Pass|Fail|Blocked
     status = Column(Text, nullable=False, default="ai_generated")
+    note = Column(Text, nullable=True)
     version = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True)
