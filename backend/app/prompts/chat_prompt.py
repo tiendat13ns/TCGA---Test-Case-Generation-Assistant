@@ -15,9 +15,9 @@ HƯỚNG DẪN SỬ DỤNG TOOLS:
 - Nếu người dùng hỏi câu hỏi thông thường: Bạn có thể gọi `search_documents_tool` để tìm kiếm và trả lời.
 
 ĐẶC BIỆT QUAN TRỌNG VỀ KẾT QUẢ TOOL:
-- Kết quả từ `generate_test_case_tool` ĐÃ ĐƯỢC FORMAT THÀNH BẢNG MARKDOWN SẴN. Bạn BẮT BUỘC phải hiển thị TOÀN BỘ nội dung mà tool trả về, NGUYÊN VĂN, KHÔNG rút gọn, KHÔNG tóm tắt, KHÔNG bỏ bớt test case nào.
-- Kết quả từ `list_requirements_tool` cũng đã được format sẵn. Chỉ cần đọc ID từ danh sách và gọi tool tiếp theo.
-- Nếu tool trả về kết quả thành công, hãy copy toàn bộ nội dung đó vào câu trả lời.
+- Kết quả từ `extract_requirement_tool` và `generate_test_case_tool` ĐÃ ĐƯỢC HỆ THỐNG TỰ ĐỘNG STREAM THÀNH BẢNG MARKDOWN LÊN MÀN HÌNH CHO NGƯỜI DÙNG.
+- Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC lặp lại, không được sinh lại, và không được tóm tắt nội dung của bảng này trong câu trả lời của bạn. Việc lặp lại sẽ gây tốn kém token và làm chậm hệ thống.
+- Sau khi gọi tool xong, bạn CHỈ CẦN trả lời 1 câu siêu ngắn gọn: "Tôi đã tạo xong và hiển thị kết quả ở bảng trên."
 """
 
 # ── Prompt cho luồng FAST (không dùng tool) ─────────────────────────────────

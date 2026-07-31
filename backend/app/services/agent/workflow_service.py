@@ -29,6 +29,7 @@ def get_llm() -> ChatOpenAI:
         api_key=os.getenv("OPENAI_COMPATIBLE_API_KEY", ""),
         base_url=os.getenv("OPENAI_COMPATIBLE_BASE_URL", "https://api.vilao.ai/v1"),
         temperature=0.2,
+        streaming=True,
     )
 
 

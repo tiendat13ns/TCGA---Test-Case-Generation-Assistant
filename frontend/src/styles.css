@@ -1170,7 +1170,8 @@ select {
   width: 100%;
   border-collapse: collapse;
   min-width: 900px;
-  table-layout: fixed;
+  table-layout: auto;
+  min-width: 800px;
 }
 
 .tc-table th {
@@ -2017,7 +2018,8 @@ input[type="checkbox"] {
   border-radius: var(--radius-input);
   overflow: hidden;
   box-shadow: 0 0 0 1px var(--border);
-  table-layout: fixed;
+  table-layout: auto;
+  min-width: 800px;
   word-wrap: break-word;
 }
 .markdown-body th {
@@ -2029,13 +2031,7 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--border);
   word-wrap: break-word;
 }
-/* Cố định tỷ lệ các cột cho bảng Test Case (6 cột) */
-.markdown-body th:nth-child(1) { width: 8%; }  /* Mã THKT */
-.markdown-body th:nth-child(2) { width: 18%; } /* Mục đích */
-.markdown-body th:nth-child(3) { width: 14%; } /* Pre-condition */
-.markdown-body th:nth-child(4) { width: 26%; } /* Các bước thực hiện */
-.markdown-body th:nth-child(5) { width: 17%; } /* Test Data */
-.markdown-body th:nth-child(6) { width: 17%; } /* Kết quả mong muốn */
+/* dynamic column widths */
 
 .markdown-body td {
   padding: 12px 16px;
@@ -2439,7 +2435,8 @@ dialog.confirm-dialog[open]::backdrop {
 .tc-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
+  min-width: 800px;
 }
 
 .tc-table tbody tr {

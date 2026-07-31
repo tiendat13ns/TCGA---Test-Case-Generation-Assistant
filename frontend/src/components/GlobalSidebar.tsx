@@ -46,9 +46,28 @@ function MenuIcon() {
   );
 }
 
+function BookOpenIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+    </svg>
+  );
+}
+
+function HelpCircleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+  );
+}
+
 type GlobalSidebarProps = {
-  activeView: "overview" | "projects" | "project_detail" | "test_cases";
-  onNavigate: (view: "overview" | "projects" | "test_cases") => void;
+  activeView: "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial";
+  onNavigate: (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial") => void;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
 };
@@ -103,6 +122,28 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
           <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
             <ClipboardCheckIcon />
             {isSidebarOpen && <div className="project-item-name">Tester Studio</div>}
+          </div>
+        </li>
+        <li 
+          className={`project-item ${activeView === "usage" ? "active" : ""}`}
+          onClick={() => onNavigate("usage")}
+          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "10px 16px" : "12px", margin: 0 }}
+          title={!isSidebarOpen ? "Usage & Billing" : undefined}
+        >
+          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
+            <BookOpenIcon />
+            {isSidebarOpen && <div className="project-item-name">Usage & Billing</div>}
+          </div>
+        </li>
+        <li 
+          className={`project-item ${activeView === "tutorial" ? "active" : ""}`}
+          onClick={() => onNavigate("tutorial")}
+          style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "10px 16px" : "12px", margin: 0 }}
+          title={!isSidebarOpen ? "Tutorial" : undefined}
+        >
+          <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none" }}>
+            <HelpCircleIcon />
+            {isSidebarOpen && <div className="project-item-name">Tutorial</div>}
           </div>
         </li>
       </ul>

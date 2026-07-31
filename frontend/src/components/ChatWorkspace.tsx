@@ -73,15 +73,23 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
     setIsLoading(true);
     setInputValue("");
     
+    // Tạo sẵn một message rỗng cho AI để append dần nội dung stream vào
+    const aiMessageId = (Date.now() + 1).toString();
+    setMessages((prev) => [...prev, { id: aiMessageId, role: "ai", content: "" }]);
+
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
       const response = await fetch(`${API_BASE}/api/chat/message`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "text/event-stream"
+        },
         body: JSON.stringify({
           document_ids: selectedDocumentIds,
           message: userContent,
-          chat_history: historyForApi
+          chat_history: historyForApi,
+          stream: true
         })
       });
       
@@ -89,19 +97,50 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
         throw new Error("Lỗi kết nối API");
       }
       
-      const data = await response.json();
-      
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "ai", content: data.response },
-      ]);
+      setIsLoading(false); // Đã nhận byte đầu tiên, tắt trạng thái loading chung
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      if (reader) {
+        let aiContent = "";
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          
+          // Giữ lại dòng cuối cùng chưa hoàn chỉnh (không có \n ở cuối) vào buffer
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6);
+              if (dataStr === "[DONE]") {
+                break;
+              }
+              try {
+                const dataObj = JSON.parse(dataStr);
+                if (dataObj.chunk) {
+                  aiContent += dataObj.chunk;
+                  setMessages((prev) => 
+                    prev.map(msg => msg.id === aiMessageId ? { ...msg, content: aiContent } : msg)
+                  );
+                }
+              } catch (err) {
+                console.error("Lỗi parse SSE chunk:", err, dataStr);
+              }
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error(error);
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "ai", content: "❌ Đã có lỗi xảy ra khi gọi AI Agent. Vui lòng thử lại." },
-      ]);
-    } finally {
+      setMessages((prev) => 
+        prev.map(msg => msg.id === aiMessageId ? { ...msg, content: msg.content || "❌ Đã có lỗi xảy ra khi gọi AI Agent. Vui lòng thử lại." } : msg)
+      );
       setIsLoading(false);
     }
   };
@@ -146,25 +185,43 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
               }}
             >
               {msg.role === "ai" ? (
-                <div className="markdown-body" style={{ width: "100%", overflowX: "auto" }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{msg.content}</ReactMarkdown>
-                </div>
+                !msg.content ? (
+                  <div style={{ display: "flex", alignItems: "center", color: "var(--text-secondary)" }}>
+                    <style>
+                      {`
+                        @keyframes typingBlink {
+                          0% { opacity: 0.2; }
+                          20% { opacity: 1; }
+                          100% { opacity: 0.2; }
+                        }
+                        .typing-dot {
+                          animation: typingBlink 1.4s infinite both;
+                          font-size: 16px;
+                          font-weight: bold;
+                          margin-left: 2px;
+                        }
+                        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+                        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+                        .typing-dot:nth-child(4) { animation-delay: 0.6s; }
+                      `}
+                    </style>
+                    <span style={{ fontSize: "13px", fontStyle: "italic" }}>Đang xử lý</span>
+                    <span className="typing-dot">.</span>
+                    <span className="typing-dot">.</span>
+                    <span className="typing-dot">.</span>
+                  </div>
+                ) : (
+                  <div className="markdown-body" style={{ width: "100%", overflowX: "auto" }}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{msg.content}</ReactMarkdown>
+                  </div>
+                )
               ) : (
                 msg.content
               )}
             </div>
           </div>
         ))}
-        {isLoading && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-            <div style={{ marginBottom: "4px", fontSize: "12px", color: "var(--accent)", fontWeight: 500 }}>
-              TCGA Agent
-            </div>
-            <div style={{ padding: "12px 16px", borderRadius: "16px", background: "var(--bg-hover)", color: "var(--text-secondary)", fontSize: "14px", border: "1px solid var(--border)" }}>
-              Đang suy nghĩ...
-            </div>
-          </div>
-        )}
+
         <div ref={messagesEndRef} style={{ height: "20px", flexShrink: 0 }} />
       </div>
 

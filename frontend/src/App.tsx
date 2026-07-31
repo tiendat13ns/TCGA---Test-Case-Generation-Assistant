@@ -91,7 +91,7 @@ function PanelLeftOpenIcon() {
 }
 
 function App() {
-  const [activeView, setActiveView] = useState<"overview" | "projects" | "project_detail" | "test_cases">("projects");
+  const [activeView, setActiveView] = useState<"overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial">("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -122,7 +122,7 @@ function App() {
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
-  const handleNavigate = (view: "overview" | "projects" | "test_cases") => {
+  const handleNavigate = (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial") => {
     setActiveView(view);
     setSelectedProject(null);
   };
@@ -221,6 +221,30 @@ function App() {
 
           {activeView === "test_cases" && (
             <TesterStudio />
+          )}
+
+          {activeView === "usage" && (
+            <div style={{ padding: "32px", height: "100%", overflowY: "auto" }}>
+              <div className="workspace-empty" style={{ marginTop: "64px" }}>
+                <div className="workspace-empty-icon">💳</div>
+                <div className="workspace-empty-title">Usage & Billing</div>
+                <div className="workspace-empty-body">
+                  Tính năng quản lý Credit và Token đang được phát triển.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeView === "tutorial" && (
+            <div style={{ padding: "32px", height: "100%", overflowY: "auto" }}>
+              <div className="workspace-empty" style={{ marginTop: "64px" }}>
+                <div className="workspace-empty-icon">📖</div>
+                <div className="workspace-empty-title">Tutorials</div>
+                <div className="workspace-empty-body">
+                  Hướng dẫn sử dụng và Prompt engineering sẽ được cập nhật tại đây.
+                </div>
+              </div>
+            </div>
           )}
         </main>
       </div>

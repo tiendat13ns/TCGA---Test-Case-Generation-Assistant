@@ -163,3 +163,120 @@ async def process_chat_message(request: ChatRequest) -> ChatResponse:
         final_response = await _fast_response(request, use_rag=False)
 
     return ChatResponse(response=str(final_response))
+
+
+# ── Streaming Entry Point ────────────────────────────────────────────────────
+async def stream_chat_message(request: ChatRequest):
+    """
+    Async Generator cho Streaming (SSE).
+    Yield các chunk theo chuẩn Server-Sent Events: 'data: <text>\\n\\n'
+    
+    Luồng:
+      - execute_tool  → LangGraph agent.astream(stream_mode="messages") → lọc AIMessageChunk
+      - general_chat  → LLM.astream() với Direct RAG context
+      - small_talk    → LLM.astream() không RAG
+    """
+    import json
+    from langchain_core.messages import AIMessageChunk
+
+    message = request.message.strip()
+
+    # Bước 1: Keyword pre-filter
+    intent = _keyword_classify(message)
+
+    # Bước 2: LLM classify nếu không chắc
+    if intent is None:
+        intent = await _llm_classify_intent(message)
+
+    logger.info("StreamRouter → intent=%s for message: %.80s", intent, message)
+
+    # ── Nhánh AGENT (execute_tool): stream qua LangGraph ─────────────────────
+    if intent == "execute_tool":
+        history = []
+        for msg in request.chat_history:
+            if msg.role == "user":
+                history.append(HumanMessage(content=msg.content))
+            elif msg.role == "ai":
+                history.append(AIMessage(content=msg.content))
+            elif msg.role == "system":
+                history.append(SystemMessage(content=msg.content))
+
+        context_instruction = (
+            f"\n\n[Hệ thống: Người dùng đã chọn các tài liệu có ID: {request.document_ids}. "
+            f"Nếu cần tìm thông tin, hãy gọi search_documents_tool với các ID này.]"
+            if request.document_ids
+            else ""
+        )
+        history.append(HumanMessage(content=request.message + context_instruction))
+
+        agent = get_chat_agent()
+        async for event in agent.astream({"messages": history}, stream_mode="messages"):
+            # event = (chunk, metadata) khi stream_mode="messages"
+            chunk, _meta = event if isinstance(event, tuple) else (event, {})
+            
+            # Stream kết quả trực tiếp từ Tool (Bảng Markdown) lên UI luôn
+            from langchain_core.messages import ToolMessage, ToolMessageChunk
+            if isinstance(chunk, (ToolMessage, ToolMessageChunk)) and chunk.content:
+                text = chunk.content
+                # Thêm khoảng trắng để tách biệt với các câu chữ khác
+                payload = json.dumps({"chunk": f"\n\n{text}\n\n"}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
+                continue
+
+            # Chỉ stream những text được sinh ra từ chính Agent (bỏ qua text sinh từ các LLM lồng bên trong Tool)
+            if _meta.get("langgraph_node") != "agent":
+                continue
+
+            if isinstance(chunk, AIMessageChunk) and chunk.content:
+                # Nếu chunk này là đang sinh arguments cho một Tool (Tool Call) -> Bỏ qua
+                if getattr(chunk, "tool_call_chunks", None):
+                    continue
+                
+                text = chunk.content
+                payload = json.dumps({"chunk": text}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
+
+    # ── Nhánh FAST (general_chat / small_talk): stream trực tiếp LLM ─────────
+    else:
+        use_rag = (intent == "general_chat")
+        context_chunks: list[str] = []
+
+        if use_rag and request.document_ids:
+            db = SessionLocal()
+            try:
+                for doc_id in request.document_ids:
+                    chunks = await retrieve_relevant_chunks_async(
+                        db=db,
+                        query=request.message,
+                        top_k=3,
+                        document_id=doc_id,
+                    )
+                    context_chunks.extend(chunks)
+            finally:
+                db.close()
+
+        if context_chunks:
+            context_text = "\n\n---\n\n".join(context_chunks[:6])
+            system_content = (
+                FAST_SYSTEM_PROMPT
+                + f"\n\n## Nội dung tài liệu liên quan:\n\n{context_text}"
+            )
+        else:
+            system_content = FAST_SYSTEM_PROMPT
+
+        messages_list: list = [SystemMessage(content=system_content)]
+        for msg in request.chat_history:
+            if msg.role == "user":
+                messages_list.append(HumanMessage(content=msg.content))
+            elif msg.role == "ai":
+                messages_list.append(AIMessage(content=msg.content))
+        messages_list.append(HumanMessage(content=request.message))
+
+        llm = get_llm()
+        async for chunk in llm.astream(messages_list):
+            if chunk.content:
+                payload = json.dumps({"chunk": chunk.content}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
+
+    # Signal kết thúc stream
+    yield "data: [DONE]\n\n"
