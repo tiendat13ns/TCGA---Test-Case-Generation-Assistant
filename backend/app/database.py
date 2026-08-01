@@ -35,12 +35,15 @@ def init_db() -> None:
     _ensure_pgvector_extension()
 
     Base.metadata.create_all(bind=engine)
+    _ensure_user_columns()
+    _ensure_project_columns()
     _ensure_document_columns()
     _ensure_document_chunk_columns()
     _ensure_requirement_columns()
     _ensure_requirement_hitl_columns()
     _ensure_agent_log_columns()
     _ensure_test_case_columns()
+    _ensure_usage_logs_table()
 
 
 def _ensure_pgvector_extension() -> None:
@@ -170,6 +173,28 @@ def _ensure_agent_log_columns() -> None:
             connection.execute(text(statement))
 
 
+def _ensure_usage_logs_table() -> None:
+    """Tạo bảng usage_logs nếu chưa tồn tại (idempotent)."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS usage_logs (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    operation TEXT NOT NULL,
+                    target_name TEXT,
+                    credits_used INTEGER NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                );
+            """))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_usage_logs_user_id ON usage_logs(user_id);"
+            ))
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Could not ensure usage_logs table: %s", exc)
+
+
 def check_database_connection() -> tuple[bool, str | None]:
     if not is_database_configured():
         return False, "DATABASE_URL is not configured"
@@ -180,3 +205,31 @@ def check_database_connection() -> tuple[bool, str | None]:
         return True, None
     except Exception as exc:
         return False, str(exc)
+
+
+def _ensure_user_columns() -> None:
+    statements = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance INTEGER NOT NULL DEFAULT 300",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            try:
+                connection.execute(text(statement))
+            except Exception:
+                pass
+
+
+def _ensure_project_columns() -> None:
+    """Thêm cột user_id vào bảng projects cho multi-tenant isolation."""
+    statements = [
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE",
+        "CREATE INDEX IF NOT EXISTS ix_projects_user_id ON projects(user_id)",
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            try:
+                connection.execute(text(statement))
+            except Exception:
+                pass

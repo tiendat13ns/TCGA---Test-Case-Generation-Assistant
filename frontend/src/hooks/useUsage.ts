@@ -1,0 +1,102 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = localStorage.getItem("tcga_token");
+  const headers: Record<string, string> = { ...extra };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
+/* ── Query Keys ─────────────────────────────────────────── */
+export const usageKeys = {
+  summary: ["usage", "summary"] as const,
+  logs: (limit = 50, offset = 0) => ["usage", "logs", limit, offset] as const,
+};
+
+/* ── Types ───────────────────────────────────────────────── */
+export interface UsagePlan {
+  name: string;
+  status: "active" | "coming_soon";
+  price_vnd: number;
+  credits_per_month: number;
+  max_documents: number | null;
+  max_projects: number | null;
+  storage_mb: number;
+}
+
+export interface UsageSummary {
+  credit_balance: number;
+  current_plan: string;
+  plan_status: string;
+  total_credits_used: number;
+  plans: UsagePlan[];
+}
+
+export interface UsageLogItem {
+  id: string;
+  operation: string;
+  target_name: string | null;
+  credits_used: number;
+  created_at: string | null;
+}
+
+export interface UsageLogsResponse {
+  total: number;
+  items: UsageLogItem[];
+}
+
+/* ── Fetchers ───────────────────────────────────────────── */
+async function fetchUsageSummary(): Promise<UsageSummary> {
+  const r = await fetch(`${API_BASE}/api/usage/summary`, {
+    headers: authHeaders(),
+  });
+  if (!r.ok) throw new Error("Failed to load usage summary");
+  return r.json();
+}
+
+async function fetchUsageLogs(limit = 50, offset = 0): Promise<UsageLogsResponse> {
+  const r = await fetch(`${API_BASE}/api/usage/logs?limit=${limit}&offset=${offset}`, {
+    headers: authHeaders(),
+  });
+  if (!r.ok) throw new Error("Failed to load usage logs");
+  return r.json();
+}
+
+/* ── Hooks ──────────────────────────────────────────────── */
+
+/**
+ * Fetch usage summary (credit balance, plan info, total used).
+ * Refetches every 30 seconds to keep credit balance live.
+ */
+export function useUsageSummary() {
+  return useQuery({
+    queryKey: usageKeys.summary,
+    queryFn: fetchUsageSummary,
+    staleTime: 30_000,       // consider fresh for 30 seconds
+    refetchInterval: 30_000, // auto-refetch in background every 30s
+  });
+}
+
+/**
+ * Fetch usage logs with pagination.
+ */
+export function useUsageLogs(limit = 50, offset = 0) {
+  return useQuery({
+    queryKey: usageKeys.logs(limit, offset),
+    queryFn: () => fetchUsageLogs(limit, offset),
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Returns a helper to invalidate (force-refetch) all usage queries.
+ * Call this after any action that changes credit balance.
+ */
+export function useInvalidateUsage() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ["usage"] });
+  };
+}

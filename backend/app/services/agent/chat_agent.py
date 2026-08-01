@@ -10,6 +10,19 @@ def _format_test_cases_as_markdown_table(req_id: str, res) -> str:
     tc_list = res.test_cases
     total = res.total_test_cases
 
+    # Fetch requirement info to populate Feature column
+    req_feature_name = ""
+    try:
+        from uuid import UUID
+        from app.database import SessionLocal
+        from app.models import Requirement
+        with SessionLocal() as db:
+            req = db.get(Requirement, UUID(req_id))
+            if req:
+                req_feature_name = req.feature_name or req.title or ""
+    except Exception:
+        pass
+
     lines = []
     lines.append(f"**Tổng hợp {total} Test Case** cho Requirement `{req_id}`\n")
 
@@ -20,8 +33,8 @@ def _format_test_cases_as_markdown_table(req_id: str, res) -> str:
     for i, tc in enumerate(tc_list, start=1):
         tc_id = f"TC-{i:02d}"
 
-        # Feature: Currently not directly in TestCaseResponse, fallback to requirement_id or empty
-        feature = getattr(tc, 'feature_name', None) or ""
+        # Feature: Get from test case if present, else fallback to requirement title/feature_name
+        feature = getattr(tc, 'feature_name', None) or req_feature_name
         
         # Test Item = title + (test_type, priority)
         title = (tc.title or "").replace("|", "/").replace("\n", " ")

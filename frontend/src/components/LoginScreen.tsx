@@ -1,0 +1,281 @@
+import React, { useState, useEffect } from "react";
+import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
+
+type LoginScreenProps = {
+  onLoginSuccess: (token: string) => void;
+  initialMode?: "login" | "register";
+};
+
+/* ── Animated circuit grid dots (pure CSS, no libs) ─────── */
+function GridPattern() {
+  return (
+    <svg
+      className="auth-grid-pattern"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="1" fill="rgba(139,105,20,0.12)" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)" />
+    </svg>
+  );
+}
+
+export default function LoginScreen({ onLoginSuccess, initialMode = "login" }: LoginScreenProps) {
+  const [isLogin, setIsLogin] = useState(initialMode === "login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // Sync URL when switching between login/register
+  const switchMode = (toLogin: boolean) => {
+    setIsLogin(toLogin);
+    setErrorMsg("");
+    setSuccessMsg("");
+    setPassword("");
+    setConfirmPassword("");
+    const path = toLogin ? "/login" : "/register";
+    window.history.pushState(null, "", path);
+  };
+
+  // Listen for browser back/forward on auth pages
+  useEffect(() => {
+    const handlePopState = () => {
+      const p = window.location.pathname;
+      setIsLogin(p !== "/register");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+    setLoading(true);
+
+    if (!isLogin && password !== confirmPassword) {
+      setErrorMsg("Mật khẩu xác nhận không khớp");
+      setLoading(false);
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMsg("Mật khẩu phải có ít nhất 6 ký tự");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const contentType = res.headers.get("content-type");
+      let data: any = {};
+      if (contentType?.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || "Lỗi máy chủ, vui lòng thử lại");
+      }
+
+      if (!res.ok) throw new Error(data.detail || data.message || "Xác thực thất bại");
+
+      if (isLogin) {
+        onLoginSuccess(data.access_token);
+      } else {
+        if (data.access_token) {
+          onLoginSuccess(data.access_token);
+        } else {
+          setSuccessMsg("Tạo tài khoản thành công! Vui lòng đăng nhập.");
+          setIsLogin(true);
+          setPassword("");
+        }
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Đã xảy ra lỗi, vui lòng thử lại");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth2-root auth2-root--centered">
+      {/* Background decorations */}
+      <GridPattern />
+      <div className="auth2-glow-blob auth2-glow-blob--1" />
+      <div className="auth2-glow-blob auth2-glow-blob--2" />
+
+      {/* Centered glass card */}
+      <div className="auth2-glass-card">
+        {/* Logo */}
+        <div className="auth2-brand" style={{ justifyContent: "center" }}>
+          <div className="auth2-brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+            </svg>
+          </div>
+          <span className="auth2-brand-name">TCGA</span>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="auth2-tabs">
+          <button
+            type="button"
+            className={`auth2-tab ${isLogin ? "active" : ""}`}
+            onClick={() => switchMode(true)}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            className={`auth2-tab ${!isLogin ? "active" : ""}`}
+            onClick={() => switchMode(false)}
+          >
+            Register
+          </button>
+          <div className="auth2-tab-indicator" style={{ transform: `translateX(${isLogin ? "0%" : "100%"})` }} />
+        </div>
+
+        {/* Header */}
+        <div className="auth2-form-header">
+          <h1 className="auth2-form-title">
+            {isLogin ? "Welcome back" : "Create account"}
+          </h1>
+          <p className="auth2-form-sub">
+            {isLogin ? "Sign in to your workspace" : "Start your test journey for free"}
+          </p>
+        </div>
+
+        {/* Register stepper */}
+        {!isLogin && (
+          <div className="auth2-stepper">
+            <div className="auth2-step active">
+              <div className="auth2-step-num">1</div>
+              <span>Account</span>
+            </div>
+            <div className="auth2-step-line" />
+            <div className="auth2-step">
+              <div className="auth2-step-num">2</div>
+              <span>Verify</span>
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        {successMsg && (
+          <div className="auth2-msg auth2-msg--success">
+            <CheckCircle2 size={15} />
+            {successMsg}
+          </div>
+        )}
+        {errorMsg && (
+          <div className="auth2-msg auth2-msg--error">
+            {errorMsg}
+          </div>
+        )}
+
+        {/* Form */}
+        <form className="auth2-form" onSubmit={handleSubmit}>
+          <div className="auth2-field">
+            <label className="auth2-label">Email</label>
+            <div className="auth2-input-wrap">
+              <Mail size={16} className="auth2-input-icon" />
+              <input
+                type="email"
+                className="auth2-input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div className="auth2-field">
+            <div className="auth2-label-row">
+              <label className="auth2-label">Password</label>
+              {isLogin && <span className="auth2-forgot">Forgot?</span>}
+            </div>
+            <div className="auth2-input-wrap">
+              <Lock size={16} className="auth2-input-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                className="auth2-input"
+                placeholder={isLogin ? "Enter your password" : "Min. 6 characters"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="auth2-eye-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {!isLogin && (
+            <div className="auth2-field">
+              <label className="auth2-label">Confirm Password</label>
+              <div className="auth2-input-wrap">
+                <Lock size={16} className="auth2-input-icon" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="auth2-input"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className="auth2-submit-btn" disabled={loading}>
+            {loading ? (
+              <Loader2 size={18} className="auth2-spinner" />
+            ) : isLogin ? (
+              "Sign In"
+            ) : (
+              <>Continue <ArrowRight size={16} /></>
+            )}
+          </button>
+        </form>
+
+        <p className="auth2-switch-text">
+          {isLogin ? (
+            <>Don't have an account?{" "}
+              <span className="auth2-switch-link" onClick={() => switchMode(false)}>Create one</span>
+            </>
+          ) : (
+            <>Already registered?{" "}
+              <span className="auth2-switch-link" onClick={() => switchMode(true)}>Sign in</span>
+            </>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
