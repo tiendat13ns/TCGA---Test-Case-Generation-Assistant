@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import { useAuth } from "../contexts/AuthContext";
 
 export type Message = {
   id: string;
@@ -25,9 +26,10 @@ const TrashIcon = () => (
   </svg>
 );
 
-export default function ChatWorkspace({ projectId, selectedDocumentIds, initialMessages, onMessagesChange }: ChatWorkspaceProps) {
+export default function ChatWorkspace({ projectId, selectedDocumentIds, initialMessages = [], onMessagesChange }: ChatWorkspaceProps) {
+  const { token, refreshUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>(
-    initialMessages ?? [
+    initialMessages.length > 0 ? initialMessages : [
       { id: "1", role: "ai", content: "Xin chào! Bạn đã chọn tài liệu, hãy đặt câu hỏi hoặc yêu cầu phân tích." },
     ]
   );
@@ -59,6 +61,8 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
     }
   };
 
+  const [activeAiMessageId, setActiveAiMessageId] = useState<string | null>(null);
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || selectedDocumentIds.length === 0) return;
     
@@ -75,16 +79,22 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
     
     // Tạo sẵn một message rỗng cho AI để append dần nội dung stream vào
     const aiMessageId = (Date.now() + 1).toString();
+    setActiveAiMessageId(aiMessageId);
     setMessages((prev) => [...prev, { id: aiMessageId, role: "ai", content: "" }]);
 
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+      const reqHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream"
+      };
+      if (token) {
+        reqHeaders["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${API_BASE}/api/chat/message`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "text/event-stream"
-        },
+        headers: reqHeaders,
         body: JSON.stringify({
           document_ids: selectedDocumentIds,
           message: userContent,
@@ -96,8 +106,6 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       if (!response.ok) {
         throw new Error("Lỗi kết nối API");
       }
-      
-      setIsLoading(false); // Đã nhận byte đầu tiên, tắt trạng thái loading chung
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder("utf-8");
@@ -141,7 +149,10 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       setMessages((prev) => 
         prev.map(msg => msg.id === aiMessageId ? { ...msg, content: msg.content || "❌ Đã có lỗi xảy ra khi gọi AI Agent. Vui lòng thử lại." } : msg)
       );
+    } finally {
       setIsLoading(false);
+      setActiveAiMessageId(null);
+      refreshUser?.();
     }
   };
 
@@ -162,7 +173,7 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       </div>
       
       {/* Chat History */}
-      <div style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "20px" }}>
+      <div className="chat-history-scroll">
         {messages.map((msg) => (
           <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: msg.role === "user" ? "flex-end" : "flex-start" }}>
             {msg.role === "ai" && (
@@ -185,36 +196,41 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
               }}
             >
               {msg.role === "ai" ? (
-                !msg.content ? (
-                  <div style={{ display: "flex", alignItems: "center", color: "var(--text-secondary)" }}>
-                    <style>
-                      {`
-                        @keyframes typingBlink {
-                          0% { opacity: 0.2; }
-                          20% { opacity: 1; }
-                          100% { opacity: 0.2; }
-                        }
-                        .typing-dot {
-                          animation: typingBlink 1.4s infinite both;
-                          font-size: 16px;
-                          font-weight: bold;
-                          margin-left: 2px;
-                        }
-                        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-                        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-                        .typing-dot:nth-child(4) { animation-delay: 0.6s; }
-                      `}
-                    </style>
-                    <span style={{ fontSize: "13px", fontStyle: "italic" }}>Đang xử lý</span>
-                    <span className="typing-dot">.</span>
-                    <span className="typing-dot">.</span>
-                    <span className="typing-dot">.</span>
-                  </div>
-                ) : (
-                  <div className="markdown-body" style={{ width: "100%", overflowX: "auto" }}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{msg.content}</ReactMarkdown>
-                  </div>
-                )
+                <>
+                  {msg.content ? (
+                    <div className="markdown-body" style={{ width: "100%", overflowX: "auto" }}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : null}
+                  {(isLoading && activeAiMessageId === msg.id) && (
+                    <div style={{ display: "flex", alignItems: "center", color: "var(--text-secondary)", marginTop: msg.content ? "12px" : "0" }}>
+                      <style>
+                        {`
+                          @keyframes typingBlink {
+                            0% { opacity: 0.2; }
+                            20% { opacity: 1; }
+                            100% { opacity: 0.2; }
+                          }
+                          .typing-dot {
+                            animation: typingBlink 1.4s infinite both;
+                            font-size: 16px;
+                            font-weight: bold;
+                            margin-left: 2px;
+                          }
+                          .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+                          .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+                          .typing-dot:nth-child(4) { animation-delay: 0.6s; }
+                        `}
+                      </style>
+                      <span style={{ fontSize: "13px", fontStyle: "italic" }}>
+                        {msg.content ? "Đang tiếp tục xử lý..." : "Đang xử lý"}
+                      </span>
+                      <span className="typing-dot">.</span>
+                      <span className="typing-dot">.</span>
+                      <span className="typing-dot">.</span>
+                    </div>
+                  )}
+                </>
               ) : (
                 msg.content
               )}
@@ -225,68 +241,71 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
         <div ref={messagesEndRef} style={{ height: "20px", flexShrink: 0 }} />
       </div>
 
-      {/* Quick Actions */}
-      <div className="chat-quick-actions" style={{ padding: "8px 16px 12px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <button
-          onClick={() => sendMessage("Phân tích tài liệu tổng quan, tóm tắt các tính năng chính và luồng nghiệp vụ.")}
-          className="btn btn-secondary btn-xs"
-          disabled={selectedDocumentIds.length === 0 || isLoading}
-        >
-          Phân tích tài liệu tổng quan
-        </button>
-        <button
-          onClick={() => sendMessage("Hãy tạo Requirement cho các tài liệu này. Đảm bảo tuân thủ đúng prompt trích xuất requirement (phân tích toàn bộ các file được cung cấp).")}
-          className="btn btn-secondary btn-xs"
-          disabled={selectedDocumentIds.length === 0 || isLoading}
-        >
-          Tạo Requirement
-        </button>
-        <button
-          onClick={() => sendMessage("Hãy tìm kiếm các requirement của tài liệu này (hoặc tạo mới nếu chưa có), sau đó tạo Test Case cho chúng (tuân thủ prompt thiết kế test case).")}
-          className="btn btn-secondary btn-xs"
-          disabled={selectedDocumentIds.length === 0 || isLoading}
-        >
-          Tạo Test Case
-        </button>
-      </div>
-
-      {/* Input Area */}
-      <div style={{ padding: "16px", borderTop: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", gap: "10px", background: "var(--bg-hover)", borderRadius: "24px", padding: "4px", border: "1px solid var(--border)" }}>
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") sendMessage(inputValue);
-            }}
-            placeholder={selectedDocumentIds.length > 0 ? "Yêu cầu sinh test case hoặc phân tích tài liệu..." : "Vui lòng chọn tài liệu ở cột phải trước khi bắt đầu..."}
-            disabled={selectedDocumentIds.length === 0 || isLoading}
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              padding: "8px 16px",
-              color: "var(--text-primary)",
-            }}
-          />
+      {/* Bottom Panel (Quick Actions + Input Area with Gradient Overlay) */}
+      <div className="chat-bottom-panel">
+        {/* Quick Actions */}
+        <div className="chat-quick-actions" style={{ padding: "8px 16px 12px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
           <button
-            onClick={() => sendMessage(inputValue)}
-            disabled={!inputValue.trim() || selectedDocumentIds.length === 0 || isLoading}
-            style={{
-              background: "var(--accent)",
-              color: "#000",
-              border: "none",
-              borderRadius: "20px",
-              padding: "8px 16px",
-              fontWeight: 600,
-              cursor: (!inputValue.trim() || selectedDocumentIds.length === 0 || isLoading) ? "not-allowed" : "pointer",
-              opacity: (!inputValue.trim() || selectedDocumentIds.length === 0 || isLoading) ? 0.5 : 1,
-            }}
+            onClick={() => sendMessage("Phân tích tài liệu tổng quan, tóm tắt các tính năng chính và luồng nghiệp vụ.")}
+            className="btn btn-secondary btn-xs"
+            disabled={selectedDocumentIds.length === 0 || isLoading}
           >
-            Gửi
+            Phân tích tài liệu tổng quan
           </button>
+          <button
+            onClick={() => sendMessage("Hãy tạo Requirement cho các tài liệu này. Đảm bảo tuân thủ đúng prompt trích xuất requirement (phân tích toàn bộ các file được cung cấp).")}
+            className="btn btn-secondary btn-xs"
+            disabled={selectedDocumentIds.length === 0 || isLoading}
+          >
+            Tạo Requirement
+          </button>
+          <button
+            onClick={() => sendMessage("Hãy tìm kiếm các requirement của tài liệu này (hoặc tạo mới nếu chưa có), sau đó tạo Test Case cho chúng (tuân thủ prompt thiết kế test case).")}
+            className="btn btn-secondary btn-xs"
+            disabled={selectedDocumentIds.length === 0 || isLoading}
+          >
+            Tạo Test Case
+          </button>
+        </div>
+
+        {/* Input Area */}
+        <div style={{ padding: "16px", borderTop: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", gap: "10px", background: "var(--bg-hover)", borderRadius: "24px", padding: "4px", border: "1px solid var(--border)" }}>
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") sendMessage(inputValue);
+              }}
+              placeholder={selectedDocumentIds.length > 0 ? "Yêu cầu sinh test case hoặc phân tích tài liệu..." : "Vui lòng chọn tài liệu ở cột phải trước khi bắt đầu..."}
+              disabled={selectedDocumentIds.length === 0 || isLoading}
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                padding: "8px 16px",
+                color: "var(--text-primary)",
+              }}
+            />
+            <button
+              onClick={() => sendMessage(inputValue)}
+              disabled={!inputValue.trim() || selectedDocumentIds.length === 0 || isLoading}
+              style={{
+                background: "var(--accent)",
+                color: "#000",
+                border: "none",
+                borderRadius: "20px",
+                padding: "8px 16px",
+                fontWeight: 600,
+                cursor: (!inputValue.trim() || selectedDocumentIds.length === 0 || isLoading) ? "not-allowed" : "pointer",
+                opacity: (!inputValue.trim() || selectedDocumentIds.length === 0 || isLoading) ? 0.5 : 1,
+              }}
+            >
+              Gửi
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,39 +1,38 @@
 /* ============================================================
-   TCGA Design System — Dark Developer Tool Aesthetic
+   TCGA Design System — Warm Beige / Sand Palette
    Font: Geist (Google Fonts), Geist Mono for code/badges
-   Palette: Zinc dark + Emerald accent
+   Palette: Warm Beige + Dark text
    Corner radius: 8px cards, 6px inputs, 4px badges (locked)
-   DESIGN_VARIANCE: 6 | MOTION_INTENSITY: 4 | VISUAL_DENSITY: 6
    ============================================================ */
 
 @import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
 
 /* ── Tokens ──────────────────────────────────────────────── */
 :root {
-  --bg: #09090b;
-  --bg-surface: #111113;
-  --bg-elevated: #18181b;
-  --bg-hover: #27272a;
-  --border: #27272a;
-  --border-soft: #1f1f23;
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
-  --accent: #10b981;
-  --accent-dim: #064e3b;
-  --accent-glow: rgba(16, 185, 129, 0.15);
-  --accent-glow-strong: rgba(16, 185, 129, 0.22);
-  --danger: #ef4444;
-  --danger-dim: rgba(239, 68, 68, 0.12);
-  --warning: #f59e0b;
-  --info: #3b82f6;
-  --purple: #a78bfa;
-  --purple-dim: rgba(139, 92, 246, 0.12);
+  --bg: #D5CBC0;
+  --bg-surface: #DDD4C9;
+  --bg-elevated: #E5DDD3;
+  --bg-hover: #C9BEB2;
+  --border: #B8AD9F;
+  --border-soft: #C9BFB3;
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4540;
+  --text-muted: #7a7268;
+  --accent: #8B6914;
+  --accent-dim: #F5ECD7;
+  --accent-glow: rgba(139, 105, 20, 0.12);
+  --accent-glow-strong: rgba(139, 105, 20, 0.2);
+  --danger: #c0392b;
+  --danger-dim: rgba(192, 57, 43, 0.1);
+  --warning: #d4a017;
+  --info: #2c6fbb;
+  --purple: #7c5cbf;
+  --purple-dim: rgba(124, 92, 191, 0.1);
   --radius-card: 8px;
   --radius-input: 6px;
   --radius-badge: 4px;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.1);
   --font-sans: "Geist", "Inter", system-ui, sans-serif;
   --font-mono: "Geist Mono", "Fira Code", monospace;
   --transition: 150ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -49,28 +48,7 @@
   padding: 0;
 }
 
-/* ── Light Mode Tokens ──────────────────────────────────── */
-[data-theme="light"] {
-  --bg: #f4f4f5;
-  --bg-surface: #ffffff;
-  --bg-elevated: #fafafa;
-  --bg-hover: #e4e4e7;
-  --border: #d4d4d8;
-  --border-soft: #e4e4e7;
-  --text-primary: #09090b;
-  --text-secondary: #52525b;
-  --text-muted: #a1a1aa;
-  --accent: #059669;
-  --accent-dim: #d1fae5;
-  --accent-glow: rgba(5, 150, 105, 0.12);
-  --accent-glow-strong: rgba(5, 150, 105, 0.2);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
 
-[data-theme="light"] html {
-  color-scheme: light;
-}
 
 /* smooth theme transition */
 *,
@@ -82,7 +60,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /* Custom scrollbar */
@@ -115,8 +93,36 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+  color: var(--text-primary);
+}
+
+::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* ── Override Browser Autofill Styles (Prevent blue background) ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #E5DDD3 inset !important;
+  box-shadow: 0 0 0 1000px #E5DDD3 inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.auth2-input:-webkit-autofill,
+.auth2-input:-webkit-autofill:hover,
+.auth2-input:-webkit-autofill:focus,
+.auth2-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #E8E0D6 inset !important;
+  box-shadow: 0 0 0 1000px #E8E0D6 inset !important;
+  -webkit-text-fill-color: #2a2520 !important;
 }
 
 /* ── Layout ──────────────────────────────────────────────── */
@@ -789,7 +795,7 @@ select {
 /* Priority badges */
 .badge-high {
   background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
+  color: #c0392b;
   border-color: rgba(239, 68, 68, 0.2);
 }
 
@@ -1298,11 +1304,49 @@ select {
 
 /* ── Checkbox ────────────────────────────────────────────── */
 input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--accent);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--bg-surface);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.15s ease-in-out;
+  margin: 0;
+  flex-shrink: 0;
+  outline: none;
 }
+
+input[type="checkbox"]:hover {
+  border-color: var(--accent);
+  background-color: var(--bg-elevated);
+}
+
+input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-glow-strong);
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+
 
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes pulse-dot {
@@ -1418,7 +1462,7 @@ input[type="checkbox"] {
 
 .badge-tc-negative {
   background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
+  color: #c0392b;
   border-color: rgba(239, 68, 68, 0.25);
 }
 
@@ -2045,10 +2089,7 @@ input[type="checkbox"] {
   border-bottom: none;
 }
 .markdown-body tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-[data-theme="light"] .markdown-body tbody tr:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 
@@ -2816,13 +2857,13 @@ dialog.confirm-dialog[open]::backdrop {
 
 
 
-/* Authentication Neon Theme Variables */
+/* Authentication Theme Variables */
 :root {
-  --neon-green: #00FF7F;
-  --neon-green-hover: #00e673;
-  --bg-auth: #0f0f11;
-  --bg-auth-surface: #1a1b1e;
-  --text-auth-muted: #a1a1aa;
+  --neon-green: #8B6914;
+  --neon-green-hover: #7A5B10;
+  --bg-auth: #D5CBC0;
+  --bg-auth-surface: #DDD4C9;
+  --text-auth-muted: #7a7268;
 }
 
 .auth-container {
@@ -2832,7 +2873,7 @@ dialog.confirm-dialog[open]::backdrop {
   justify-content: center;
   min-height: 100vh;
   background-color: var(--bg-auth);
-  color: #ffffff;
+  color: #1a1a1a;
   font-family: inherit;
 }
 
@@ -2895,7 +2936,7 @@ dialog.confirm-dialog[open]::backdrop {
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  background: #27272a;
+  background: var(--border);
   color: var(--text-auth-muted);
 }
 
@@ -2907,7 +2948,7 @@ dialog.confirm-dialog[open]::backdrop {
 .auth-step-divider {
   width: 24px;
   height: 1px;
-  background: #27272a;
+  background: var(--border);
 }
 
 .auth-form {
@@ -3033,7 +3074,7 @@ dialog.confirm-dialog[open]::backdrop {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #27272a;
+  background: var(--accent);
   color: #fff;
   font-weight: 600;
   display: flex;
@@ -3050,11 +3091,12 @@ dialog.confirm-dialog[open]::backdrop {
   font-size: 14px;
 }
 .sidebar-credit-badge {
-  background: var(--neon-green);
-  color: #000;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(139, 105, 20, 0.25);
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 12px;
   display: inline-flex;
 }
@@ -3072,7 +3114,7 @@ dialog.confirm-dialog[open]::backdrop {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #27272a;
+  background: var(--accent);
   color: #fff;
   font-weight: 600;
   display: flex;
@@ -3095,7 +3137,7 @@ dialog.confirm-dialog[open]::backdrop {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -3124,7 +3166,7 @@ dialog.confirm-dialog[open]::backdrop {
   transition: background var(--transition-fast);
 }
 .nav-dropdown-item:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 .nav-dropdown-item[style*="color: #ef4444"]:hover {
   background: rgba(239, 68, 68, 0.1);
@@ -3148,7 +3190,7 @@ dialog.confirm-dialog[open]::backdrop {
   transform: translateX(-50%);
   width: 600px;
   height: 400px;
-  background: radial-gradient(ellipse, rgba(0, 255, 127, 0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(139, 105, 20, 0.06) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -3173,15 +3215,15 @@ dialog.confirm-dialog[open]::backdrop {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--neon-green), #00cc66);
-  color: #000;
+  background: var(--accent);
+  color: #fff;
 }
 
 .auth-logo-text {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #fff;
+  color: #1a1a1a;
 }
 
 .auth-message {
@@ -3196,14 +3238,14 @@ dialog.confirm-dialog[open]::backdrop {
 
 .auth-message-error {
   background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
+  color: #c0392b;
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .auth-message-success {
-  background: rgba(0, 255, 127, 0.08);
-  color: var(--neon-green);
-  border: 1px solid rgba(0, 255, 127, 0.15);
+  background: rgba(139, 105, 20, 0.08);
+  color: var(--accent);
+  border: 1px solid rgba(139, 105, 20, 0.15);
 }
 
 .btn-neon:disabled {
@@ -3219,14 +3261,14 @@ dialog.confirm-dialog[open]::backdrop {
 
 /* ============================================================
    AUTH v2 — Split Panel: Circuit Grid + Glassmorphism
-   Design: Deep Navy #0d1117 | Cyan-Teal #00d4aa | Glass card
+   Design: Warm Beige #D5CBC0 | Gold Accent #8B6914 | Glass card
    ============================================================ */
 
 /* ── Root layout ── */
 .auth2-root {
   display: flex;
   min-height: 100dvh;
-  background: #0d1117;
+  background: #D5CBC0;
   font-family: inherit;
 }
 
@@ -3238,7 +3280,7 @@ dialog.confirm-dialog[open]::backdrop {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(135deg, #0d1117 0%, #0a1628 50%, #0d1f2d 100%);
+  background: linear-gradient(135deg, #D5CBC0 0%, #C9BDB0 50%, #BFAF9F 100%);
 }
 
 .auth-grid-pattern {
@@ -3260,7 +3302,7 @@ dialog.confirm-dialog[open]::backdrop {
 .auth2-glow-blob--1 {
   width: 420px;
   height: 420px;
-  background: radial-gradient(circle, rgba(0, 212, 170, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(139, 105, 20, 0.12) 0%, transparent 70%);
   top: -80px;
   left: -80px;
 }
@@ -3268,7 +3310,7 @@ dialog.confirm-dialog[open]::backdrop {
 .auth2-glow-blob--2 {
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.10) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(139, 105, 20, 0.08) 0%, transparent 70%);
   bottom: -60px;
   right: 10%;
 }
@@ -3297,7 +3339,7 @@ dialog.confirm-dialog[open]::backdrop {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, #00d4aa, #0ea5e9);
+  background: linear-gradient(135deg, #8B6914, #A67B1A);
   color: #000;
 }
 
@@ -3314,12 +3356,12 @@ dialog.confirm-dialog[open]::backdrop {
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -1px;
-  color: #f0f6ff;
+  color: #2a2520;
   margin: 0;
 }
 
 .auth2-hero-accent {
-  background: linear-gradient(90deg, #00d4aa, #0ea5e9);
+  background: linear-gradient(90deg, #8B6914, #A67B1A);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -3328,7 +3370,7 @@ dialog.confirm-dialog[open]::backdrop {
 .auth2-hero-sub {
   margin: 16px 0 0;
   font-size: 16px;
-  color: rgba(240, 246, 255, 0.5);
+  color: rgba(42, 37, 32, 0.6);
   line-height: 1.6;
   max-width: 380px;
 }
@@ -3345,7 +3387,7 @@ dialog.confirm-dialog[open]::backdrop {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: rgba(240, 246, 255, 0.65);
+  color: rgba(42, 37, 32, 0.7);
   font-weight: 500;
 }
 
@@ -3353,8 +3395,8 @@ dialog.confirm-dialog[open]::backdrop {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #00d4aa;
-  box-shadow: 0 0 8px rgba(0, 212, 170, 0.7);
+  background: #8B6914;
+  box-shadow: 0 0 8px rgba(139, 105, 20, 0.4);
   flex-shrink: 0;
 }
 
@@ -3365,24 +3407,24 @@ dialog.confirm-dialog[open]::backdrop {
   align-items: center;
   justify-content: center;
   padding: 40px 32px;
-  background: rgba(13, 17, 23, 0.6);
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(213, 203, 192, 0.5);
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* Glassmorphism card */
 .auth2-glass-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
   padding: 36px;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   box-shadow:
-    0 0 0 1px rgba(0, 212, 170, 0.04),
-    0 32px 64px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 0 0 1px rgba(139, 105, 20, 0.04),
+    0 32px 64px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -3393,7 +3435,7 @@ dialog.confirm-dialog[open]::backdrop {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 10px;
   padding: 4px;
 }
@@ -3404,7 +3446,7 @@ dialog.confirm-dialog[open]::backdrop {
   padding: 9px 16px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(26, 26, 26, 0.45);
   font-size: 13px;
   font-weight: 600;
   border-radius: 8px;
@@ -3424,8 +3466,8 @@ dialog.confirm-dialog[open]::backdrop {
   left: 4px;
   width: calc(50% - 4px);
   height: calc(100% - 8px);
-  background: rgba(0, 212, 170, 0.12);
-  border: 1px solid rgba(0, 212, 170, 0.2);
+  background: rgba(139, 105, 20, 0.1);
+  border: 1px solid rgba(139, 105, 20, 0.2);
   border-radius: 7px;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
@@ -3441,14 +3483,14 @@ dialog.confirm-dialog[open]::backdrop {
 .auth2-form-title {
   font-size: 22px;
   font-weight: 700;
-  color: #f0f6ff;
+  color: #2a2520;
   margin: 0;
   letter-spacing: -0.3px;
 }
 
 .auth2-form-sub {
   font-size: 13px;
-  color: rgba(240, 246, 255, 0.4);
+  color: rgba(42, 37, 32, 0.5);
   margin: 0;
 }
 
@@ -3465,11 +3507,11 @@ dialog.confirm-dialog[open]::backdrop {
   gap: 7px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(26, 26, 26, 0.4);
 }
 
 .auth2-step.active {
-  color: #00d4aa;
+  color: #8B6914;
 }
 
 .auth2-step-num {
@@ -3481,19 +3523,19 @@ dialog.confirm-dialog[open]::backdrop {
   justify-content: center;
   font-size: 10px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(26, 26, 26, 0.4);
 }
 
 .auth2-step.active .auth2-step-num {
-  background: #00d4aa;
-  color: #000;
+  background: #8B6914;
+  color: #fff;
 }
 
 .auth2-step-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* Messages */
@@ -3508,15 +3550,15 @@ dialog.confirm-dialog[open]::backdrop {
 }
 
 .auth2-msg--error {
-  background: rgba(239, 68, 68, 0.1);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.18);
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.15);
 }
 
 .auth2-msg--success {
-  background: rgba(0, 212, 170, 0.08);
-  color: #00d4aa;
-  border: 1px solid rgba(0, 212, 170, 0.15);
+  background: rgba(139, 105, 20, 0.08);
+  color: #7A5B10;
+  border: 1px solid rgba(139, 105, 20, 0.15);
 }
 
 /* Form fields */
@@ -3535,7 +3577,7 @@ dialog.confirm-dialog[open]::backdrop {
 .auth2-label {
   font-size: 12px;
   font-weight: 600;
-  color: rgba(240, 246, 255, 0.7);
+  color: rgba(42, 37, 32, 0.7);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -3548,7 +3590,7 @@ dialog.confirm-dialog[open]::backdrop {
 
 .auth2-forgot {
   font-size: 12px;
-  color: #00d4aa;
+  color: #8B6914;
   cursor: pointer;
   font-weight: 500;
 }
@@ -3566,33 +3608,33 @@ dialog.confirm-dialog[open]::backdrop {
 .auth2-input-icon {
   position: absolute;
   left: 13px;
-  color: rgba(240, 246, 255, 0.3);
+  color: rgba(42, 37, 32, 0.35);
   pointer-events: none;
   flex-shrink: 0;
 }
 
 .auth2-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 10px;
   padding: 11px 40px 11px 40px;
   font-size: 14px;
-  color: #f0f6ff;
+  color: #2a2520;
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
 }
 
 .auth2-input::placeholder {
-  color: rgba(240, 246, 255, 0.2);
+  color: rgba(42, 37, 32, 0.3);
 }
 
 .auth2-input:focus {
   outline: none;
-  border-color: rgba(0, 212, 170, 0.4);
-  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.08);
-  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(139, 105, 20, 0.4);
+  box-shadow: 0 0 0 3px rgba(139, 105, 20, 0.08);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .auth2-input:disabled {
@@ -3606,7 +3648,7 @@ dialog.confirm-dialog[open]::backdrop {
   background: none;
   border: none;
   cursor: pointer;
-  color: rgba(240, 246, 255, 0.3);
+  color: rgba(42, 37, 32, 0.35);
   display: flex;
   align-items: center;
   padding: 4px;
@@ -3614,7 +3656,7 @@ dialog.confirm-dialog[open]::backdrop {
 }
 
 .auth2-eye-btn:hover {
-  color: rgba(240, 246, 255, 0.7);
+  color: rgba(42, 37, 32, 0.7);
 }
 
 /* Submit button */
@@ -3631,17 +3673,17 @@ dialog.confirm-dialog[open]::backdrop {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, #00d4aa, #0ea5e9);
-  color: #000;
+  background: linear-gradient(135deg, #8B6914, #A67B1A);
+  color: #fff;
   transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
-  box-shadow: 0 4px 20px rgba(0, 212, 170, 0.25);
+  box-shadow: 0 4px 20px rgba(139, 105, 20, 0.2);
   letter-spacing: 0.01em;
   margin-top: 4px;
 }
 
 .auth2-submit-btn:hover {
   opacity: 0.9;
-  box-shadow: 0 6px 28px rgba(0, 212, 170, 0.35);
+  box-shadow: 0 6px 28px rgba(139, 105, 20, 0.3);
 }
 
 .auth2-submit-btn:active {
@@ -3667,12 +3709,12 @@ dialog.confirm-dialog[open]::backdrop {
 .auth2-switch-text {
   text-align: center;
   font-size: 13px;
-  color: rgba(240, 246, 255, 0.35);
+  color: rgba(42, 37, 32, 0.4);
   margin: 0;
 }
 
 .auth2-switch-link {
-  color: #00d4aa;
+  color: #8B6914;
   font-weight: 600;
   cursor: pointer;
 }
@@ -3705,7 +3747,7 @@ dialog.confirm-dialog[open]::backdrop {
   .auth2-right {
     flex: 1;
     border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
     padding: 32px 20px;
   }
   .auth2-glass-card {
@@ -3721,7 +3763,7 @@ dialog.confirm-dialog[open]::backdrop {
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0d1117 0%, #0a1628 50%, #0d1f2d 100%);
+  background: linear-gradient(135deg, #D5CBC0 0%, #C9BDB0 50%, #BFAF9F 100%);
 }
 
 .auth2-root--centered .auth2-glass-card {
@@ -3752,3 +3794,33 @@ dialog.confirm-dialog[open]::backdrop {
   bottom: -80px;
   right: 25%;
 }
+
+/* ── Chat Workspace Bottom Fade & Mask Effect ────────────── */
+.chat-history-scroll {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
+}
+
+.chat-bottom-panel {
+  position: relative;
+  background: var(--bg-elevated);
+  z-index: 2;
+}
+
+.chat-bottom-panel::before {
+  content: "";
+  position: absolute;
+  top: -32px;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(to bottom, rgba(229, 221, 211, 0) 0%, var(--bg-elevated) 100%);
+  pointer-events: none;
+}
+

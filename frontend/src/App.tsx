@@ -4,8 +4,41 @@ import GlobalSidebar from "./components/GlobalSidebar";
 import ProjectsGrid from "./components/ProjectsGrid";
 import ProjectDetailDashboard from "./components/ProjectDetailDashboard";
 import TesterStudio from "./components/TestCaseStudio";
+import UsageBilling from "./components/UsageBilling";
 import { Project } from "./components/ProjectManager";
 import { Message } from "./components/ChatWorkspace";
+import { useProjects } from "./hooks/useProjects";
+
+/* ── URL Routing Helpers ─────────────────────────────────── */
+type ViewType = "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial";
+
+const VIEW_TO_PATH: Record<Exclude<ViewType, "project_detail">, string> = {
+  overview: "/overview",
+  projects: "/projects",
+  test_cases: "/test-cases",
+  usage: "/usage",
+  tutorial: "/tutorial",
+};
+
+function pathToView(pathname: string): { view: ViewType; projectId: string | null } {
+  const p = pathname.replace(/\/+$/, "") || "/";
+  if (p.startsWith("/projects/")) {
+    const id = p.slice("/projects/".length);
+    if (id) return { view: "project_detail", projectId: id };
+  }
+  if (p === "/overview") return { view: "overview", projectId: null };
+  if (p === "/projects") return { view: "projects", projectId: null };
+  if (p === "/test-cases") return { view: "test_cases", projectId: null };
+  if (p === "/usage") return { view: "usage", projectId: null };
+  if (p === "/tutorial") return { view: "tutorial", projectId: null };
+  // Default: /overview
+  return { view: "overview", projectId: null };
+}
+
+function viewToPath(view: ViewType, projectId?: string): string {
+  if (view === "project_detail" && projectId) return `/projects/${projectId}`;
+  return VIEW_TO_PATH[view as keyof typeof VIEW_TO_PATH] || "/overview";
+}
 
 const CHAT_STORAGE_KEY = (projectId: string) => `tcga-chat-${projectId}`;
 
@@ -52,25 +85,7 @@ function TCGAMark() {
   );
 }
 
-function SunIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>
-  );
-}
 
-function MoonIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-    </svg>
-  );
-}
 
 function FolderIcon() {
   return (
@@ -95,24 +110,18 @@ import LoginScreen from "./components/LoginScreen";
 
 function App() {
   const { isAuthenticated, isLoading, login, user, logout } = useAuth();
-  const [activeView, setActiveView] = useState<"overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial">("projects");
+  const initialRoute = pathToView(window.location.pathname);
+  const [activeView, setActiveView] = useState<ViewType>(initialRoute.view);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(initialRoute.projectId);
+  const { data: allProjects } = useProjects();
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    return (localStorage.getItem("tcga-theme") as "dark" | "light") || "dark";
-  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Chat histories keyed by projectId — persisted to localStorage
   const [chatHistories, setChatHistories] = useState<Record<string, Message[]>>({});
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    document.documentElement.style.colorScheme = theme;
-    localStorage.setItem("tcga-theme", theme);
-  }, [theme]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -126,6 +135,51 @@ function App() {
     };
   }, []);
 
+  // ── URL Routing: popstate listener (browser back/forward) ──
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = pathToView(window.location.pathname);
+      setActiveView(route.view);
+      if (route.view === "project_detail" && route.projectId) {
+        // Try to find the project in cache
+        const found = allProjects?.find(p => p.id === route.projectId) || null;
+        setSelectedProject(found);
+        if (!found) setPendingProjectId(route.projectId);
+      } else {
+        setSelectedProject(null);
+        setPendingProjectId(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [allProjects]);
+
+  // ── URL Routing: resolve pending project ID once data is available ──
+  useEffect(() => {
+    if (pendingProjectId && allProjects && allProjects.length > 0) {
+      const found = allProjects.find(p => p.id === pendingProjectId);
+      if (found) {
+        setSelectedProject(found);
+        setActiveView("project_detail");
+      } else {
+        // Project not found, fallback to projects list
+        setActiveView("projects");
+        window.history.replaceState(null, "", "/projects");
+      }
+      setPendingProjectId(null);
+    }
+  }, [pendingProjectId, allProjects]);
+
+  // ── URL Routing: set initial URL on first authenticated load ──
+  useEffect(() => {
+    if (isAuthenticated && !pendingProjectId) {
+      const currentPath = viewToPath(activeView, selectedProject?.id);
+      if (window.location.pathname !== currentPath) {
+        window.history.replaceState(null, "", currentPath);
+      }
+    }
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load chat history for a project on first visit
   const getProjectMessages = useCallback((projectId: string): Message[] => {
     if (chatHistories[projectId]) return chatHistories[projectId];
@@ -138,16 +192,20 @@ function App() {
     saveChatHistory(projectId, messages);
   }, []);
 
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
 
   const handleNavigate = (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial") => {
     setActiveView(view);
     setSelectedProject(null);
+    setPendingProjectId(null);
+    const path = viewToPath(view);
+    window.history.pushState(null, "", path);
   };
 
   const handleSelectProject = (project: Project) => {
     setSelectedProject(project);
     setActiveView("project_detail");
+    window.history.pushState(null, "", `/projects/${project.id}`);
   };
 
   if (isLoading) {
@@ -167,7 +225,24 @@ function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginScreen onLoginSuccess={login} />;
+    const pathname = window.location.pathname;
+    const authMode = pathname === "/register" ? "register" : "login";
+    // Redirect to /login or /register if not already there
+    if (pathname !== "/login" && pathname !== "/register") {
+      window.history.replaceState(null, "", "/login");
+    }
+    return (
+      <LoginScreen
+        onLoginSuccess={(token) => {
+          login(token);
+          setActiveView("overview");
+          setSelectedProject(null);
+          setPendingProjectId(null);
+          window.history.replaceState(null, "", "/overview");
+        }}
+        initialMode={authMode}
+      />
+    );
   }
 
   return (
@@ -196,14 +271,7 @@ function App() {
         )}
 
         <div style={{ flex: 1 }} />
-        <button
-          className="theme-toggle"
-          onClick={toggleTheme}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-        </button>
+
 
         {user && (
           <div className="nav-user-container" style={{ position: "relative" }} ref={dropdownRef}>
@@ -293,15 +361,7 @@ function App() {
           )}
 
           {activeView === "usage" && (
-            <div style={{ padding: "32px", height: "100%", overflowY: "auto" }}>
-              <div className="workspace-empty" style={{ marginTop: "64px" }}>
-                <div className="workspace-empty-icon">💳</div>
-                <div className="workspace-empty-title">Usage & Billing</div>
-                <div className="workspace-empty-body">
-                  Tính năng quản lý Credit và Token đang được phát triển.
-                </div>
-              </div>
-            </div>
+            <UsageBilling />
           )}
 
           {activeView === "tutorial" && (

@@ -179,3 +179,20 @@ class TestCase(Base):
     version = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class UsageLog(Base):
+    """Nhật ký trừ Credit theo từng tác vụ AI."""
+    __tablename__ = "usage_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    operation = Column(Text, nullable=False)     # DOCUMENT_INGESTION | REQUIREMENT_EXTRACTION | TEST_CASE_GENERATION | COPILOT_CHAT
+    target_name = Column(Text, nullable=True)    # Tên tài liệu / project liên quan
+    credits_used = Column(Integer, nullable=False)  # Số credit đã trừ
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

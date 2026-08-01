@@ -14,40 +14,34 @@ from app.prompts.chat_prompt import (
 
 logger = logging.getLogger(__name__)
 
-# ── Keyword-based pre-filter (O(1), không cần LLM call) ─────────────────────
+# ── Keyword-based classifier (O(1), 0ms latency, không tốn LLM token) ────────
 _TOOL_KEYWORDS = re.compile(
     r"(tạo|sinh|generate|tao|extract|create|cập nhật|update)\s+"
     r"(requirement|test case|testcase|yêu cầu|tc|req)",
     re.IGNORECASE | re.UNICODE,
 )
 
+_SMALL_TALK_KEYWORDS = re.compile(
+    r"^(chào|chao|hi|hello|hey|cảm ơn|cam on|thanks|thank you|ok|oke|okie|dạ|da|bạn là ai|ban la ai)\s*[\!\.\?]*$",
+    re.IGNORECASE | re.UNICODE,
+)
 
-def _keyword_classify(message: str) -> str | None:
+
+def _keyword_classify(message: str) -> str:
     """
-    Phân loại nhanh bằng regex — không tốn LLM token.
-    Trả về 'execute_tool' nếu khớp keyword, None nếu không chắc chắn.
+    Phân loại ý định tức thì bằng Regex — không làm trễ API và không bị lỗi LLM echo label.
     """
-    if _TOOL_KEYWORDS.search(message):
+    msg = message.strip()
+    if _TOOL_KEYWORDS.search(msg):
         return "execute_tool"
-    return None
+    if _SMALL_TALK_KEYWORDS.match(msg):
+        return "small_talk"
+    return "general_chat"
 
 
 async def _llm_classify_intent(message: str) -> str:
-    """
-    Dùng LLM call nhẹ (không tool) để phân loại ý định.
-    Chỉ gọi khi keyword-based filter không chắc chắn.
-    """
-    llm = get_llm()
-    messages = [
-        SystemMessage(content=INTENT_CLASSIFICATION_PROMPT),
-        HumanMessage(content=message),
-    ]
-    response = await llm.ainvoke(messages)
-    label = response.content.strip().lower()
-    # Chỉ chấp nhận 3 nhãn hợp lệ; fallback về general_chat nếu model trả ra gì khác
-    if label not in ("execute_tool", "general_chat", "small_talk"):
-        logger.warning("Intent classifier returned unexpected label '%s', defaulting to general_chat", label)
-        return "general_chat"
+    """Fallback LLM classify (chỉ dùng khi cần thiết)."""
+    label = _keyword_classify(message)
     logger.info("Intent classified as: %s", label)
     return label
 
@@ -119,47 +113,43 @@ async def _agent_response(request: ChatRequest) -> str:
         if request.document_ids
         else ""
     )
-    history.append(HumanMessage(content=request.message + context_instruction))
-
-    agent = get_chat_agent()
-    result = await agent.ainvoke({"messages": history})
-    return result["messages"][-1].content
+def _deduct_credits_for_request(request: ChatRequest, operation: str) -> None:
+    user_id = getattr(request, "user_id", None)
+    if not user_id:
+        return
+    try:
+        from app.database import SessionLocal
+        from app.models import User
+        from app.services.credit_service import deduct_user_credits
+        from uuid import UUID
+        db = SessionLocal()
+        try:
+            user = db.get(User, UUID(user_id))
+            if user:
+                deduct_user_credits(db, user, operation)
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning("Credit deduction failed (non-fatal): %s", e)
 
 
 # ── Public Entry Point ───────────────────────────────────────────────────────
 async def process_chat_message(request: ChatRequest) -> ChatResponse:
-    """
-    Semantic Router: Phân luồng thông minh giữa Fast Chat và Full Agent.
-    
-    Bước 1 — Keyword pre-filter (O(1), zero latency):
-        Nếu message chứa keyword rõ ràng như "tạo requirement", "sinh test case"
-        → Route thẳng vào execute_tool, bỏ qua LLM classify.
-
-    Bước 2 — LLM Intent Classification (nếu bước 1 không chắc chắn):
-        Gọi LLM nhẹ (không tool) để phân loại ý định.
-
-    Bước 3 — Route:
-        "execute_tool" → _agent_response() (ReAct Agent + Tools)
-        "general_chat" → _fast_response(use_rag=True)  (Direct RAG + single LLM call)
-        "small_talk"   → _fast_response(use_rag=False) (Direct LLM call)
-    """
     message = request.message.strip()
-
-    # Bước 1: Keyword pre-filter
     intent = _keyword_classify(message)
-
-    # Bước 2: LLM classify nếu keyword không chắc chắn
     if intent is None:
         intent = await _llm_classify_intent(message)
 
     logger.info("Router → intent=%s for message: %.80s", intent, message)
 
-    # Bước 3: Route
+    if intent != "execute_tool":
+        _deduct_credits_for_request(request, "COPILOT_CHAT")
+
     if intent == "execute_tool":
         final_response = await _agent_response(request)
     elif intent == "general_chat":
         final_response = await _fast_response(request, use_rag=True)
-    else:  # small_talk or fallback
+    else:
         final_response = await _fast_response(request, use_rag=False)
 
     return ChatResponse(response=str(final_response))
@@ -167,28 +157,18 @@ async def process_chat_message(request: ChatRequest) -> ChatResponse:
 
 # ── Streaming Entry Point ────────────────────────────────────────────────────
 async def stream_chat_message(request: ChatRequest):
-    """
-    Async Generator cho Streaming (SSE).
-    Yield các chunk theo chuẩn Server-Sent Events: 'data: <text>\\n\\n'
-    
-    Luồng:
-      - execute_tool  → LangGraph agent.astream(stream_mode="messages") → lọc AIMessageChunk
-      - general_chat  → LLM.astream() với Direct RAG context
-      - small_talk    → LLM.astream() không RAG
-    """
     import json
     from langchain_core.messages import AIMessageChunk
 
     message = request.message.strip()
-
-    # Bước 1: Keyword pre-filter
     intent = _keyword_classify(message)
-
-    # Bước 2: LLM classify nếu không chắc
     if intent is None:
         intent = await _llm_classify_intent(message)
 
     logger.info("StreamRouter → intent=%s for message: %.80s", intent, message)
+
+    if intent != "execute_tool":
+        _deduct_credits_for_request(request, "COPILOT_CHAT")
 
     # ── Nhánh AGENT (execute_tool): stream qua LangGraph ─────────────────────
     if intent == "execute_tool":
@@ -217,6 +197,13 @@ async def stream_chat_message(request: ChatRequest):
             # Stream kết quả trực tiếp từ Tool (Bảng Markdown) lên UI luôn
             from langchain_core.messages import ToolMessage, ToolMessageChunk
             if isinstance(chunk, (ToolMessage, ToolMessageChunk)) and chunk.content:
+                # Trừ credit dựa theo tool đã chạy
+                tool_name = getattr(chunk, "name", "") or ""
+                if "generate_test_case" in tool_name:
+                    _deduct_credits_for_request(request, "TEST_CASE_GENERATION")
+                elif "extract_requirement" in tool_name or "requirement" in tool_name.lower():
+                    _deduct_credits_for_request(request, "REQUIREMENT_EXTRACTION")
+
                 text = chunk.content
                 # Thêm khoảng trắng để tách biệt với các câu chữ khác
                 payload = json.dumps({"chunk": f"\n\n{text}\n\n"}, ensure_ascii=False)

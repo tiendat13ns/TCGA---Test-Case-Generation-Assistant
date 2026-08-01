@@ -10,6 +10,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="The new user message")
     chat_history: List[ChatMessage] = Field(default_factory=list, description="Previous chat messages")
     stream: bool = Field(default=False, description="If true, response will be streamed as Server-Sent Events")
+    user_id: Optional[str] = Field(default=None, description="User ID for credit tracking (optional)")
 
 class ChatResponse(BaseModel):
     response: str = Field(..., description="The AI's response in markdown format")

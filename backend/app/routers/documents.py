@@ -1,5 +1,6 @@
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.schemas.document_schema import DocumentDeleteRequest, DocumentDetail, DocumentExtractResponse, DocumentMetadata
 from app.services.file_service import (
@@ -10,15 +11,49 @@ from app.services.file_service import (
     save_upload_files,
 )
 from app.services.document_text_service import extract_document_text, get_document_detail
+from app.services.credit_service import deduct_user_credits, check_free_plan_document_quota
+from app.database import SessionLocal
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 
+def _get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def _try_get_user(request: Request, db: Session):
+    """Lấy user từ Bearer token. Trả về None nếu không có auth header (graceful fallback)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    try:
+        from app.core.auth import get_current_user_from_token
+        return get_current_user_from_token(auth[7:], db)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Failed to get user from token in upload: %s", e)
+        return None
+
+
 @router.post("/upload", response_model=list[DocumentMetadata])
 async def upload_document(
+    request: Request,
     files: list[UploadFile] = File(...),
     project_id: str | None = Query(default=None, description="ID của project để gắn tài liệu. Nếu không truyền, document sẽ không thuộc project nào."),
+    db: Session = Depends(_get_db),
 ):
+    # Kiểm tra quota và trừ credit nếu user đã đăng nhập
+    user = _try_get_user(request, db)
+    if user:
+        check_free_plan_document_quota(db, user)
+        # Trừ 2 Credits cho mỗi file upload
+        for f in files:
+            deduct_user_credits(db, user, "DOCUMENT_INGESTION", target_name=f.filename)
+
     try:
         return await save_upload_files(files, project_id=project_id)
     except ValueError as exc:

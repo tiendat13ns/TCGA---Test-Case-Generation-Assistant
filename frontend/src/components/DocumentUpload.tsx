@@ -1,6 +1,7 @@
 import "../styles.css";
 import { ChangeEvent, FormEvent, useRef, useState } from "react";
 import type { DocumentItem } from "../App";
+import { useAuth } from "../contexts/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_URL = `${API_BASE}/api/documents/upload`;
@@ -47,6 +48,7 @@ function formatFileSize(size: number) {
 }
 
 function DocumentUpload({ projectId, onUploadSuccess }: DocumentUploadProps) {
+  const { token, refreshUser } = useAuth();
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -96,7 +98,10 @@ function DocumentUpload({ projectId, onUploadSuccess }: DocumentUploadProps) {
     setMessage("");
 
     try {
-      const response = await fetch(url, { method: "POST", body: formData });
+      const uploadHeaders: Record<string, string> = {};
+      if (token) uploadHeaders["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetch(url, { method: "POST", headers: uploadHeaders, body: formData });
       const data = await response.json().catch(() => null);
 
       if (!response.ok) throw new Error(data?.detail || "Upload failed.");
@@ -107,6 +112,7 @@ function DocumentUpload({ projectId, onUploadSuccess }: DocumentUploadProps) {
       setSelectedFiles([]);
       formRef.current?.reset();
       onUploadSuccess(uploadedDocuments);
+      refreshUser?.();
     } catch (error) {
       setIsError(true);
       setMessage(error instanceof Error ? error.message : "Cannot connect to backend.");

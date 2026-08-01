@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
+import { useDocumentDetail } from "../hooks/useRequirements";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_V1_REQUIREMENTS_URL = `${API_BASE}/api/v1/requirements`;
 const API_V1_DOCUMENTS_URL = `${API_BASE}/api/v1/documents`;
 const API_URL = `${API_BASE}/api/documents`;
+
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = localStorage.getItem("tcga_token");
+  const headers: Record<string, string> = { ...extra };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
 
 export type RequirementItem = {
   id: string; title: string; description: string;
@@ -86,29 +94,22 @@ export default function RequirementViewer({ requirements, document, onClose, onR
   const [selectedDocumentDetail, setSelectedDocumentDetail] = useState<DocumentDetail | null>(null);
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
   const [expandedPreview, setExpandedPreview] = useState(false);
-  const [internalDoc, setInternalDoc] = useState<{ original_filename: string; file_type: string; file_size: number } | null>(null);
 
-  // Sync prop document or fetch it if missing
-  useEffect(() => {
-    if (document) {
-      setInternalDoc(document);
-    } else if (requirements) {
-      fetch(`${API_URL}/${requirements.document_id}`)
-        .then(r => r.json())
-        .then(d => setInternalDoc(d))
-        .catch(() => {});
-    } else {
-      setInternalDoc(null);
-    }
-  }, [document, requirements]);
+  // Use React Query to fetch document detail when not provided via prop
+  const { data: fetchedDoc } = useDocumentDetail(
+    !document && requirements ? requirements.document_id : null
+  );
+  const internalDoc = document ?? fetchedDoc ?? null;
 
-  // Load existing test cases on requirements change
+  // Load existing test cases on requirements change (with auth headers)
   useEffect(() => {
     if (!requirements) return;
     requirements.requirements.forEach(async (req) => {
       if (testCasesMap[req.id] === undefined && !generatingTestCasesId) {
         try {
-          const r = await fetch(`${API_V1_REQUIREMENTS_URL}/${req.id}/test-cases`);
+          const r = await fetch(`${API_V1_REQUIREMENTS_URL}/${req.id}/test-cases`, {
+            headers: authHeaders(),
+          });
           if (r.ok) {
             const d = await r.json();
             setTestCasesMap((prev) => ({ ...prev, [req.id]: d.total_test_cases > 0 ? d : null }));
@@ -122,13 +123,13 @@ export default function RequirementViewer({ requirements, document, onClose, onR
     });
   }, [requirements]);
 
-  // Load document preview
+  // Load document preview (with auth headers)
   const loadDocumentPreview = async () => {
     if (!requirements) return;
     const docId = requirements.document_id;
     setLoadingPreviewId(docId);
     try {
-      const r = await fetch(`${API_URL}/${docId}`);
+      const r = await fetch(`${API_URL}/${docId}`, { headers: authHeaders() });
       const d = await r.json().catch(() => null);
       if (!r.ok) throw new Error(d?.detail || "Could not load preview.");
       setSelectedDocumentDetail(d);
@@ -143,7 +144,10 @@ export default function RequirementViewer({ requirements, document, onClose, onR
   const generateTestCases = async (requirementId: string) => {
     setGeneratingTestCasesId(requirementId); setMessage("");
     try {
-      const r = await fetch(`${API_V1_REQUIREMENTS_URL}/${requirementId}/test-cases/generate`, { method: "POST" });
+      const r = await fetch(`${API_V1_REQUIREMENTS_URL}/${requirementId}/test-cases/generate`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
       const d = await r.json().catch(() => null);
       if (!r.ok) throw new Error(d?.detail || "Could not generate test cases.");
       setTestCasesMap((prev) => ({ ...prev, [requirementId]: d }));
@@ -161,7 +165,7 @@ export default function RequirementViewer({ requirements, document, onClose, onR
     try {
       const r = await fetch(`${API_V1_REQUIREMENTS_URL}/${req.id}/answers`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ answers }),
       });
       const saved = await r.json().catch(() => null);

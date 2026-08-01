@@ -109,6 +109,7 @@ export default function DocumentContextSidebar({
               padding: "8px 16px 8px 34px", 
               borderRadius: "8px", 
               background: "var(--bg-surface)",
+              color: "var(--text-primary)",
               border: "1px solid var(--border)",
               boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
               fontSize: "13px",

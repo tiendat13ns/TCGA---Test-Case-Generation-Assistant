@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 
 type LoginScreenProps = {
   onLoginSuccess: (token: string) => void;
+  initialMode?: "login" | "register";
 };
 
 /* ── Animated circuit grid dots (pure CSS, no libs) ─────── */
@@ -15,7 +16,7 @@ function GridPattern() {
     >
       <defs>
         <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="rgba(0,212,170,0.18)" />
+          <circle cx="1" cy="1" r="1" fill="rgba(139,105,20,0.12)" />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#grid)" />
@@ -23,8 +24,8 @@ function GridPattern() {
   );
 }
 
-export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
-  const [isLogin, setIsLogin] = useState(true);
+export default function LoginScreen({ onLoginSuccess, initialMode = "login" }: LoginScreenProps) {
+  const [isLogin, setIsLogin] = useState(initialMode === "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,13 +34,26 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Sync URL when switching between login/register
   const switchMode = (toLogin: boolean) => {
     setIsLogin(toLogin);
     setErrorMsg("");
     setSuccessMsg("");
     setPassword("");
     setConfirmPassword("");
+    const path = toLogin ? "/login" : "/register";
+    window.history.pushState(null, "", path);
   };
+
+  // Listen for browser back/forward on auth pages
+  useEffect(() => {
+    const handlePopState = () => {
+      const p = window.location.pathname;
+      setIsLogin(p !== "/register");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
