@@ -1,103 +1,57 @@
 # AI Test Case Generation Assistant (TCGA)
 
-Công cụ AI hỗ trợ BA / QA tự động hoá việc phân tích tài liệu yêu cầu (SRS, BA doc) và sinh test case theo chuẩn xuất Excel.
+Hệ thống AI thông minh hỗ trợ BA / QA tự động hóa việc phân tích tài liệu yêu cầu (SRS, BA/Doc) và tự động sinh bộ Test Case theo chuẩn xuất Excel.
+
+---
+
+## Chức Năng Nổi Bật
+
+### 1. Màn Hình Tổng Quan & Quản Lý Dự Án (Project-centric Dashboard)
+- **Mặc định khi đăng nhập**: Tự động điều hướng người dùng tới trang **Overview (`/overview`)**.
+- **Quản lý tập trung**: Quản lý các dự án dưới dạng lưới (Grid View), hiển thị thống kê tổng số Tài liệu, Requirement và bộ Test Case.
+- **Phân vùng tri thức (RAG Isolation)**: Tìm kiếm ngữ cảnh Semantic Search được cô lập theo từng Dự án (Project), đảm bảo dữ liệu không bị trộn lẫn giữa các dự án.
+
+### 2. Xác Thực Người Dùng & Quản Lý Tài Khoản (Authentication)
+- **Xác thực JWT siêu tốc**: Đăng nhập / Đăng ký tài khoản an toàn với cơ chế xác thực JWT nội bộ loại bỏ độ trễ.
+- **User Profile Menu**: Hiển thị thông tin tài khoản, avatar và thông báo số dư trực quan ở thanh điều hướng và Sidebar.
+- **Tối ưu giao diện Form**: Đồng bộ tone màu Warm Beige, tương thích hoàn hảo với tính năng Autofill của trình duyệt (Chrome/Edge/Safari).
+
+### 3. Tối Ưu Caching & State Management (React Query)
+- **Toàn bộ ứng dụng** (Projects, Documents, Requirements, Test Cases, Usage) được tái cấu trúc sử dụng **React Query (`@tanstack/react-query`)**.
+- Tự động làm mới dữ liệu chạy ngầm (Auto-refetch background), lưu cache thông minh giúp chuyển trang tức thì (Instant Navigation) và giảm tải số lần gọi API.
+
+### 4. Upload & Trích Xuất Yêu Cầu (AI Requirement Generation)
+- Hỗ trợ đa dạng định dạng file: `pdf`, `docx`, `txt`, `md`, `xlsx`, `csv`, `zip`.
+- Tìm kiếm ngữ cảnh liên quan nhất (RAG Semantic Search) để tạo ra tập **Comprehensive Requirement** đầy đủ, không bị xé lẻ.
+- Tự động đồng bộ ngôn ngữ đầu ra theo ngôn ngữ của tài liệu.
+
+### 5. Sinh Test Case Tự Động & Xuất Excel (AI Test Case Generation)
+- Sinh bộ Test Case chuẩn QA 7 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output**.
+- Xuất file báo cáo Excel (`.xlsx`) chuyên nghiệp trực tiếp từ giao diện.
+
+### 6. Test Case Studio (Chỉnh Sửa Hàng Loạt)
+- Giao diện quản lý tập trung theo luồng **Projects > Documents > Test Cases**.
+- **Global Bulk Edit**: Cho phép chỉnh sửa trực tiếp hàng loạt dòng Test Case như một bảng dữ liệu liền mạch, lưu đa luồng tốc độ cao.
+- Bộ lọc động theo Trạng thái (Status), Độ ưu tiên (Priority), Loại (Type).
+
+### 7. AI Chat Workspace & Trải Nghiệm Giao Diện Warm Beige
+- **Tone màu chủ đạo Warm Beige**: Thiết kế hiện đại, tinh tế, loại bỏ nút chuyển Dark/Light mode để giữ tính đồng nhất cao cấp.
+- **Hiệu ứng Dissolve Fade-out**: Khung chat hỗ trợ hiệu ứng mờ tan gradient mượt mà ở viền dưới khi cuộn tin nhắn.
+- **Quick Actions**: Các nút thao tác nhanh (Phân tích tổng quan, Tạo Requirement, Tạo Test Case).
+
+---
 
 ## Tech Stack
 
-**Backend** — FastAPI + Python
+**Backend** — FastAPI + Python 3.12
+- DB: PostgreSQL + `pgvector` (Supabase) qua SQLAlchemy
 - Text extraction & Vectorization: `pdfplumber`, `python-docx`, `openpyxl`, `langchain` text splitters
-- AI Provider abstraction: hỗ trợ OpenAI-compatible endpoint (vd. `api.vilao.ai`)
-- Database: PostgreSQL (Supabase) + `pgvector` qua SQLAlchemy
-- Preprocessing pipeline: extract → Markdown Header Chunking (chia theo Heading cấp độ, fallback size=1500) → embedding (1536 chiều) → RAG retrieval
+- Preprocessing pipeline: Header Chunking → Embedding (1536 chiều) → RAG retrieval
 
-**Frontend** — React + TypeScript + Vite
-- Quản lý trạng thái và bộ nhớ đệm (Caching/State Management) mạnh mẽ với **React Query (@tanstack/react-query)**, tối ưu số lượng gọi API (gọi 1 lần/phiên) và trải nghiệm Instant Navigation.
-- Giao diện UI/UX tối ưu theo hướng hiện đại (Hover effect xanh lá đặc trưng, bo góc, bóng đổ).
-- Hỗ trợ render Markdown đa dạng bao gồm cả Table phức tạp và HTML tag (tích hợp `rehype-raw`).
-- Khung quản lý tài liệu (Context) tự động nhận diện định dạng file và hiển thị bộ logo 3D tương ứng.
-- Dark/light mode toggle (lưu localStorage).
-- Test case hiển thị dạng bảng phẳng 6-7 cột (fixed layout), chống vỡ khung, có nút Export Excel.
-
----
-
-## Chức Năng Hiện Tại
-
-### Quản Lý Dự Án (Project-centric Dashboard)
-- **Màn hình Tổng Quan Dự Án:** Quản lý tập trung các dự án dưới dạng lưới (Grid View).
-- **Thống kê chi tiết:** Hiển thị thời gian khởi tạo dự án và tổng hợp số lượng File, Requirement, số bộ Test Case đã được AI sinh ra cho từng dự án.
-- **RAG Context Isolation:** AI Semantic Search được giới hạn nghiêm ngặt ở cấp độ Project. Tài liệu của dự án này không trộn lẫn với dự án khác, nhưng các tài liệu trong cùng dự án có thể tham chiếu lẫn nhau (cross-reference) để làm rõ ngữ cảnh.
-
-### Upload & Extract
-- Upload `pdf`, `docx`, `txt`, `md`, `xlsx`, `csv`, `zip`
-- Auto extract text khi upload, lưu vào database
-- Preview trích xuất tối đa 5.000 ký tự
-
-### AI Requirement Generation (Tích hợp RAG)
-- Nhúng toàn bộ tài liệu (Embedding) bằng model embedding.
-- Dùng truy vấn Semantic Search lấy ra **Top-12 Chunks** liên quan nhất trong toàn bộ Project.
-- Gom nhóm toàn bộ context thành 1 Requirement tổng hợp, chi tiết (Comprehensive Requirement) không bị xé lẻ.
-- Tự động nhận diện và đồng bộ ngôn ngữ đầu ra (Language matching).
-
-### AI Test Case Generation (Tích hợp RAG)
-- Sinh test case từ requirement đã extract
-- Lấy thêm bối cảnh (**Top-15 Chunks** trong Project) bằng query dựa trên Requirement Title + Description để bổ sung ngữ cảnh cho LLM
-- Output bảng phẳng 7 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output**
-- Cột *Test Item* hiển thị mục đích/ngữ cảnh test case bằng ngôn ngữ tự nhiên.
-- Không merge cell, không block thống kê QA, không ma trận trình duyệt
-- Export ra file `.xlsx` trực tiếp từ UI
-
-### Test Case Studio
-- Giao diện quản lý tập trung, xem và chỉnh sửa test case đã sinh ra từ AI.
-- Tổ chức theo luồng Drill-down trực quan: **Projects > Documents > Test Cases**.
-- Cơ chế **Global Bulk Edit (Chỉnh sửa hàng loạt):** Cho phép biến toàn bộ bảng test case thành form nhập liệu liền mạch (seamless input) không làm vỡ layout, tối ưu thao tác sửa nhiều dòng cùng lúc. Áp dụng lưu đa luồng (`Promise.all`) tốc độ cao.
-- Bộ lọc động theo Trạng thái (Status), Độ ưu tiên (Priority), Loại (Type).
-- Tính năng Export toàn bộ hoặc danh sách đã lọc ra file Excel chuẩn định dạng QA.
-
-### AI Chat Workspace / Copilot
-- Không gian tương tác trực tiếp với Agent AI thông qua giao diện Chat.
-- AI Workspace chia màn hình thông minh: Giao diện Chat ở giữa và Bảng ngữ cảnh (Document Context Sidebar) bên phải để dễ dàng chọn lọc file làm nguồn tri thức cho AI.
-- Cung cấp các nút Hành Động Nhanh (Quick Actions).
-- AI Agent (ReAct) tự động gọi các công cụ (Tools) backend tương ứng, thao tác DB và format kết quả chi tiết dưới dạng Markdown ngay trong khung chat.
-
----
-
-## Cấu Trúc Thư Mục
-
-```text
-backend/
-  app/
-    main.py
-    models.py
-    routers/          # documents, requirements, test_cases, ai, chat, projects
-    schemas/
-    services/
-      agent/          # LangGraph ReAct agents & workflows
-      ai/             # provider abstraction, openai_compatible_provider
-      extractors/     # pdf, docx, xlsx, txt extractors
-      chunk_storage_service.py 
-      embedding_service.py     
-      retrieval_service.py     
-      file_service.py
-      requirement_generation_service.py
-      test_case_generation_service.py
-      chat_service.py # Xử lý logic hội thoại
-  uploads/
-  requirements.txt
-
-frontend/
-  src/
-    App.tsx           # routing (Overview / Projects / Dashboard)
-    styles.css        # design tokens
-    hooks/            # Custom hooks cho React Query (useProjects, useDocuments)
-    components/
-      ProjectsGrid.tsx 
-      ProjectManager.tsx
-      ProjectDetailDashboard.tsx
-      DocumentUpload.tsx
-      DocumentList.tsx  
-      ChatWorkspace.tsx 
-      DocumentContextSidebar.tsx 
-```
+**Frontend** — React 18 + TypeScript + Vite
+- Caching & Data Fetching: **React Query (@tanstack/react-query)**
+- Styling: Vanilla CSS với Design System Warm Beige + CSS Variables
+- Icons & Markdown: `lucide-react`, `react-markdown`, `remark-gfm`, `rehype-raw`
 
 ---
 
@@ -105,39 +59,41 @@ frontend/
 
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
-| `GET` | `/api/v1/projects` | Danh sách projects (kèm thống kê files/reqs/tests) |
+| `POST` | `/api/auth/login` | Đăng nhập tài khoản, nhận JWT token |
+| `POST` | `/api/auth/register` | Đăng ký tài khoản mới |
+| `GET` | `/api/auth/me` | Lấy thông tin tài khoản hiện tại |
+| `GET` | `/api/v1/projects` | Danh sách projects (kèm thống kê) |
 | `POST`| `/api/v1/projects` | Tạo project mới |
-| `DELETE`|`/api/v1/projects/{id}`| Xóa toàn bộ project và dữ liệu liên quan |
-| `POST` | `/api/documents/upload` | Upload file (yêu cầu project_id) |
-| `GET` | `/api/documents?project_id=...` | Danh sách documents của một project |
-| `GET` | `/api/v1/documents/{id}` | Chi tiết + preview 5000 chars |
-| `POST` | `/api/v1/documents/{id}/requirements/generate` | Sinh requirements từ text |
-| `GET` | `/api/v1/requirements/{id}/test-cases` | Lấy test cases |
+| `DELETE`|`/api/v1/projects/{id}`| Xóa project và toàn bộ dữ liệu |
+| `POST` | `/api/documents/upload` | Upload file tài liệu vào project |
+| `GET` | `/api/documents?project_id=...` | Danh sách tài liệu của project |
+| `GET` | `/api/v1/documents/{id}` | Xem chi tiết & preview tài liệu |
+| `POST` | `/api/v1/documents/{id}/requirements/generate` | Sinh requirements từ tài liệu |
+| `GET` | `/api/v1/requirements/{id}/test-cases` | Lấy danh sách test cases |
 | `POST` | `/api/v1/requirements/{id}/test-cases/generate` | Sinh test cases từ requirement |
-| `GET` | `/api/v1/test-cases` | Danh sách test cases (Global, lọc theo project_id/document_id) |
+| `GET` | `/api/v1/test-cases` | Danh sách test cases (lọc linh hoạt) |
 | `PUT` | `/api/v1/test-cases/{id}` | Cập nhật nội dung một test case |
-| `GET` | `/api/v1/test-cases/export` | Export test cases ra Excel (Global) |
-| `POST` | `/api/chat/message` | AI Chat Agent - Nhận tin nhắn và gọi tools |
-| `GET` | `/api/v1/ai/health` | Kiểm tra kết nối AI provider |
+| `GET` | `/api/v1/test-cases/export` | Export danh sách test cases ra Excel |
+| `POST` | `/api/chat/message` | AI Chat Agent - Phân tích & gọi công cụ |
+| `GET` | `/api/usage/summary` | Thông tin tổng quan tài khoản & gói sử dụng |
+| `GET` | `/api/usage/logs` | Lịch sử hoạt động người dùng |
 
 ---
 
-## Cách Khởi Chạy Dự Án
+## Khởi Chạy Dự Án (Docker)
 
 Dự án hiện tại được tối ưu hóa để khởi chạy hoàn toàn thông qua **Docker**.
 
 Yêu cầu: Đã cài đặt [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-1. Tại thư mục gốc của dự án, thiết lập file biến môi trường (nếu cần đổi API Key):
-   Tạo hoặc chỉnh sửa `.env` trong thư mục `backend/` (tham khảo `.env.example`).
-   
-2. Mở Terminal và chạy lệnh:
+1. **Chuẩn bị file môi trường:**
+   Tạo file `.env` tại thư mục `backend/` (tham khảo `.env.example`).
+
+2. **Chạy ứng dụng bằng Docker Compose:**
    ```bash
    docker-compose up -d --build
    ```
 
-3. Mở trình duyệt và truy cập:
-   - **Giao diện người dùng (Frontend):** `http://localhost:1302`
-   - **Tài liệu API Backend (Swagger UI):** `http://localhost:1303/docs`
-
-> **Lưu ý:** Nếu bạn vừa thay đổi Frontend package (như `npm install`), hãy build lại không dùng cache: `docker-compose build --no-cache frontend` rồi chạy lại `docker-compose up -d frontend`.
+3. **Truy cập:**
+   - **Frontend:** `http://localhost:1302`
+   - **Backend Swagger Docs:** `http://localhost:1303/docs`
