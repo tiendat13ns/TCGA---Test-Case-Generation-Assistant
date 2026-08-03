@@ -86,7 +86,7 @@ export default function LoginScreen({ onLoginSuccess, initialMode = "login" }: L
         data = await res.json();
       } else {
         const text = await res.text();
-        throw new Error(text || "Lỗi máy chủ, vui lòng thử lại");
+        throw new Error(text || "Lỗi máy chủ, vui lòng thử lại sau ít phút!");
       }
 
       if (!res.ok) throw new Error(data.detail || data.message || "Xác thực thất bại");

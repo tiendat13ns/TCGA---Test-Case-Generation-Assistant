@@ -3347,7 +3347,7 @@ dialog.confirm-dialog[open]::backdrop {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: #fff;
+  color: #1a1a1a;
 }
 
 /* Hero text */
@@ -3457,7 +3457,8 @@ dialog.confirm-dialog[open]::backdrop {
 }
 
 .auth2-tab.active {
-  color: #fff;
+  color: #1a1a1a;
+  font-weight: 700;
 }
 
 .auth2-tab-indicator {
