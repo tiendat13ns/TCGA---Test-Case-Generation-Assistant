@@ -95,6 +95,26 @@ function FolderIcon() {
   );
 }
 
+function OverviewIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="9" rx="1" />
+      <rect x="14" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="12" width="7" height="9" rx="1" />
+      <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
+function BookOpenIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}
+
 function PanelLeftOpenIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -329,17 +349,33 @@ function App() {
 
         <main className="app-main" style={{ flex: 1, minWidth: 0, padding: 0 }}>
           {activeView === "overview" && (
-            <div style={{ padding: "32px", height: "100%", overflowY: "auto" }}>
-              <h2>Overview</h2>
-              <div className="workspace-empty" style={{ marginTop: "64px" }}>
-                <div className="workspace-empty-icon">📊</div>
-                <div className="workspace-empty-title">Dashboard Coming Soon</div>
-                <div className="workspace-empty-body">
-                  Statistics and global overview will be available in a future update.
+            <div className="tcs-view">
+              <div className="tcs-view-header">
+                <div className="tcs-view-title-row">
+                  <div className="tcs-title">
+                    <div className="tcs-title-icon" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
+                      <OverviewIcon />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "20px", fontWeight: 600 }}>Overview</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px" }}>
+                        System metrics and global activities dashboard
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => handleNavigate("projects")}>
-                  Go to Projects
-                </button>
+              </div>
+              <div className="tcs-view-body" style={{ padding: "32px" }}>
+                <div className="workspace-empty" style={{ marginTop: "48px" }}>
+                  <div className="workspace-empty-icon">📊</div>
+                  <div className="workspace-empty-title">Dashboard Coming Soon</div>
+                  <div className="workspace-empty-body">
+                    Statistics and global overview will be available in a future update.
+                  </div>
+                  <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => handleNavigate("projects")}>
+                    Go to Projects
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -357,7 +393,7 @@ function App() {
           )}
 
           {activeView === "test_cases" && (
-            <TesterStudio />
+            <TesterStudio onNavigateToProjects={() => handleNavigate("projects")} />
           )}
 
           {activeView === "usage" && (
@@ -365,12 +401,29 @@ function App() {
           )}
 
           {activeView === "tutorial" && (
-            <div style={{ padding: "32px", height: "100%", overflowY: "auto" }}>
-              <div className="workspace-empty" style={{ marginTop: "64px" }}>
-                <div className="workspace-empty-icon">📖</div>
-                <div className="workspace-empty-title">Tutorials</div>
-                <div className="workspace-empty-body">
-                  Hướng dẫn sử dụng và Prompt engineering sẽ được cập nhật tại đây.
+            <div className="tcs-view">
+              <div className="tcs-view-header">
+                <div className="tcs-view-title-row">
+                  <div className="tcs-title">
+                    <div className="tcs-title-icon" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
+                      <BookOpenIcon />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "20px", fontWeight: 600 }}>Tutorials</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px" }}>
+                        User guide and prompt engineering documentation
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="tcs-view-body" style={{ padding: "32px" }}>
+                <div className="workspace-empty" style={{ marginTop: "48px" }}>
+                  <div className="workspace-empty-icon">📖</div>
+                  <div className="workspace-empty-title">Tutorials</div>
+                  <div className="workspace-empty-body">
+                    Hướng dẫn sử dụng và Prompt engineering sẽ được cập nhật tại đây.
+                  </div>
                 </div>
               </div>
             </div>

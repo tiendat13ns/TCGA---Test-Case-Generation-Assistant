@@ -60,6 +60,7 @@ type Props = {
 };
 
 /* ── Icons ── */
+const FlaskIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6" /><path d="M10 9l-3 9a2 2 0 002 2h6a2 2 0 002-2l-3-9V3" /><path d="M7 14h10" /></svg>;
 const ZapIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
 const RefreshIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" /></svg>;
 const ChevronDown = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>;
@@ -184,13 +185,30 @@ export default function RequirementViewer({ requirements, document, onClose, onR
     finally { setSubmittingAnswersId(null); }
   };
 
+  const handleGoToTesterStudio = (reqId: string) => {
+    if (!requirements) return;
+    const docId = requirements.document_id;
+    const projId = requirements.project_id || "";
+    const docName = internalDoc?.original_filename || "";
+    const params = new URLSearchParams();
+    if (docId) params.append("document_id", docId);
+    if (projId) params.append("project_id", projId);
+    if (docName) params.append("doc_name", docName);
+    if (reqId) params.append("req_id", reqId);
+
+    const url = `/test-cases?${params.toString()}`;
+    window.history.pushState(null, "", url);
+    window.dispatchEvent(new Event("popstate"));
+    onClose();
+  };
+
   if (!requirements) {
     return (
       <div className="rv-empty panel animate-in">
         <div className="rv-empty-icon">📋</div>
         <div className="rv-empty-title">No requirements loaded</div>
         <div className="rv-empty-body">
-          Select a document from the list and click <strong>View Requirement</strong> or <strong>Generate Requirement</strong> to get started.
+          Select a document from the list and click <strong>View Requirement</strong> to get started.
         </div>
       </div>
     );
@@ -269,49 +287,36 @@ export default function RequirementViewer({ requirements, document, onClose, onR
       {/* Requirements list */}
       <div style={{ padding: "18px" }}>
         <div className="req-list">
-          {requirements.requirements.map((req, idx) => (
-            <article className="req-card animate-in" key={req.id} data-status={req.status}>
-              <div className="req-card-header" style={{ justifyContent: "flex-end" }}>
-                <div className="req-card-actions">
-                  <StatusBadge status={req.status} />
-                  {!req.user_answers?.length && req.clarifying_questions?.length ? (
+          {requirements.requirements.map((req, idx) => {
+            const hasTestCases = Boolean(testCasesMap[req.id] && testCasesMap[req.id]!.total_test_cases > 0);
+            return (
+              <article className="req-card animate-in" key={req.id} data-status={req.status}>
+                <div className="req-card-header" style={{ justifyContent: "flex-end" }}>
+                  <div className="req-card-actions">
+                    <StatusBadge status={req.status} />
                     <button
                       type="button"
                       className="btn btn-purple"
-                      disabled={submittingAnswersId === req.id}
-                      onClick={() => submitAnswersAndGenerate(req)}
+                      disabled={!hasTestCases}
+                      onClick={() => handleGoToTesterStudio(req.id)}
+                      title={hasTestCases ? "Chuyển tới Tester Studio với các test case đã tạo" : "Chưa có test case"}
+                      style={!hasTestCases ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
                     >
-                      {submittingAnswersId === req.id
-                        ? <><SpinnerIcon /> Saving & Generating...</>
-                        : <><ZapIcon /> Confirm Answers & Generate</>}
+                      <FlaskIcon /> Test trong Tester Studio
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-purple"
-                      disabled={generatingTestCasesId === req.id}
-                      onClick={() => generateTestCases(req.id)}
-                    >
-                      {generatingTestCasesId === req.id
-                        ? <><SpinnerIcon /> Generating...</>
-                        : testCasesMap[req.id]
-                        ? <><RefreshIcon /> Re-generate Test Cases</>
-                        : <><ZapIcon /> Generate Test Cases</>}
-                    </button>
-                  )}
-                  {testCasesMap[req.id] && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setExpandedTestCasesId((prev) => prev === req.id ? null : req.id)}
-                    >
-                      {expandedTestCasesId === req.id
-                        ? <><ChevronUp /> Hide ({testCasesMap[req.id]!.total_test_cases})</>
-                        : <><ChevronDown /> Show ({testCasesMap[req.id]!.total_test_cases})</>}
-                    </button>
-                  )}
+                    {testCasesMap[req.id] && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setExpandedTestCasesId((prev) => prev === req.id ? null : req.id)}
+                      >
+                        {expandedTestCasesId === req.id
+                          ? <><ChevronUp /> Hide ({testCasesMap[req.id]!.total_test_cases})</>
+                          : <><ChevronDown /> Show ({testCasesMap[req.id]!.total_test_cases})</>}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
 
               <div className="req-card-body">
                 {req.functional_requirement && (
@@ -442,7 +447,8 @@ export default function RequirementViewer({ requirements, document, onClose, onR
                 )}
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

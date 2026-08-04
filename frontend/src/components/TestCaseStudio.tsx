@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Project } from "./ProjectManager";
 import { DocumentItem } from "../App";
 import { useProjects } from "../hooks/useProjects";
@@ -102,6 +102,15 @@ const AlertCircleIcon = () => (
     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
+const PlusIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+interface TesterStudioProps {
+  onNavigateToProjects?: () => void;
+}
 
 /* ── Helper components ── */
 function StatusBadge({ status }: { status: string }) {
@@ -156,7 +165,7 @@ function formatFileSize(bytes: number) {
 /* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════ */
-export default function TesterStudio() {
+export default function TesterStudio({ onNavigateToProjects }: TesterStudioProps = {}) {
   const [view, setView] = useState<StudioView>("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
@@ -185,6 +194,39 @@ export default function TesterStudio() {
   /* ── Hooks ── */
   const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
   
+  // Handle URL query parameters for direct navigation to a document/project test cases
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const docId = searchParams.get("document_id") || searchParams.get("doc_id");
+    const projId = searchParams.get("project_id");
+    const docName = searchParams.get("doc_name");
+
+    if (docId) {
+      setSelectedDocument({
+        id: docId,
+        original_filename: docName || "Document",
+        stored_filename: "",
+        file_type: "",
+        file_size: 0,
+        file_path: "",
+        status: "completed",
+        uploaded_at: "",
+        project_id: projId || undefined,
+      });
+      if (projId && projects.length > 0) {
+        const foundProj = projects.find((p) => p.id === projId);
+        if (foundProj) setSelectedProject(foundProj);
+      }
+      setView("testcases");
+    } else if (projId && projects.length > 0) {
+      const foundProj = projects.find((p) => p.id === projId);
+      if (foundProj) {
+        setSelectedProject(foundProj);
+        setView("documents");
+      }
+    }
+  }, [projects]);
+  
   const { data: documents = [], isLoading: isLoadingDocs } = useProjectDocuments(
     view === "documents" ? selectedProject?.id || null : null
   );
@@ -210,6 +252,15 @@ export default function TesterStudio() {
   const isSaving = updateTestCase.isPending || createTestCase.isPending;
 
   /* ── Navigation ── */
+  const handleGoToProjects = () => {
+    if (onNavigateToProjects) {
+      onNavigateToProjects();
+    } else {
+      window.history.pushState(null, "", "/projects");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  };
+
   const goToDocuments = (project: Project) => {
     setSelectedProject(project);
     setSelectedDocument(null);
@@ -399,6 +450,13 @@ export default function TesterStudio() {
             <div style={{ fontSize: "13px", maxWidth: "320px", textAlign: "center", lineHeight: 1.6 }}>
               Create a project from the Projects page first, then come back here to browse its test cases.
             </div>
+            <button
+              className="btn btn-primary"
+              style={{ marginTop: "16px", display: "inline-flex", alignItems: "center", gap: "8px" }}
+              onClick={handleGoToProjects}
+            >
+              <PlusIcon /> Go to Projects
+            </button>
           </div>
         ) : (
           <div className="tcs-project-grid">

@@ -95,6 +95,15 @@ function PlanCard({ plan, isCurrent }: { plan: UsagePlan; isCurrent: boolean }) 
   );
 }
 
+function CreditCardIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
+  );
+}
+
 /* ── Main Component ──────────────────────────────────────── */
 export default function UsageBilling() {
   const { data: summary, isLoading: loading } = useUsageSummary();
@@ -116,17 +125,25 @@ export default function UsageBilling() {
   const currentPlanName = summary?.current_plan ?? "Free Plan";
 
   return (
-    <div style={{ padding: "32px", height: "100%", overflowY: "auto", maxWidth: "1000px", margin: "0 auto" }}>
-
-      {/* ── Header ── */}
-      <div style={{ marginBottom: "32px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 4px", color: "var(--text-primary)" }}>
-          Usage &amp; Billing
-        </h1>
-        <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "14px" }}>
-          Theo dõi Credit và lịch sử sử dụng tính năng AI.
-        </p>
+    <div className="tcs-view">
+      <div className="tcs-view-header">
+        <div className="tcs-view-title-row">
+          <div className="tcs-title">
+            <div className="tcs-title-icon" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
+              <CreditCardIcon />
+            </div>
+            <div>
+              <div style={{ fontSize: "20px", fontWeight: 600 }}>Usage &amp; Billing</div>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px" }}>
+                Theo dõi Credit và lịch sử sử dụng tính năng AI
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="tcs-view-body" style={{ padding: "28px" }}>
+        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
 
       {/* ── Credit + Plans ── */}
       <div style={{ display: "flex", gap: "24px", marginBottom: "32px", flexWrap: "wrap" }}>
@@ -246,5 +263,7 @@ export default function UsageBilling() {
         )}
       </div>
     </div>
-  );
+  </div>
+</div>
+);
 }
