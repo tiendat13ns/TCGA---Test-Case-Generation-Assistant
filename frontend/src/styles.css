@@ -19,6 +19,7 @@
   --text-secondary: #4a4540;
   --text-muted: #7a7268;
   --accent: #8B6914;
+  --accent-hover: #72540E;
   --accent-dim: #F5ECD7;
   --accent-glow: rgba(139, 105, 20, 0.12);
   --accent-glow-strong: rgba(139, 105, 20, 0.2);
@@ -80,6 +81,11 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
+}
+
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw;
 }
 
 body {
@@ -531,9 +537,9 @@ input:-webkit-autofill:active {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0ea271;
-  border-color: #0ea271;
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: 0 2px 8px var(--accent-glow-strong);
 }
 
 /* Secondary / ghost */
@@ -2094,10 +2100,20 @@ input[type="checkbox"]:checked::after {
 
 
 /* ── SideDrawer Dialog (Native) ────────────────────────────── */
+dialog.side-drawer-dialog:not([open]) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 dialog.side-drawer-dialog {
-  margin: 0;
-  margin-left: auto;
-  height: 100vh;
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  margin: 0 !important;
+  height: 100vh !important;
   width: var(--drawer-width, 450px);
   max-width: 100vw;
   max-height: 100vh;
@@ -2109,11 +2125,16 @@ dialog.side-drawer-dialog {
   padding: 0;
   border-left: 1px solid var(--border);
   color: var(--text-primary);
+  z-index: 1000 !important;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), display 0.3s allow-discrete, overlay 0.3s allow-discrete;
   transform: translateX(100%);
 }
+
 dialog.side-drawer-dialog[open] {
-  transform: translateX(0);
+  display: flex !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateX(0) !important;
 }
 @starting-style {
   dialog.side-drawer-dialog[open] {

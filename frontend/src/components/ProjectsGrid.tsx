@@ -148,104 +148,118 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
   };
 
   return (
-    <div className="projects-grid-container" style={{ padding: "32px", height: "100%", overflowY: "auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-        <h2>Projects</h2>
-        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-          <PlusIcon /> Create Project
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}>
-          <SpinnerIcon /> Loading projects...
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="workspace-empty" style={{ marginTop: "64px" }}>
-          <div className="workspace-empty-icon">📂</div>
-          <div className="workspace-empty-title">No projects found</div>
-          <div className="workspace-empty-body">
-            You don't have any projects yet. Create your first project to start managing requirements and test cases.
+    <div className="tcs-view">
+      <div className="tcs-view-header">
+        <div className="tcs-view-title-row">
+          <div className="tcs-title">
+            <div className="tcs-title-icon" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
+              <FolderIcon />
+            </div>
+            <div>
+              <div style={{ fontSize: "20px", fontWeight: 600 }}>Projects</div>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px" }}>
+                Manage project workspace and isolate RAG knowledge base
+              </div>
+            </div>
           </div>
-          <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => setShowCreateModal(true)}>
+          <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
             <PlusIcon /> Create Project
           </button>
         </div>
-      ) : (
-        <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
-          gap: "24px" 
-        }}>
-          {projects.map(p => (
-            <div 
-              key={p.id} 
-              className="project-card"
-              style={{
-                backgroundColor: "var(--bg-surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "12px",
-                padding: "20px",
-                cursor: "pointer",
-                transition: "all var(--transition-fast)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px"
-              }}
-              onClick={() => onSelectProject(p)}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--primary)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--border)";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ padding: "10px", backgroundColor: "var(--bg)", borderRadius: "8px", color: "var(--primary)" }}>
-                  <FolderIcon />
-                </div>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</h3>
-                <button
-                  type="button"
-                  className="icon-btn-ghost"
-                  style={{ marginLeft: "auto", color: "var(--danger)" }}
-                  title="Delete project"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setProjectToDelete(p);
-                  }}
-                  disabled={deleteProject.isPending}
-                >
-                  <TrashIcon />
-                </button>
-              </div>
-              <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                {p.description || "No description"}
-              </p>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", color: "var(--text-muted)", marginTop: "auto", borderTop: "1px solid var(--border)", paddingTop: "12px", flexWrap: "wrap", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title="Files">
-                    <FileIcon /> {p.file_count || 0} files
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title="Requirements">
-                    <ListIcon /> {p.req_count || 0} reqs
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title="Test Cases">
-                    <CheckSquareIcon /> {p.test_case_count || 0} tests
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title={`Created at ${formatDate(p.created_at)}`}>
-                  <ClockIcon /> {timeAgo(p.created_at)}
-                </div>
-              </div>
+      </div>
+
+      <div className="tcs-view-body" style={{ padding: "28px" }}>
+        {isLoading ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}>
+            <SpinnerIcon /> Loading projects...
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="workspace-empty" style={{ marginTop: "48px" }}>
+            <div className="workspace-empty-icon">📂</div>
+            <div className="workspace-empty-title">No projects found</div>
+            <div className="workspace-empty-body">
+              You don't have any projects yet. Create your first project to start managing requirements and test cases.
             </div>
-          ))}
-        </div>
-      )}
+            <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => setShowCreateModal(true)}>
+              <PlusIcon /> Create Project
+            </button>
+          </div>
+        ) : (
+          <div style={{ 
+            display: "grid", 
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+            gap: "24px" 
+          }}>
+            {projects.map(p => (
+              <div 
+                key={p.id} 
+                className="project-card"
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "12px",
+                  padding: "20px",
+                  cursor: "pointer",
+                  transition: "all var(--transition-fast)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px"
+                }}
+                onClick={() => onSelectProject(p)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--primary)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ padding: "10px", backgroundColor: "var(--bg)", borderRadius: "8px", color: "var(--primary)" }}>
+                    <FolderIcon />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</h3>
+                  <button
+                    type="button"
+                    className="icon-btn-ghost"
+                    style={{ marginLeft: "auto", color: "var(--danger)" }}
+                    title="Delete project"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProjectToDelete(p);
+                    }}
+                    disabled={deleteProject.isPending}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                  {p.description || "No description"}
+                </p>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", color: "var(--text-muted)", marginTop: "auto", borderTop: "1px solid var(--border)", paddingTop: "12px", flexWrap: "wrap", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title="Files">
+                      <FileIcon /> {p.file_count || 0} files
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title="Requirements">
+                      <ListIcon /> {p.req_count || 0} reqs
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title="Test Cases">
+                      <CheckSquareIcon /> {p.test_case_count || 0} tests
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }} title={`Created at ${formatDate(p.created_at)}`}>
+                    <ClockIcon /> {timeAgo(p.created_at)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <ModalDialog
         isOpen={showCreateModal}
