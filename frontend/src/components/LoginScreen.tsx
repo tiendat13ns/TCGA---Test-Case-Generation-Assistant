@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 
 type LoginScreenProps = {
-  onLoginSuccess: (token: string) => void;
+  onLoginSuccess: (token: string, email?: string) => void;
   initialMode?: "login" | "register";
 };
+
 
 /* ── Animated circuit grid dots (pure CSS, no libs) ─────── */
 function GridPattern() {
@@ -92,16 +93,17 @@ export default function LoginScreen({ onLoginSuccess, initialMode = "login" }: L
       if (!res.ok) throw new Error(data.detail || data.message || "Xác thực thất bại");
 
       if (isLogin) {
-        onLoginSuccess(data.access_token);
+        onLoginSuccess(data.access_token, email);
       } else {
         if (data.access_token) {
-          onLoginSuccess(data.access_token);
+          onLoginSuccess(data.access_token, email);
         } else {
           setSuccessMsg("Tạo tài khoản thành công! Vui lòng đăng nhập.");
           setIsLogin(true);
           setPassword("");
         }
       }
+
     } catch (err: any) {
       setErrorMsg(err.message || "Đã xảy ra lỗi, vui lòng thử lại");
     } finally {

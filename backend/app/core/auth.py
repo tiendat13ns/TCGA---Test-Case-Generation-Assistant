@@ -76,3 +76,13 @@ def get_current_user_from_token(token: str, db: Session) -> User:
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     return get_current_user_from_token(token, db)
+
+
+async def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Admin privileges required",
+        )
+    return current_user
+

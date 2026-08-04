@@ -45,10 +45,24 @@ def deduct_user_credits(
     """
     Trừ Credit của user và ghi log vào usage_logs.
     Ném HTTPException 402 nếu không đủ Credit.
+    Admin không bị trừ Credit.
     """
     from app.models import UsageLog
 
     cost = CREDIT_COST.get(operation, 1)
+
+    # Admin bypass: Không giới hạn credit
+    if getattr(user, "role", "user") == "admin":
+        log = UsageLog(
+            user_id=user.id,
+            operation=operation,
+            target_name=target_name,
+            credits_used=0,
+        )
+        db.add(log)
+        db.commit()
+        logger.info("Admin user=%s executed op=%s (unlimited credit)", user.id, operation)
+        return
 
     if user.credit_balance < cost:
         raise HTTPException(
@@ -81,7 +95,11 @@ def check_free_plan_document_quota(db: Session, user: "User") -> None:
     """
     Kiểm tra user FREE plan có vượt quá giới hạn 5 tài liệu không.
     Ném HTTPException 403 nếu đã đạt giới hạn.
+    Admin bypass quota check.
     """
+    if getattr(user, "role", "user") == "admin":
+        return
+
     from app.models import Document, Project
     from sqlalchemy import func as sqlfunc
 
@@ -101,3 +119,4 @@ def check_free_plan_document_quota(db: Session, user: "User") -> None:
                 "Vui lòng xóa tài liệu cũ hoặc nâng cấp lên gói Lite để tiếp tục."
             ),
         )
+

@@ -1,5 +1,4 @@
-import { Project } from "./ProjectManager"; // Reusing type for now
-import { LogOut, Zap } from "lucide-react";
+import { LogOut, Zap, ShieldCheck } from "lucide-react";
 
 function PieChartIcon() {
   return (
@@ -66,16 +65,20 @@ function HelpCircleIcon() {
   );
 }
 
+export type GlobalViewType = "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial" | "admin";
+
 type GlobalSidebarProps = {
-  activeView: "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial";
-  onNavigate: (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial") => void;
+  activeView: GlobalViewType;
+  onNavigate: (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial" | "admin") => void;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
-  user: { email: string; credit_balance: number } | null;
+  user: { email: string; role?: string; credit_balance: number } | null;
   onLogout: () => void;
 };
 
 export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, onToggleSidebar, user, onLogout }: GlobalSidebarProps) {
+  const isAdmin = user?.role === "admin";
+
   return (
     <aside className="global-sidebar project-sidebar" style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
       <div className="sidebar-header" style={{ justifyContent: isSidebarOpen ? "space-between" : "center", padding: isSidebarOpen ? "14px 20px" : "14px 0" }}>
@@ -94,6 +97,20 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
       </div>
 
       <ul className="project-list" style={{ marginTop: "16px", flex: 1, padding: isSidebarOpen ? "0 12px" : "0 4px", display: "flex", flexDirection: "column", gap: "4px" }}>
+        {isAdmin && (
+          <li 
+            className={`project-item ${activeView === "admin" ? "active" : ""}`}
+            onClick={() => onNavigate("admin")}
+            style={{ justifyContent: isSidebarOpen ? "flex-start" : "center", padding: isSidebarOpen ? "10px 16px" : "12px", margin: 0, background: activeView === "admin" ? "var(--accent-glow)" : undefined }}
+            title={!isSidebarOpen ? "Admin Dashboard" : undefined}
+          >
+            <div className="project-item-content" style={{ display: "flex", alignItems: "center", gap: "12px", flexDirection: "row", flex: isSidebarOpen ? 1 : "none", color: "var(--accent)" }}>
+              <ShieldCheck size={18} />
+              {isSidebarOpen && <div className="project-item-name" style={{ fontWeight: 600 }}>Admin Dashboard</div>}
+            </div>
+          </li>
+        )}
+
         <li 
           className={`project-item ${activeView === "overview" ? "active" : ""}`}
           onClick={() => onNavigate("overview")}
@@ -155,7 +172,7 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
         <>
           <div style={{ height: "1px", background: "var(--border)", margin: "0 12px" }} />
           <div className="sidebar-user-footer" style={{ padding: isSidebarOpen ? "16px" : "16px 0", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
-            <div className="sidebar-user-avatar">
+            <div className="sidebar-user-avatar" style={{ background: isAdmin ? "var(--accent)" : undefined, color: isAdmin ? "#fff" : undefined }}>
               {user.email.charAt(0).toUpperCase()}
             </div>
             {isSidebarOpen && (
@@ -166,7 +183,7 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
                   </div>
                   <div className="sidebar-credit-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
                     <Zap size={12} />
-                    <span>{user.credit_balance}</span>
+                    <span>{isAdmin ? "Unlimited (∞)" : user.credit_balance}</span>
                   </div>
                 </div>
                 <button type="button" className="sidebar-logout-btn icon-btn-ghost" onClick={onLogout} title="Log out" style={{ padding: "6px" }}>
@@ -180,3 +197,4 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
     </aside>
   );
 }
+
