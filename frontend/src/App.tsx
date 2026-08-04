@@ -5,12 +5,15 @@ import ProjectsGrid from "./components/ProjectsGrid";
 import ProjectDetailDashboard from "./components/ProjectDetailDashboard";
 import TesterStudio from "./components/TestCaseStudio";
 import UsageBilling from "./components/UsageBilling";
+import AdminDashboard from "./components/AdminDashboard";
+import OverviewDashboard from "./components/OverviewDashboard";
 import { Project } from "./components/ProjectManager";
+
 import { Message } from "./components/ChatWorkspace";
 import { useProjects } from "./hooks/useProjects";
 
 /* ── URL Routing Helpers ─────────────────────────────────── */
-type ViewType = "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial";
+type ViewType = "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial" | "admin";
 
 const VIEW_TO_PATH: Record<Exclude<ViewType, "project_detail">, string> = {
   overview: "/overview",
@@ -18,6 +21,7 @@ const VIEW_TO_PATH: Record<Exclude<ViewType, "project_detail">, string> = {
   test_cases: "/test-cases",
   usage: "/usage",
   tutorial: "/tutorial",
+  admin: "/admin",
 };
 
 function pathToView(pathname: string): { view: ViewType; projectId: string | null } {
@@ -26,6 +30,7 @@ function pathToView(pathname: string): { view: ViewType; projectId: string | nul
     const id = p.slice("/projects/".length);
     if (id) return { view: "project_detail", projectId: id };
   }
+  if (p === "/admin") return { view: "admin", projectId: null };
   if (p === "/overview") return { view: "overview", projectId: null };
   if (p === "/projects") return { view: "projects", projectId: null };
   if (p === "/test-cases") return { view: "test_cases", projectId: null };
@@ -39,6 +44,7 @@ function viewToPath(view: ViewType, projectId?: string): string {
   if (view === "project_detail" && projectId) return `/projects/${projectId}`;
   return VIEW_TO_PATH[view as keyof typeof VIEW_TO_PATH] || "/overview";
 }
+
 
 const CHAT_STORAGE_KEY = (projectId: string) => `tcga-chat-${projectId}`;
 
@@ -190,15 +196,20 @@ function App() {
     }
   }, [pendingProjectId, allProjects]);
 
-  // ── URL Routing: set initial URL on first authenticated load ──
+  // ── URL Routing: set initial URL on first authenticated load & redirect admin ──
   useEffect(() => {
-    if (isAuthenticated && !pendingProjectId) {
+    if (isAuthenticated && user) {
+      if (user.role === "admin" && (activeView === "overview" || window.location.pathname === "/" || window.location.pathname === "/overview" || window.location.pathname === "/login")) {
+        setActiveView("admin");
+        window.history.replaceState(null, "", "/admin");
+        return;
+      }
       const currentPath = viewToPath(activeView, selectedProject?.id);
       if (window.location.pathname !== currentPath) {
         window.history.replaceState(null, "", currentPath);
       }
     }
-  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load chat history for a project on first visit
   const getProjectMessages = useCallback((projectId: string): Message[] => {
@@ -212,9 +223,7 @@ function App() {
     saveChatHistory(projectId, messages);
   }, []);
 
-
-
-  const handleNavigate = (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial") => {
+  const handleNavigate = (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial" | "admin") => {
     setActiveView(view);
     setSelectedProject(null);
     setPendingProjectId(null);
@@ -225,8 +234,29 @@ function App() {
   const handleSelectProject = (project: Project) => {
     setSelectedProject(project);
     setActiveView("project_detail");
+    localStorage.setItem("tcga_last_project_id", project.id);
     window.history.pushState(null, "", `/projects/${project.id}`);
   };
+
+  const handleSelectProjectById = (projectId: string) => {
+    localStorage.setItem("tcga_last_project_id", projectId);
+    const found = allProjects?.find((p) => p.id === projectId);
+    if (found) {
+      setSelectedProject(found);
+    } else {
+      setPendingProjectId(projectId);
+    }
+    setActiveView("project_detail");
+    window.history.pushState(null, "", `/projects/${projectId}`);
+  };
+
+  const handleNavigateToTestCases = (projectId?: string) => {
+    if (projectId) {
+      localStorage.setItem("tcga_last_tester_project_id", projectId);
+    }
+    handleNavigate("test_cases");
+  };
+
 
   if (isLoading) {
     return (
@@ -253,17 +283,21 @@ function App() {
     }
     return (
       <LoginScreen
-        onLoginSuccess={(token) => {
+        onLoginSuccess={(token, userEmail) => {
           login(token);
-          setActiveView("overview");
           setSelectedProject(null);
           setPendingProjectId(null);
-          window.history.replaceState(null, "", "/overview");
+          const isAdminEmail = userEmail && userEmail.toLowerCase() === "dat96133@gmail.com";
+          const targetView = isAdminEmail ? "admin" : "overview";
+          const targetPath = isAdminEmail ? "/admin" : "/overview";
+          setActiveView(targetView);
+          window.history.replaceState(null, "", targetPath);
         }}
         initialMode={authMode}
       />
     );
   }
+
 
   return (
     <div className="app-shell">
@@ -298,6 +332,7 @@ function App() {
             <button 
               className="nav-user-avatar"
               onClick={() => setIsNavDropdownOpen(!isNavDropdownOpen)}
+              style={{ background: user.role === "admin" ? "var(--accent)" : undefined, color: user.role === "admin" ? "#fff" : undefined }}
             >
               {user.email.charAt(0).toUpperCase()}
             </button>
@@ -307,7 +342,7 @@ function App() {
                 <div className="nav-dropdown-header">
                   <div style={{ fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
                   <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
-                    Credits: <span style={{ color: "var(--neon-green)" }}>{user.credit_balance}</span>
+                    Credits: <span style={{ color: user.role === "admin" ? "var(--accent)" : "var(--neon-green)", fontWeight: 600 }}>{user.role === "admin" ? "Unlimited (∞)" : user.credit_balance}</span>
                   </div>
                 </div>
                 <div style={{ height: "1px", background: "var(--border)", margin: "4px 0" }} />
@@ -348,37 +383,18 @@ function App() {
         </div>
 
         <main className="app-main" style={{ flex: 1, minWidth: 0, padding: 0 }}>
-          {activeView === "overview" && (
-            <div className="tcs-view">
-              <div className="tcs-view-header">
-                <div className="tcs-view-title-row">
-                  <div className="tcs-title">
-                    <div className="tcs-title-icon" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
-                      <OverviewIcon />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: "20px", fontWeight: 600 }}>Overview</div>
-                      <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px" }}>
-                        System metrics and global activities dashboard
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="tcs-view-body" style={{ padding: "32px" }}>
-                <div className="workspace-empty" style={{ marginTop: "48px" }}>
-                  <div className="workspace-empty-icon">📊</div>
-                  <div className="workspace-empty-title">Dashboard Coming Soon</div>
-                  <div className="workspace-empty-body">
-                    Statistics and global overview will be available in a future update.
-                  </div>
-                  <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => handleNavigate("projects")}>
-                    Go to Projects
-                  </button>
-                </div>
-              </div>
-            </div>
+          {activeView === "admin" && (
+            <AdminDashboard />
           )}
+
+          {activeView === "overview" && (
+            <OverviewDashboard
+              onNavigateToProjects={() => handleNavigate("projects")}
+              onSelectProject={handleSelectProjectById}
+              onNavigateToTestCases={handleNavigateToTestCases}
+            />
+          )}
+
           
           {activeView === "projects" && (
             <ProjectsGrid onSelectProject={handleSelectProject} />
@@ -433,5 +449,6 @@ function App() {
     </div>
   );
 }
+
 
 export default App;

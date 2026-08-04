@@ -64,9 +64,11 @@ def register_user(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
         )
 
     # Insert into public.users
+    user_role = "admin" if user_in.email.lower() == "dat96133@gmail.com" else "user"
     new_user = User(
         id=response.user.id,
         email=user_in.email,
+        role=user_role,
         credit_balance=300
     )
     db.add(new_user)
@@ -108,13 +110,18 @@ def login_user(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     # Ensure user exists in our local DB as well
     user = db.query(User).filter(User.id == response.user.id).first()
     if not user:
+        user_role = "admin" if (response.user.email and response.user.email.lower() == "dat96133@gmail.com") else "user"
         # Fallback in case they were created in supabase but not synced here
         user = User(
             id=response.user.id,
             email=response.user.email,
+            role=user_role,
             credit_balance=300
         )
         db.add(user)
+        db.commit()
+    elif user.email.lower() == "dat96133@gmail.com" and user.role != "admin":
+        user.role = "admin"
         db.commit()
 
     return {
@@ -122,6 +129,7 @@ def login_user(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
         "refresh_token": response.session.refresh_token,
         "token_type": "bearer",
     }
+
 
 
 @router.get("/me")

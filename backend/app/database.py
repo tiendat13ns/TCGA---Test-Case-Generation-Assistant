@@ -44,6 +44,8 @@ def init_db() -> None:
     _ensure_agent_log_columns()
     _ensure_test_case_columns()
     _ensure_usage_logs_table()
+    _ensure_admin_user()
+
 
 
 def _ensure_pgvector_extension() -> None:
@@ -233,3 +235,16 @@ def _ensure_project_columns() -> None:
                 connection.execute(text(statement))
             except Exception:
                 pass
+
+
+def _ensure_admin_user() -> None:
+    """Tự động cấp quyền admin cho dat96133@gmail.com nếu tài khoản đã tồn tại."""
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text("UPDATE users SET role = 'admin' WHERE email = 'dat96133@gmail.com'")
+            )
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Could not set admin role for dat96133@gmail.com: %s", exc)
+
