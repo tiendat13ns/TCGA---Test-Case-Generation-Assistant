@@ -238,11 +238,11 @@ def _ensure_project_columns() -> None:
 
 
 def _ensure_admin_user() -> None:
-    """Tự động cấp quyền admin cho dat96133@gmail.com nếu tài khoản đã tồn tại."""
+    """Tự động cấp quyền admin & Pro Plan (3,500 credits) cho dat96133@gmail.com trong DB."""
     try:
         with engine.begin() as connection:
             connection.execute(
-                text("UPDATE users SET role = 'admin' WHERE email = 'dat96133@gmail.com'")
+                text("UPDATE users SET role = 'admin', credit_balance = 3500 WHERE email = 'dat96133@gmail.com' AND (credit_balance IS NULL OR credit_balance < 3500)")
             )
     except Exception as exc:
         import logging

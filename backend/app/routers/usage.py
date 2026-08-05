@@ -53,8 +53,8 @@ def get_usage_summary(
             {
                 "name": "Lite Plan",
                 "status": "coming_soon",
-                "price_vnd": 99000,
-                "credits_per_month": 1200,
+                "price_vnd": 50000,
+                "credits_per_month": 600,
                 "max_documents": None,
                 "max_projects": 10,
                 "storage_mb": 500,
@@ -62,8 +62,8 @@ def get_usage_summary(
             {
                 "name": "Pro Plan",
                 "status": "coming_soon",
-                "price_vnd": 249000,
-                "credits_per_month": 3500,
+                "price_vnd": 150000,
+                "credits_per_month": 2000,
                 "max_documents": None,
                 "max_projects": None,
                 "storage_mb": 2048,

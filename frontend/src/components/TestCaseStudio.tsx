@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Sparkles } from "lucide-react";
 import { Project } from "./ProjectManager";
 import { DocumentItem } from "../App";
 import { useProjects } from "../hooks/useProjects";
@@ -442,7 +443,10 @@ export default function TesterStudio({ onNavigateToProjects }: TesterStudioProps
 
       <div className="tcs-view-body">
         {isLoadingProjects ? (
-          <div className="tcs-loading"><SpinnerIcon /> <span>Loading projects...</span></div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", padding: "64px 20px", color: "var(--text-muted)" }}>
+            <Sparkles className="animate-spin" size={24} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
+            <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang tải danh sách Projects...</span>
+          </div>
         ) : projects.length === 0 ? (
           <div className="tcs-empty">
             <div className="tcs-empty-icon"><FolderIcon /></div>
@@ -518,7 +522,10 @@ export default function TesterStudio({ onNavigateToProjects }: TesterStudioProps
 
       <div className="tcs-view-body">
         {isLoadingDocs ? (
-          <div className="tcs-loading"><SpinnerIcon /> <span>Loading documents...</span></div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", padding: "64px 20px", color: "var(--text-muted)" }}>
+            <Sparkles className="animate-spin" size={24} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
+            <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang tải danh sách Tài liệu...</span>
+          </div>
         ) : documents.length === 0 ? (
           <div className="tcs-empty">
             <div className="tcs-empty-icon"><FileTextIcon /></div>
@@ -641,7 +648,10 @@ export default function TesterStudio({ onNavigateToProjects }: TesterStudioProps
 
       <div className="tcs-view-body">
         {isLoadingTCs ? (
-          <div className="tcs-loading"><SpinnerIcon /> <span>Loading test cases...</span></div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", padding: "64px 20px", color: "var(--text-muted)" }}>
+            <Sparkles className="animate-spin" size={24} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
+            <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang tải danh sách Test Cases...</span>
+          </div>
         ) : testCases.length === 0 ? (
           <div className="tcs-empty">
             <div className="tcs-empty-icon"><FlaskIcon /></div>

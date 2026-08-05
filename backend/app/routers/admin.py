@@ -84,11 +84,14 @@ def get_admin_users(
             or 0
         )
 
+        plan = "Pro Plan" if (user.role == "admin" or (user.credit_balance is not None and user.credit_balance >= 2000)) else ("Lite Plan" if (user.credit_balance is not None and user.credit_balance >= 600) else "Free Plan")
+
         results.append(
             {
                 "id": str(user.id),
                 "email": user.email,
                 "role": user.role,
+                "plan": plan,
                 "credit_balance": user.credit_balance,
                 "created_at": user.created_at.isoformat() if user.created_at else None,
                 "projects_count": projects_count,

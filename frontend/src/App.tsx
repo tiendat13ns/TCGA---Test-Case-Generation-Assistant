@@ -1,5 +1,6 @@
 import "./styles.css";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { Sparkles } from "lucide-react";
 import GlobalSidebar from "./components/GlobalSidebar";
 import ProjectsGrid from "./components/ProjectsGrid";
 import ProjectDetailDashboard from "./components/ProjectDetailDashboard";
@@ -260,15 +261,10 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="auth-container">
-        <div className="auth-glow" />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", zIndex: 1 }}>
-          <div className="auth-logo-mark" style={{ width: 48, height: 48 }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-            </svg>
-          </div>
-          <div style={{ color: "var(--text-auth-muted)", fontSize: "14px" }}>Loading...</div>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "var(--bg)" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", color: "var(--text-muted)" }}>
+          <Sparkles className="animate-spin" size={28} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
+          <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang chuẩn bị không gian làm việc...</span>
         </div>
       </div>
     );
@@ -342,7 +338,7 @@ function App() {
                 <div className="nav-dropdown-header">
                   <div style={{ fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
                   <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
-                    Credits: <span style={{ color: user.role === "admin" ? "var(--accent)" : "var(--neon-green)", fontWeight: 600 }}>{user.role === "admin" ? "Unlimited (∞)" : user.credit_balance}</span>
+                    Credits: <span style={{ color: "var(--accent)", fontWeight: 600 }}>{user.credit_balance.toLocaleString()} ({user.role === "admin" ? "Pro Plan" : "Free Plan"})</span>
                   </div>
                 </div>
                 <div style={{ height: "1px", background: "var(--border)", margin: "4px 0" }} />

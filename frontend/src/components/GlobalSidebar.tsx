@@ -183,7 +183,7 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
                   </div>
                   <div className="sidebar-credit-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
                     <Zap size={12} />
-                    <span>{isAdmin ? "Unlimited (∞)" : user.credit_balance}</span>
+                    <span>{user.credit_balance.toLocaleString()} credits</span>
                   </div>
                 </div>
                 <button type="button" className="sidebar-logout-btn icon-btn-ghost" onClick={onLogout} title="Log out" style={{ padding: "6px" }}>

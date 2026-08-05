@@ -27,6 +27,7 @@ export interface AdminUser {
   id: string;
   email: string;
   role: string;
+  plan?: string;
   credit_balance: number;
   created_at: string | null;
   projects_count: number;

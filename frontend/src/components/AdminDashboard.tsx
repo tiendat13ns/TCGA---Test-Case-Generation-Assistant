@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useAdminStats, useAdminUsers, useUpdateUserCredits, AdminUser } from "../hooks/useAdmin";
 import {
   Users,
@@ -20,10 +20,20 @@ import {
   Filter,
   Activity,
   CheckCircle2,
+  Grid,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 
 type RoleFilter = "all" | "admin" | "user";
 type SortOption = "created_desc" | "credit_desc" | "projects_desc" | "test_cases_desc";
+
+const SORT_OPTIONS: { id: SortOption; label: string }[] = [
+  { id: "created_desc", label: "Mới đăng ký nhất" },
+  { id: "credit_desc", label: "Credit (Cao → Thấp)" },
+  { id: "projects_desc", label: "Nhiều Projects nhất" },
+  { id: "test_cases_desc", label: "Nhiều Test Cases nhất" },
+];
 
 export default function AdminDashboard() {
   const { data: stats, isLoading: statsLoading, isError: statsError, error: statsErrObj, refetch: refetchStats } = useAdminStats();
@@ -33,9 +43,22 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("created_desc");
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editCreditValue, setEditCreditValue] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleRefresh = () => {
     refetchStats();
@@ -78,17 +101,21 @@ export default function AdminDashboard() {
 
   const handleExportCSV = () => {
     if (!users.length) return;
-    const headers = ["ID", "Email", "Role", "Credit Balance", "Projects", "Requirements", "Test Cases", "Created At"];
-    const rows = users.map((u) => [
-      u.id,
-      u.email,
-      u.role,
-      u.credit_balance,
-      u.projects_count,
-      u.requirements_count,
-      u.test_cases_count,
-      u.created_at || "",
-    ]);
+    const headers = ["ID", "Email", "Role", "Plan", "Credit Balance", "Projects", "Requirements", "Test Cases", "Created At"];
+    const rows = users.map((u) => {
+      const userPlan = u.plan || (u.role === "admin" || u.credit_balance >= 2000 ? "Pro Plan" : u.credit_balance >= 600 ? "Lite Plan" : "Free Plan");
+      return [
+        u.id,
+        u.email,
+        u.role,
+        userPlan,
+        u.credit_balance,
+        u.projects_count,
+        u.requirements_count,
+        u.test_cases_count,
+        u.created_at || "",
+      ];
+    });
     const csvContent =
       "data:text/csv;charset=utf-8," +
       [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
@@ -133,8 +160,8 @@ export default function AdminDashboard() {
     return (
       <div className="tcs-view" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "450px" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", color: "var(--text-muted)" }}>
-          <Sparkles className="animate-spin" size={28} style={{ color: "var(--accent)" }} />
-          <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang kết nối trung tâm quản trị Admin HQ...</span>
+          <Sparkles className="animate-spin" size={24} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
+          <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang kết nối Admin Control Center...</span>
         </div>
       </div>
     );
@@ -143,12 +170,12 @@ export default function AdminDashboard() {
   if (isError) {
     return (
       <div className="tcs-view" style={{ padding: "32px" }}>
-        <div style={{ padding: "24px", background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "12px", color: "#ef4444" }}>
-          <div style={{ fontWeight: 600, fontSize: "16px", marginBottom: "6px" }}>⚠️ Không thể tải dữ liệu Admin Dashboard</div>
-          <p style={{ margin: 0, fontSize: "13px" }}>{errorMessage}</p>
+        <div style={{ padding: "24px", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--danger)" }}>
+          <div style={{ fontWeight: 600, fontSize: "16px", marginBottom: "6px" }}>Không thể tải dữ liệu Admin Dashboard</div>
+          <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)" }}>{errorMessage}</p>
           <div style={{ marginTop: "16px" }}>
             <button className="btn btn-secondary" onClick={handleRefresh}>
-              <RefreshCw size={14} /> Thử lại
+              <RefreshCw size={14} strokeWidth={1.75} /> Thử lại
             </button>
           </div>
         </div>
@@ -177,10 +204,9 @@ export default function AdminDashboard() {
             gap: "10px",
             fontSize: "13px",
             fontWeight: 500,
-            animation: "fadeIn 0.2s ease-in-out",
           }}
         >
-          <CheckCircle2 size={16} style={{ color: "var(--accent)" }} />
+          <CheckCircle2 size={16} strokeWidth={1.75} style={{ color: "var(--accent)" }} />
           {toastMessage}
         </div>
       )}
@@ -189,40 +215,34 @@ export default function AdminDashboard() {
       <div
         className="tcs-view-header"
         style={{
-          padding: "26px 32px",
+          padding: "24px 32px",
           borderBottom: "1px solid var(--border)",
-          background: "linear-gradient(180deg, var(--bg-surface) 0%, var(--bg) 100%)",
+          background: "var(--bg-surface)",
         }}
       >
         <div className="tcs-view-title-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-          <div className="tcs-title" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div className="tcs-title" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            {/* Unified Line Icon matching Menu Sidebar */}
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, var(--accent-glow) 0%, rgba(139, 105, 20, 0.25) 100%)",
-                border: "1px solid var(--accent)",
-                color: "var(--accent)",
+                width: "44px",
+                height: "44px",
+                borderRadius: "8px",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
+                color: "var(--text-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(139, 105, 20, 0.15)",
               }}
             >
-              <ShieldCheck size={26} />
+              <ShieldCheck size={20} strokeWidth={1.75} />
             </div>
             <div>
-              <div style={{ fontSize: "22px", fontWeight: 700, display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ fontSize: "20px", fontWeight: 700, display: "flex", alignItems: "center", gap: "10px" }}>
                 Admin Control Center
-                <span className="badge badge-accent" style={{ fontSize: "11px", letterSpacing: "0.5px", padding: "4px 8px" }}>
+                <span className="badge" style={{ fontSize: "11px", letterSpacing: "0.5px", padding: "3px 8px", background: "var(--accent-glow)", color: "var(--accent)", border: "1px solid var(--border-soft)" }}>
                   ADMIN HQ
-                </span>
-              </div>
-              <div style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>Quản lý hệ thống người dùng, phân quyền & cấp phát Credit real-time</span>
-                <span style={{ color: "#10b981", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981" }} /> Live DB Connected
                 </span>
               </div>
             </div>
@@ -230,43 +250,43 @@ export default function AdminDashboard() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button className="btn btn-secondary" onClick={handleExportCSV} title="Xuất báo cáo CSV">
-              <Download size={14} /> Xuất Báo cáo CSV
+              <Download size={14} strokeWidth={1.75} /> Xuất Báo cáo CSV
             </button>
             <button className="btn btn-primary" onClick={handleRefresh} title="Làm mới dữ liệu">
-              <RefreshCw size={14} /> Làm mới
+              <RefreshCw size={14} strokeWidth={2} /> Làm mới
             </button>
           </div>
         </div>
       </div>
 
       <div className="tcs-view-body" style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: "28px" }}>
-        {/* Metric KPI Cards */}
+        {/* Metric KPI Cards (Unified Line Icons Matching Menu Sidebar) */}
         {stats && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
             {/* Card 1: Users */}
             <div
               className="card"
               style={{
-                padding: "20px",
+                padding: "18px 20px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
+                background: "var(--bg-surface)",
                 boxShadow: "var(--shadow-card)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   Người dùng Hệ thống
                 </span>
-                <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "rgba(59, 130, 246, 0.12)", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Users size={20} />
+                <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Users size={20} strokeWidth={1.75} />
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-                <span style={{ fontSize: "28px", fontWeight: 800 }}>{stats.total_users}</span>
+                <span style={{ fontSize: "26px", fontWeight: 700, color: "var(--text-primary)" }}>{stats.total_users}</span>
                 <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                   ({adminUsersCount} Admins, {regularUsersCount} Users)
                 </span>
@@ -277,28 +297,28 @@ export default function AdminDashboard() {
             <div
               className="card"
               style={{
-                padding: "20px",
+                padding: "18px 20px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
+                background: "var(--bg-surface)",
                 boxShadow: "var(--shadow-card)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   Tổng Projects
                 </span>
-                <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.12)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FolderGit2 size={20} />
+                <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Grid size={20} strokeWidth={1.75} />
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-                <span style={{ fontSize: "28px", fontWeight: 800 }}>{stats.total_projects}</span>
-                <span style={{ fontSize: "12px", color: "#10b981", display: "flex", alignItems: "center", gap: "3px" }}>
-                  <Activity size={12} /> Active Workspaces
+                <span style={{ fontSize: "26px", fontWeight: 700, color: "var(--text-primary)" }}>{stats.total_projects}</span>
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "3px" }}>
+                  <Activity size={12} strokeWidth={1.75} /> Workspaces
                 </span>
               </div>
             </div>
@@ -307,26 +327,26 @@ export default function AdminDashboard() {
             <div
               className="card"
               style={{
-                padding: "20px",
+                padding: "18px 20px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
+                background: "var(--bg-surface)",
                 boxShadow: "var(--shadow-card)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   Yêu cầu (Requirements)
                 </span>
-                <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "rgba(139, 92, 246, 0.12)", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FileText size={20} />
+                <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FileText size={20} strokeWidth={1.75} />
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-                <span style={{ fontSize: "28px", fontWeight: 800 }}>{stats.total_requirements}</span>
+                <span style={{ fontSize: "26px", fontWeight: 700, color: "var(--text-primary)" }}>{stats.total_requirements}</span>
                 <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                   SRS Items Extracted
                 </span>
@@ -337,28 +357,28 @@ export default function AdminDashboard() {
             <div
               className="card"
               style={{
-                padding: "20px",
+                padding: "18px 20px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
+                background: "var(--bg-surface)",
                 boxShadow: "var(--shadow-card)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   Test Cases AI
                 </span>
-                <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <CheckSquare size={20} />
+                <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <CheckSquare size={20} strokeWidth={1.75} />
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-                <span style={{ fontSize: "28px", fontWeight: 800 }}>{stats.total_test_cases}</span>
-                <span style={{ fontSize: "12px", color: "var(--warning)", display: "flex", alignItems: "center", gap: "3px" }}>
-                  <Sparkles size={12} /> AI Generated
+                <span style={{ fontSize: "26px", fontWeight: 700, color: "var(--text-primary)" }}>{stats.total_test_cases}</span>
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "3px" }}>
+                  <Sparkles size={12} strokeWidth={1.75} /> AI Generated
                 </span>
               </div>
             </div>
@@ -366,23 +386,20 @@ export default function AdminDashboard() {
         )}
 
         {/* User Management Section */}
-        <div className="card" style={{ padding: "24px", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div className="card" style={{ padding: "24px", borderRadius: "10px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "20px" }}>
           {/* Controls Bar */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                <UserCheck size={18} style={{ color: "var(--accent)" }} />
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
+                <UserCheck size={18} strokeWidth={1.75} style={{ color: "var(--text-primary)" }} />
                 Danh sách Người dùng & Quyền hạn
               </h3>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0 0" }}>
-                Hiển thị {processedUsers.length} / {users.length} tài khoản trong hệ thống
-              </p>
             </div>
 
-            {/* Filters, Search & Sort */}
+            {/* Filters, Search & Custom Sort Dropdown */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-              {/* Role Filter Chips (Matching background theme & pill shape) */}
-              <div style={{ display: "inline-flex", background: "var(--bg-surface)", padding: "3px", borderRadius: "20px", border: "1px solid var(--border)" }}>
+              {/* Role Filter Chips (Segmented Pill) */}
+              <div style={{ display: "inline-flex", background: "var(--bg-elevated)", padding: "3px", borderRadius: "8px", border: "1px solid var(--border)" }}>
                 <button
                   type="button"
                   style={{
@@ -390,11 +407,11 @@ export default function AdminDashboard() {
                     padding: "0 14px",
                     fontSize: "12px",
                     fontWeight: roleFilter === "all" ? 600 : 500,
-                    borderRadius: "16px",
+                    borderRadius: "6px",
                     border: "none",
                     background: roleFilter === "all" ? "var(--accent)" : "transparent",
                     color: roleFilter === "all" ? "#ffffff" : "var(--text-secondary)",
-                    boxShadow: roleFilter === "all" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
+                    boxShadow: roleFilter === "all" ? "0 2px 6px rgba(139, 105, 20, 0.25)" : "none",
                     cursor: "pointer",
                     transition: "all var(--transition)",
                   }}
@@ -409,11 +426,11 @@ export default function AdminDashboard() {
                     padding: "0 14px",
                     fontSize: "12px",
                     fontWeight: roleFilter === "admin" ? 600 : 500,
-                    borderRadius: "16px",
+                    borderRadius: "6px",
                     border: "none",
                     background: roleFilter === "admin" ? "var(--accent)" : "transparent",
                     color: roleFilter === "admin" ? "#ffffff" : "var(--text-secondary)",
-                    boxShadow: roleFilter === "admin" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
+                    boxShadow: roleFilter === "admin" ? "0 2px 6px rgba(139, 105, 20, 0.25)" : "none",
                     cursor: "pointer",
                     transition: "all var(--transition)",
                   }}
@@ -428,11 +445,11 @@ export default function AdminDashboard() {
                     padding: "0 14px",
                     fontSize: "12px",
                     fontWeight: roleFilter === "user" ? 600 : 500,
-                    borderRadius: "16px",
+                    borderRadius: "6px",
                     border: "none",
                     background: roleFilter === "user" ? "var(--accent)" : "transparent",
                     color: roleFilter === "user" ? "#ffffff" : "var(--text-secondary)",
-                    boxShadow: roleFilter === "user" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
+                    boxShadow: roleFilter === "user" ? "0 2px 6px rgba(139, 105, 20, 0.25)" : "none",
                     cursor: "pointer",
                     transition: "all var(--transition)",
                   }}
@@ -442,40 +459,106 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {/* Sort Dropdown (Pill shape, matching background theme) */}
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <Filter size={14} style={{ color: "var(--text-secondary)" }} />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+              {/* Custom Sort Dropdown (Zero native browser dark gray popup) */}
+              <div ref={sortRef} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  onClick={() => setIsSortOpen(!isSortOpen)}
                   style={{
                     height: "36px",
+                    padding: "0 14px",
                     fontSize: "12px",
                     fontWeight: 500,
-                    padding: "0 14px",
-                    borderRadius: "20px",
+                    borderRadius: "8px",
                     background: "var(--bg-surface)",
                     color: "var(--text-primary)",
                     border: "1px solid var(--border)",
-                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
                     cursor: "pointer",
-                    outline: "none",
+                    transition: "all var(--transition)",
+                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
                   }}
                 >
-                  <option value="created_desc" style={{ background: "var(--bg-surface)", color: "var(--text-primary)" }}>Mới đăng ký nhất</option>
-                  <option value="credit_desc" style={{ background: "var(--bg-surface)", color: "var(--text-primary)" }}>Credit (Cao -&gt; Thấp)</option>
-                  <option value="projects_desc" style={{ background: "var(--bg-surface)", color: "var(--text-primary)" }}>Nhiều Projects nhất</option>
-                  <option value="test_cases_desc" style={{ background: "var(--bg-surface)", color: "var(--text-primary)" }}>Nhiều Test Cases nhất</option>
-                </select>
+                  <Filter size={14} strokeWidth={1.75} style={{ color: "var(--text-secondary)" }} />
+                  <span>{SORT_OPTIONS.find((s) => s.id === sortBy)?.label}</span>
+                  <ChevronDown
+                    size={14}
+                    strokeWidth={1.75}
+                    style={{
+                      transform: isSortOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease",
+                      color: "var(--text-secondary)",
+                    }}
+                  />
+                </button>
+
+                {isSortOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      right: 0,
+                      zIndex: 100,
+                      minWidth: "190px",
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                      padding: "5px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "3px",
+                      animation: "fadeIn 0.15s ease-out",
+                    }}
+                  >
+                    {SORT_OPTIONS.map((opt) => {
+                      const isSelected = sortBy === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setSortBy(opt.id);
+                            setIsSortOpen(false);
+                          }}
+                          style={{
+                            width: "100%",
+                            padding: "8px 12px",
+                            fontSize: "12px",
+                            fontWeight: isSelected ? 600 : 400,
+                            textAlign: "left",
+                            borderRadius: "6px",
+                            border: "none",
+                            background: isSelected ? "var(--accent-glow)" : "transparent",
+                            color: isSelected ? "var(--accent)" : "var(--text-primary)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            cursor: "pointer",
+                            transition: "background 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) e.currentTarget.style.background = "var(--bg-elevated)";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <span>{opt.label}</span>
+                          {isSelected && <Check size={13} strokeWidth={2} style={{ color: "var(--accent)" }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {/* Search Box (Pill shape, matching background theme) */}
-              <div style={{ position: "relative", width: "240px" }}>
-                <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)", display: "flex", pointerEvents: "none" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
+              {/* Search Box */}
+              <div style={{ position: "relative", width: "220px" }}>
+                <div style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)", display: "flex", pointerEvents: "none" }}>
+                  <Search size={14} strokeWidth={1.75} />
                 </div>
                 <input
                   type="text"
@@ -484,14 +567,13 @@ export default function AdminDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
                     width: "100%",
-                    height: "36px",
-                    padding: "8px 30px 8px 34px",
-                    borderRadius: "20px",
+                    height: "34px",
+                    padding: "6px 26px 6px 30px",
+                    borderRadius: "6px",
                     background: "var(--bg-surface)",
                     color: "var(--text-primary)",
                     border: "1px solid var(--border)",
-                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                    fontSize: "13px",
+                    fontSize: "12px",
                     outline: "none",
                   }}
                 />
@@ -501,7 +583,7 @@ export default function AdminDashboard() {
                     onClick={() => setSearchQuery("")}
                     style={{
                       position: "absolute",
-                      right: "10px",
+                      right: "8px",
                       top: "50%",
                       transform: "translateY(-50%)",
                       background: "none",
@@ -513,11 +595,10 @@ export default function AdminDashboard() {
                       alignItems: "center",
                     }}
                   >
-                    <X size={14} />
+                    <X size={14} strokeWidth={1.75} />
                   </button>
                 )}
               </div>
-
 
             </div>
           </div>
@@ -527,27 +608,31 @@ export default function AdminDashboard() {
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
               <thead>
                 <tr style={{ background: "var(--bg-surface)", borderBottom: "1px solid var(--border)", color: "var(--text-muted)" }}>
-                  <th style={{ padding: "14px 16px", fontWeight: 600 }}>Người dùng</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 600 }}>Vai trò</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 600 }}>Số dư Credit</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 600, textAlign: "center" }}>Projects</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 600, textAlign: "center" }}>Requirements</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 600, textAlign: "center" }}>Test Cases</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 600 }}>Ngày khởi tạo</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 600, textAlign: "right" }}>Thao tác Admin</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Người dùng</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Vai trò</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Gói Plan</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Số dư Credit</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "center" }}>Projects</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "center" }}>Requirements</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "center" }}>Test Cases</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Ngày khởi tạo</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>Thao tác Admin</th>
                 </tr>
               </thead>
               <tbody>
                 {processedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: "36px", textAlign: "center", color: "var(--text-muted)" }}>
-                      <div style={{ fontSize: "24px", marginBottom: "8px" }}>🔍</div>
-                      Không tìm thấy người dùng nào phù hợp với bộ lọc.
+                    <td colSpan={9} style={{ padding: "36px", textAlign: "center", color: "var(--text-muted)" }}>
+                      <div style={{ display: "inline-flex", padding: "10px", borderRadius: "8px", background: "var(--bg-surface)", border: "1px solid var(--border)", marginBottom: "8px", color: "var(--text-muted)" }}>
+                        <Search size={24} strokeWidth={1.5} />
+                      </div>
+                      <div style={{ fontSize: "14px", fontWeight: 500 }}>Không tìm thấy người dùng nào phù hợp với bộ lọc.</div>
                     </td>
                   </tr>
                 ) : (
                   processedUsers.map((u) => {
                     const isAdmin = u.role === "admin";
+                    const userPlan = u.plan || (isAdmin || u.credit_balance >= 2000 ? "Pro Plan" : u.credit_balance >= 600 ? "Lite Plan" : "Free Plan");
                     const isEditing = editingUserId === u.id;
                     const isUpdatingThisUser = updateCreditsMutation.isPending && updateCreditsMutation.variables?.userId === u.id;
 
@@ -561,24 +646,23 @@ export default function AdminDashboard() {
                         className="table-row-hover"
                       >
                         {/* User Email & Avatar */}
-                        <td style={{ padding: "14px 16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <div
                               style={{
-                                width: "36px",
-                                height: "36px",
+                                width: "34px",
+                                height: "34px",
                                 borderRadius: "50%",
                                 background: isAdmin
-                                  ? "linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)"
+                                  ? "var(--accent)"
                                   : "var(--bg-elevated)",
                                 color: isAdmin ? "#fff" : "var(--text-primary)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 fontWeight: 700,
-                                fontSize: "14px",
+                                fontSize: "13px",
                                 border: "1px solid var(--border)",
-                                boxShadow: isAdmin ? "0 2px 6px rgba(139, 105, 20, 0.25)" : "none",
                               }}
                             >
                               {u.email.charAt(0).toUpperCase()}
@@ -593,20 +677,37 @@ export default function AdminDashboard() {
                         </td>
 
                         {/* Role Badge */}
-                        <td style={{ padding: "14px 16px" }}>
+                        <td style={{ padding: "12px 16px" }}>
                           {isAdmin ? (
-                            <span className="badge badge-accent" style={{ fontSize: "11px", fontWeight: 700 }}>
-                              🛡️ ADMIN
+                            <span className="badge" style={{ fontSize: "11px", fontWeight: 600, background: "var(--accent-glow)", color: "var(--accent)", border: "1px solid var(--border-soft)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              <ShieldCheck size={12} strokeWidth={1.75} /> ADMIN
                             </span>
                           ) : (
-                            <span className="badge" style={{ fontSize: "11px", background: "var(--bg-elevated)", color: "var(--text-secondary)" }}>
-                              👤 USER
+                            <span className="badge" style={{ fontSize: "11px", fontWeight: 500, background: "var(--bg-surface)", color: "var(--text-secondary)", border: "1px solid var(--border-soft)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              <Users size={12} strokeWidth={1.75} /> USER
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Plan Badge */}
+                        <td style={{ padding: "12px 16px" }}>
+                          {userPlan === "Pro Plan" ? (
+                            <span className="badge" style={{ fontSize: "11px", fontWeight: 600, background: "var(--accent-glow)", color: "var(--accent)", border: "1px solid var(--border-soft)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              <Zap size={12} strokeWidth={1.75} /> Pro Plan
+                            </span>
+                          ) : userPlan === "Lite Plan" ? (
+                            <span className="badge" style={{ fontSize: "11px", fontWeight: 600, background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--border-soft)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              <Zap size={12} strokeWidth={1.75} /> Lite Plan
+                            </span>
+                          ) : (
+                            <span className="badge" style={{ fontSize: "11px", fontWeight: 500, background: "var(--bg-surface)", color: "var(--text-muted)", border: "1px solid var(--border-soft)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              Free Plan
                             </span>
                           )}
                         </td>
 
                         {/* Credit Balance */}
-                        <td style={{ padding: "14px 16px" }}>
+                        <td style={{ padding: "12px 16px" }}>
                           {isEditing ? (
                             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                               <input
@@ -614,53 +715,44 @@ export default function AdminDashboard() {
                                 className="input"
                                 value={editCreditValue}
                                 onChange={(e) => setEditCreditValue(parseInt(e.target.value) || 0)}
-                                style={{ width: "100px", height: "32px", fontSize: "13px", padding: "0 8px" }}
+                                style={{ width: "100px", height: "30px", fontSize: "13px", padding: "0 8px" }}
                                 autoFocus
                               />
                             </div>
                           ) : (
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: "5px", fontWeight: 700 }}>
-                                <Zap size={14} style={{ color: "var(--warning)" }} />
-                                {isAdmin ? (
-                                  <span style={{ color: "var(--accent)", fontStyle: "italic", fontSize: "13px" }}>Vô hạn (∞)</span>
-                                ) : (
-                                  <span style={{ fontSize: "14px", color: u.credit_balance < 20 ? "var(--danger)" : "var(--text-primary)" }}>
-                                    {u.credit_balance}
-                                  </span>
-                                )}
+                                <Zap size={14} strokeWidth={1.75} style={{ color: "var(--accent)" }} />
+                                <span style={{ fontSize: "14px", color: u.credit_balance < 20 ? "var(--danger)" : "var(--text-primary)" }}>
+                                  {u.credit_balance.toLocaleString()}
+                                </span>
                               </div>
 
-                              {/* Quick add credit buttons for non-admins */}
+                              {/* Quick add credit buttons */}
                               {!isAdmin && (
-                                <div style={{ display: "flex", gap: "4px", marginLeft: "4px" }}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost"
-                                    style={{ height: "22px", padding: "0 6px", fontSize: "11px", color: "var(--accent)" }}
-                                    onClick={() => handleQuickAddCredit(u, 50)}
-                                    title="Cộng nhanh +50 Credits"
-                                  >
-                                    +50
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost"
-                                    style={{ height: "22px", padding: "0 6px", fontSize: "11px", color: "var(--accent)" }}
-                                    onClick={() => handleQuickAddCredit(u, 100)}
-                                    title="Cộng nhanh +100 Credits"
-                                  >
-                                    +100
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost"
-                                    style={{ height: "22px", padding: "0 6px", fontSize: "11px", color: "var(--accent)" }}
-                                    onClick={() => handleQuickAddCredit(u, 500)}
-                                    title="Cộng nhanh +500 Credits"
-                                  >
-                                    +500
-                                  </button>
+                                <div style={{ display: "flex", gap: "4px", marginLeft: "6px" }}>
+                                  {[50, 100, 500].map((amt) => (
+                                    <button
+                                      key={amt}
+                                      type="button"
+                                      style={{
+                                        height: "22px",
+                                        padding: "0 7px",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        borderRadius: "4px",
+                                        background: "var(--accent-glow)",
+                                        color: "var(--accent)",
+                                        border: "1px solid var(--border-soft)",
+                                        cursor: "pointer",
+                                        transition: "all var(--transition)",
+                                      }}
+                                      onClick={() => handleQuickAddCredit(u, amt)}
+                                      title={`Cộng nhanh +${amt} Credits`}
+                                    >
+                                      +{amt}
+                                    </button>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -668,33 +760,33 @@ export default function AdminDashboard() {
                         </td>
 
                         {/* Projects */}
-                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                          <span style={{ fontWeight: 600, padding: "2px 8px", borderRadius: "4px", background: "var(--bg-surface)" }}>
+                        <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                          <span style={{ fontWeight: 600, padding: "2px 8px", borderRadius: "4px", background: "var(--bg-surface)", border: "1px solid var(--border-soft)" }}>
                             {u.projects_count}
                           </span>
                         </td>
 
                         {/* Requirements */}
-                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                          <span style={{ fontWeight: 600, padding: "2px 8px", borderRadius: "4px", background: "var(--bg-surface)" }}>
+                        <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                          <span style={{ fontWeight: 600, padding: "2px 8px", borderRadius: "4px", background: "var(--bg-surface)", border: "1px solid var(--border-soft)" }}>
                             {u.requirements_count}
                           </span>
                         </td>
 
                         {/* Test Cases */}
-                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                          <span style={{ fontWeight: 600, padding: "2px 8px", borderRadius: "4px", background: "var(--bg-surface)" }}>
+                        <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                          <span style={{ fontWeight: 600, padding: "2px 8px", borderRadius: "4px", background: "var(--bg-surface)", border: "1px solid var(--border-soft)" }}>
                             {u.test_cases_count}
                           </span>
                         </td>
 
                         {/* Registration Date */}
-                        <td style={{ padding: "14px 16px", color: "var(--text-muted)", fontSize: "12px" }}>
+                        <td style={{ padding: "12px 16px", color: "var(--text-muted)", fontSize: "12px" }}>
                           {u.created_at ? new Date(u.created_at).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "N/A"}
                         </td>
 
                         {/* Actions */}
-                        <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
                           {isEditing ? (
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
                               <button
@@ -703,7 +795,7 @@ export default function AdminDashboard() {
                                 onClick={() => handleSaveCredit(u.id, u.email)}
                                 disabled={isUpdatingThisUser}
                               >
-                                <Save size={12} /> {isUpdatingThisUser ? "Đang lưu..." : "Lưu"}
+                                <Save size={12} strokeWidth={1.75} /> {isUpdatingThisUser ? "Đang lưu..." : "Lưu"}
                               </button>
                               <button
                                 className="btn btn-secondary"
@@ -711,7 +803,7 @@ export default function AdminDashboard() {
                                 onClick={handleCancelEdit}
                                 disabled={isUpdatingThisUser}
                               >
-                                <X size={12} />
+                                <X size={12} strokeWidth={1.75} />
                               </button>
                             </div>
                           ) : (
@@ -721,7 +813,7 @@ export default function AdminDashboard() {
                               onClick={() => handleStartEdit(u)}
                               title="Sửa số dư Credit"
                             >
-                              <Edit3 size={12} /> Sửa Credit
+                              <Edit3 size={12} strokeWidth={1.75} /> Sửa Credit
                             </button>
                           )}
                         </td>
