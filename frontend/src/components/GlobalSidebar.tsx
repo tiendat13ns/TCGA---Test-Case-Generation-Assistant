@@ -1,4 +1,5 @@
 import { LogOut, Zap, ShieldCheck } from "lucide-react";
+import { TCGAAppIcon } from "./TCGALogo";
 
 function PieChartIcon() {
   return (
@@ -84,7 +85,10 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
       <div className="sidebar-header" style={{ justifyContent: isSidebarOpen ? "space-between" : "center", padding: isSidebarOpen ? "14px 20px" : "14px 0" }}>
         {isSidebarOpen ? (
           <>
-            <span className="sidebar-title">Menu</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <TCGAAppIcon size={26} />
+              <span className="sidebar-title" style={{ fontSize: "14px", fontWeight: 700, letterSpacing: "0.02em" }}>TCGA</span>
+            </div>
             <button type="button" className="icon-btn-ghost" onClick={onToggleSidebar} title="Close sidebar">
               <PanelLeftCloseIcon />
             </button>

@@ -12,6 +12,7 @@ import { Project } from "./components/ProjectManager";
 
 import { Message } from "./components/ChatWorkspace";
 import { useProjects } from "./hooks/useProjects";
+import { TCGAMark } from "./components/TCGALogo";
 
 /* ── URL Routing Helpers ─────────────────────────────────── */
 type ViewType = "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial" | "admin";
@@ -84,13 +85,6 @@ export type DocumentItem = {
 };
 
 /* ── Nav Icons ─────────────────────────────────────────────── */
-function TCGAMark() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-    </svg>
-  );
-}
 
 
 

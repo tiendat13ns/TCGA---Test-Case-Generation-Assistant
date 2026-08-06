@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
+import { TCGAAppIcon } from "./TCGALogo";
 
 type LoginScreenProps = {
   onLoginSuccess: (token: string, email?: string) => void;
@@ -121,13 +122,12 @@ export default function LoginScreen({ onLoginSuccess, initialMode = "login" }: L
       {/* Centered glass card */}
       <div className="auth2-glass-card">
         {/* Logo */}
-        <div className="auth2-brand" style={{ justifyContent: "center" }}>
-          <div className="auth2-brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-            </svg>
+        <div className="auth2-brand" style={{ justifyContent: "center", flexDirection: "column", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+          <TCGAAppIcon size={54} />
+          <div style={{ textAlign: "center" }}>
+            <span className="auth2-brand-name" style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "0.04em" }}>TCGA</span>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px", fontWeight: 400 }}>Test Case Generation Assistant</div>
           </div>
-          <span className="auth2-brand-name">TCGA</span>
         </div>
 
         {/* Tab switcher */}
