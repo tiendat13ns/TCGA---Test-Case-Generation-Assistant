@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useProjects } from "../hooks/useProjects";
 import { useUsageSummary } from "../hooks/useUsage";
 import { useAuth } from "../contexts/AuthContext";
@@ -14,12 +14,11 @@ import {
   ChevronRight,
   FolderOpen,
   Layers,
-  Flame,
   Search,
   X,
+  Grid,
+  ListChecks,
 } from "lucide-react";
-
-import { useState } from "react";
 
 type OverviewDashboardProps = {
   onNavigateToProjects: () => void;
@@ -29,8 +28,9 @@ type OverviewDashboardProps = {
 
 // Helper: Calculate relative time display (vi-VN)
 function formatRelativeTime(dateString?: string | null): string {
-  if (!dateString) return "Không rõ";
+  if (!dateString) return "";
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
@@ -49,7 +49,7 @@ export default function OverviewDashboard({
   onNavigateToTestCases,
 }: OverviewDashboardProps) {
   const { user } = useAuth();
-  const { data: projects = [], isLoading: projectsLoading, isError: projectsError } = useProjects();
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { data: usageSummary } = useUsageSummary();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -109,12 +109,14 @@ export default function OverviewDashboard({
     return (
       <div className="tcs-view" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "450px" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", color: "var(--text-muted)" }}>
-          <Sparkles className="animate-spin" size={28} style={{ color: "var(--accent)" }} />
-          <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang chuẩn bị không gian làm việc Overview...</span>
+          <Sparkles className="animate-spin" size={24} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
+          <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang tải Overview...</span>
         </div>
       </div>
     );
   }
+
+  const lastProjectRelativeTime = formatRelativeTime(lastUsedProject?.updated_at || lastUsedProject?.created_at);
 
   return (
     <div className="tcs-view" style={{ height: "100%", overflowY: "auto" }}>
@@ -122,57 +124,54 @@ export default function OverviewDashboard({
       <div
         className="tcs-view-header"
         style={{
-          padding: "28px 32px",
+          padding: "24px 32px",
           borderBottom: "1px solid var(--border)",
-          background: "linear-gradient(180deg, var(--bg-surface) 0%, var(--bg) 100%)",
+          background: "var(--bg-surface)",
         }}
       >
         <div className="tcs-view-title-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-          <div className="tcs-title" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div className="tcs-title" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            {/* Unified Line Icon matching Menu Sidebar */}
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, var(--accent-glow) 0%, rgba(139, 105, 20, 0.2) 100%)",
-                border: "1px solid var(--accent)",
-                color: "var(--accent)",
+                width: "44px",
+                height: "44px",
+                borderRadius: "8px",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
+                color: "var(--text-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(139, 105, 20, 0.12)",
               }}
             >
-              <Layers size={24} />
+              <Layers size={20} strokeWidth={1.75} />
             </div>
             <div>
-              <div style={{ fontSize: "22px", fontWeight: 700, display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ fontSize: "20px", fontWeight: 700, display: "flex", alignItems: "center", gap: "10px" }}>
                 Tổng quan Hệ thống
-                <span className="badge badge-accent" style={{ fontSize: "11px", letterSpacing: "0.5px", padding: "4px 8px" }}>
+                <span className="badge" style={{ fontSize: "11px", letterSpacing: "0.5px", padding: "3px 8px", background: "var(--accent-glow)", color: "var(--accent)", border: "1px solid var(--border-soft)" }}>
                   TCGA Workspace
                 </span>
-              </div>
-              <div style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 400, marginTop: "2px" }}>
-                Theo dõi toàn bộ dự án, yêu cầu chức năng, kịch bản test và lối tắt truy cập nhanh
               </div>
             </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button className="btn btn-primary" onClick={onNavigateToProjects} style={{ height: "38px", padding: "0 16px" }}>
-              <Plus size={16} /> Tạo Project mới
+              <Plus size={16} strokeWidth={2} /> Tạo Project mới
             </button>
           </div>
         </div>
       </div>
 
       <div className="tcs-view-body" style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: "32px" }}>
-        {/* Section 1: Quick Resume (Lối tắt Lần cuối sử dụng) */}
+        {/* Section 1: Quick Resume (Tiếp tục công việc) */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-            <Clock size={16} style={{ color: "var(--accent)" }} />
+            <Clock size={16} strokeWidth={1.75} style={{ color: "var(--text-primary)" }} />
             <h3 style={{ fontSize: "15px", fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-secondary)" }}>
-              Tiếp tục công việc (Lần cuối sử dụng)
+              Tiếp tục công việc
             </h3>
           </div>
 
@@ -182,73 +181,7 @@ export default function OverviewDashboard({
               className="card"
               style={{
                 padding: "20px",
-                borderRadius: "12px",
-                border: "1px solid var(--accent-glow-strong)",
-                background: "linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: "16px",
-                boxShadow: "var(--shadow-card)",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <div style={{ position: "absolute", top: 0, right: 0, width: "120px", height: "120px", background: "radial-gradient(circle, var(--accent-glow) 0%, transparent 70%)", pointerEvents: "none" }} />
-              
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <span className="badge badge-accent" style={{ fontSize: "11px", fontWeight: 600 }}>
-                    PROJECT GẦN ĐÂY
-                  </span>
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
-                    <Clock size={12} /> {formatRelativeTime(lastUsedProject?.updated_at || lastUsedProject?.created_at)}
-                  </span>
-                </div>
-
-                {lastUsedProject ? (
-                  <>
-                    <h4 style={{ fontSize: "17px", fontWeight: 700, margin: "4px 0", color: "var(--text-primary)" }}>
-                      {lastUsedProject.name}
-                    </h4>
-                    <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0, lineClamp: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                      {lastUsedProject.description || "Không có mô tả dự án"}
-                    </p>
-
-                    <div style={{ display: "flex", gap: "16px", marginTop: "14px", fontSize: "12px", color: "var(--text-secondary)" }}>
-                      <span>📄 <strong>{lastUsedProject.file_count || 0}</strong> tài liệu</span>
-                      <span>📋 <strong>{lastUsedProject.req_count || 0}</strong> yêu cầu</span>
-                      <span>🧪 <strong>{lastUsedProject.test_case_count || 0}</strong> test case</span>
-                    </div>
-                  </>
-                ) : (
-                  <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Chưa có project nào trong tài khoản.</p>
-                )}
-              </div>
-
-              <div>
-                {lastUsedProject ? (
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: "100%", justifyContent: "center", height: "36px", fontSize: "13px" }}
-                    onClick={() => onSelectProject(lastUsedProject.id)}
-                  >
-                    <FolderOpen size={14} /> Mở Project Này <ArrowRight size={14} />
-                  </button>
-                ) : (
-                  <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={onNavigateToProjects}>
-                    <Plus size={14} /> Tạo Project Đầu Tiên
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Card 2: Last Used Tester Studio */}
-            <div
-              className="card"
-              style={{
-                padding: "20px",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 border: "1px solid var(--border)",
                 background: "var(--bg-elevated)",
                 display: "flex",
@@ -259,21 +192,91 @@ export default function OverviewDashboard({
               }}
             >
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <span className="badge" style={{ fontSize: "11px", fontWeight: 600, background: "rgba(99, 102, 241, 0.12)", color: "#6366f1" }}>
-                    TESTER STUDIO SESSIONS
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span className="badge" style={{ fontSize: "11px", fontWeight: 600, background: "var(--accent-glow)", color: "var(--accent)", border: "1px solid var(--border-soft)" }}>
+                    Dự án gần đây
+                  </span>
+                  {lastProjectRelativeTime ? (
+                    <span style={{ fontSize: "12px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Clock size={12} strokeWidth={1.75} /> {lastProjectRelativeTime}
+                    </span>
+                  ) : null}
+                </div>
+
+                {lastUsedProject ? (
+                  <>
+                    <h4 style={{ fontSize: "16px", fontWeight: 700, margin: "4px 0", color: "var(--text-primary)" }}>
+                      {lastUsedProject.name}
+                    </h4>
+                    <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0, lineClamp: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {lastUsedProject.description || "Không có mô tả dự án"}
+                    </p>
+
+                    <div style={{ display: "flex", gap: "16px", marginTop: "14px", fontSize: "12px", color: "var(--text-secondary)", alignItems: "center" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                        <FileText size={14} strokeWidth={1.75} style={{ color: "var(--text-secondary)" }} />
+                        <strong>{lastUsedProject.file_count || 0}</strong> tài liệu
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                        <ListChecks size={14} strokeWidth={1.75} style={{ color: "var(--text-secondary)" }} />
+                        <strong>{lastUsedProject.req_count || 0}</strong> yêu cầu
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                        <CheckSquare size={14} strokeWidth={1.75} style={{ color: "var(--text-secondary)" }} />
+                        <strong>{lastUsedProject.test_case_count || 0}</strong> test case
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "8px 0" }}>Chưa có project nào trong tài khoản.</p>
+                )}
+              </div>
+
+              <div>
+                {lastUsedProject ? (
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: "100%", justifyContent: "center", height: "36px", fontSize: "13px" }}
+                    onClick={() => onSelectProject(lastUsedProject.id)}
+                  >
+                    <FolderOpen size={14} strokeWidth={1.75} /> Mở Project Này <ArrowRight size={14} strokeWidth={1.75} />
+                  </button>
+                ) : (
+                  <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={onNavigateToProjects}>
+                    <Plus size={14} strokeWidth={2} /> Tạo Project Đầu Tiên
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Card 2: Last Used Tester Studio */}
+            <div
+              className="card"
+              style={{
+                padding: "20px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                background: "var(--bg-elevated)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "16px",
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span className="badge" style={{ fontSize: "11px", fontWeight: 600, background: "var(--bg-surface)", color: "var(--text-secondary)", border: "1px solid var(--border-soft)" }}>
+                    Tester Studio
                   </span>
                   <span style={{ fontSize: "12px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
-                    <Sparkles size={12} style={{ color: "var(--warning)" }} /> AI Generator
+                    <Sparkles size={12} strokeWidth={1.75} style={{ color: "var(--accent)" }} /> AI Generator
                   </span>
                 </div>
 
-                <h4 style={{ fontSize: "17px", fontWeight: 700, margin: "4px 0", color: "var(--text-primary)" }}>
+                <h4 style={{ fontSize: "16px", fontWeight: 700, margin: "4px 0", color: "var(--text-primary)" }}>
                   {lastUsedTesterStudioProject ? lastUsedTesterStudioProject.name : "Tester Studio Workspace"}
                 </h4>
-                <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>
-                  Sinh kịch bản test tự động, tinh chỉnh Human-in-the-Loop và xuất file Excel/Jira.
-                </p>
 
                 <div style={{ display: "flex", gap: "16px", marginTop: "14px", fontSize: "12px", color: "var(--text-secondary)" }}>
                   <span>Kịch bản kiểm thử: <strong>{totalTestCases}</strong> cases</span>
@@ -286,82 +289,76 @@ export default function OverviewDashboard({
                   style={{ width: "100%", justifyContent: "center", height: "36px", fontSize: "13px" }}
                   onClick={() => onNavigateToTestCases(lastUsedTesterStudioProject?.id)}
                 >
-                  <CheckSquare size={14} style={{ color: "var(--accent)" }} /> Mở Tester Studio <ChevronRight size={14} />
+                  <CheckSquare size={14} strokeWidth={1.75} style={{ color: "var(--accent)" }} /> Mở Tester Studio <ChevronRight size={14} strokeWidth={1.75} />
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Aggregated Metrics Cards */}
+        {/* Section 2: Aggregated Metrics Cards (Unified Line Icons Matching Menu Sidebar) */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
           {/* Total Projects */}
-          <div className="card" style={{ padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.12)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <FolderGit2 size={22} />
+          <div className="card" style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px", background: "var(--bg-surface)" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Grid size={20} strokeWidth={1.75} />
             </div>
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Projects</div>
-              <div style={{ fontSize: "26px", fontWeight: 800, marginTop: "2px" }}>{totalProjects}</div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Projects</div>
+              <div style={{ fontSize: "24px", fontWeight: 700, marginTop: "2px", color: "var(--text-primary)" }}>{totalProjects}</div>
             </div>
           </div>
 
           {/* Total Requirements */}
-          <div className="card" style={{ padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(139, 92, 246, 0.12)", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <FileText size={22} />
+          <div className="card" style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px", background: "var(--bg-surface)" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <FileText size={20} strokeWidth={1.75} />
             </div>
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Requirements</div>
-              <div style={{ fontSize: "26px", fontWeight: 800, marginTop: "2px" }}>{totalRequirements}</div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Requirements</div>
+              <div style={{ fontSize: "24px", fontWeight: 700, marginTop: "2px", color: "var(--text-primary)" }}>{totalRequirements}</div>
             </div>
           </div>
 
           {/* Total Test Cases */}
-          <div className="card" style={{ padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <CheckSquare size={22} />
+          <div className="card" style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px", background: "var(--bg-surface)" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <CheckSquare size={20} strokeWidth={1.75} />
             </div>
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Test Cases</div>
-              <div style={{ fontSize: "26px", fontWeight: 800, marginTop: "2px" }}>{totalTestCases}</div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Test Cases</div>
+              <div style={{ fontSize: "24px", fontWeight: 700, marginTop: "2px", color: "var(--text-primary)" }}>{totalTestCases}</div>
             </div>
           </div>
 
           {/* Credit Balance */}
-          <div className="card" style={{ padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(139, 105, 20, 0.15)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Zap size={22} />
+          <div className="card" style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px", background: "var(--bg-surface)" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Zap size={20} strokeWidth={1.75} />
             </div>
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Credit Balance</div>
-              <div style={{ fontSize: "24px", fontWeight: 800, marginTop: "2px", color: "var(--accent)" }}>
-                {isAdmin ? "Unlimited (∞)" : (usageSummary?.credit_balance ?? user?.credit_balance ?? 0)}
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Credit Balance</div>
+              <div style={{ fontSize: "24px", fontWeight: 700, marginTop: "2px", color: "var(--accent)" }}>
+                {(usageSummary?.credit_balance ?? user?.credit_balance ?? 0).toLocaleString()}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section 3: Featured Projects Timeline (Mới nhất -> Xa nhất) */}
-        <div className="card" style={{ padding: "24px", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "20px" }}>
+        {/* Section 3: Projects List */}
+        <div className="card" style={{ padding: "24px", borderRadius: "10px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                <Flame size={18} style={{ color: "var(--accent)" }} />
-                Danh sách Projects (Thời gian tạo mới nhất &rarr; Xa nhất)
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
+                <FolderGit2 size={18} strokeWidth={1.75} style={{ color: "var(--text-primary)" }} />
+                Danh sách Projects
               </h3>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0 0" }}>
-                Hiển thị tất cả dự án được sắp xếp theo thời gian khởi tạo giảm dần
-              </p>
             </div>
 
-            {/* Search Box (Styled matching DocumentContextSidebar / Work with Agent) */}
-            <div style={{ position: "relative", width: "260px" }}>
+            {/* Search Box */}
+            <div style={{ position: "relative", width: "240px" }}>
               <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)", display: "flex", pointerEvents: "none" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
+                <Search size={14} strokeWidth={1.75} />
               </div>
               <input
                 type="text"
@@ -371,13 +368,12 @@ export default function OverviewDashboard({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: "100%",
-                  height: "36px",
-                  padding: "8px 30px 8px 34px",
-                  borderRadius: "20px",
+                  height: "34px",
+                  padding: "6px 28px 6px 32px",
+                  borderRadius: "6px",
                   background: "var(--bg-surface)",
                   color: "var(--text-primary)",
                   border: "1px solid var(--border)",
-                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
                   fontSize: "13px",
                   outline: "none",
                 }}
@@ -400,7 +396,7 @@ export default function OverviewDashboard({
                     alignItems: "center",
                   }}
                 >
-                  <X size={14} />
+                  <X size={14} strokeWidth={1.75} />
                 </button>
               )}
             </div>
@@ -409,17 +405,19 @@ export default function OverviewDashboard({
 
           {filteredProjects.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
-              <div style={{ fontSize: "32px", marginBottom: "12px" }}>📁</div>
-              <div style={{ fontSize: "15px", fontWeight: 600 }}>Không tìm thấy dự án nào</div>
-              <p style={{ fontSize: "13px", marginTop: "4px" }}>Hãy tạo project mới để bắt đầu trích xuất yêu cầu và tạo kịch bản test.</p>
+              <div style={{ display: "inline-flex", padding: "12px", borderRadius: "8px", background: "var(--bg-surface)", border: "1px solid var(--border)", marginBottom: "12px", color: "var(--text-muted)" }}>
+                <FolderOpen size={28} strokeWidth={1.5} />
+              </div>
+              <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>Không tìm thấy dự án nào</div>
               <button className="btn btn-primary" style={{ marginTop: "12px" }} onClick={onNavigateToProjects}>
-                <Plus size={14} /> Tạo Project
+                <Plus size={14} strokeWidth={2} /> Tạo Project
               </button>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "18px" }}>
               {filteredProjects.map((p, idx) => {
                 const isNewest = idx === 0;
+                const projectTime = formatRelativeTime(p.created_at);
 
                 return (
                   <div
@@ -427,7 +425,7 @@ export default function OverviewDashboard({
                     className="card table-row-hover"
                     style={{
                       padding: "20px",
-                      borderRadius: "10px",
+                      borderRadius: "8px",
                       border: isNewest ? "1px solid var(--accent)" : "1px solid var(--border-soft)",
                       background: "var(--bg-elevated)",
                       display: "flex",
@@ -451,7 +449,6 @@ export default function OverviewDashboard({
                           padding: "2px 8px",
                           borderRadius: "4px",
                           letterSpacing: "0.5px",
-                          boxShadow: "0 2px 6px rgba(139, 105, 20, 0.3)",
                         }}
                       >
                         NEWEST PROJECT
@@ -465,10 +462,12 @@ export default function OverviewDashboard({
                         </h4>
                       </div>
 
-                      <div style={{ fontSize: "12px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
-                        <Clock size={12} />
-                        <span>Tạo: {formatRelativeTime(p.created_at)}</span>
-                      </div>
+                      {projectTime ? (
+                        <div style={{ fontSize: "12px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+                          <Clock size={12} strokeWidth={1.75} />
+                          <span>Tạo: {projectTime}</span>
+                        </div>
+                      ) : null}
 
                       <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineClamp: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                         {p.description || "Không có mô tả chi tiết."}
@@ -476,10 +475,16 @@ export default function OverviewDashboard({
                     </div>
 
                     <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", background: "var(--bg-surface)", borderRadius: "6px", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "12px" }}>
-                        <div>📄 Docs: <strong>{p.file_count || 0}</strong></div>
-                        <div>📋 Req: <strong>{p.req_count || 0}</strong></div>
-                        <div>🧪 Tests: <strong>{p.test_case_count || 0}</strong></div>
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", background: "var(--bg-surface)", border: "1px solid var(--border-soft)", borderRadius: "6px", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "12px", alignItems: "center" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                          <FileText size={13} strokeWidth={1.75} /> Docs: <strong>{p.file_count || 0}</strong>
+                        </div>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                          <ListChecks size={13} strokeWidth={1.75} /> Req: <strong>{p.req_count || 0}</strong>
+                        </div>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                          <CheckSquare size={13} strokeWidth={1.75} /> Tests: <strong>{p.test_case_count || 0}</strong>
+                        </div>
                       </div>
 
                       <div style={{ display: "flex", gap: "8px" }}>
@@ -496,7 +501,7 @@ export default function OverviewDashboard({
                           onClick={() => onNavigateToTestCases(p.id)}
                           title="Mở Tester Studio với Project này"
                         >
-                          <CheckSquare size={14} />
+                          <CheckSquare size={14} strokeWidth={1.75} />
                         </button>
                       </div>
                     </div>

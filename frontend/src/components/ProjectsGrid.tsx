@@ -1,4 +1,5 @@
 import { useState, FormEvent } from "react";
+import { Sparkles } from "lucide-react";
 import { Project } from "./ProjectManager";
 import { useProjects, useCreateProject, useDeleteProject } from "../hooks/useProjects";
 import ConfirmDialog from "./ConfirmDialog";
@@ -146,6 +147,17 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
       }
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="tcs-view" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "450px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", color: "var(--text-muted)" }}>
+          <Sparkles className="animate-spin" size={24} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
+          <span style={{ fontSize: "14px", fontWeight: 500 }}>Đang tải danh sách Projects...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tcs-view">

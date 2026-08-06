@@ -65,11 +65,12 @@ def register_user(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
 
     # Insert into public.users
     user_role = "admin" if user_in.email.lower() == "dat96133@gmail.com" else "user"
+    initial_credits = 3500 if user_role == "admin" else 300
     new_user = User(
         id=response.user.id,
         email=user_in.email,
         role=user_role,
-        credit_balance=300
+        credit_balance=initial_credits
     )
     db.add(new_user)
     db.commit()
@@ -111,17 +112,21 @@ def login_user(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     user = db.query(User).filter(User.id == response.user.id).first()
     if not user:
         user_role = "admin" if (response.user.email and response.user.email.lower() == "dat96133@gmail.com") else "user"
+        initial_credits = 3500 if user_role == "admin" else 300
         # Fallback in case they were created in supabase but not synced here
         user = User(
             id=response.user.id,
             email=response.user.email,
             role=user_role,
-            credit_balance=300
+            credit_balance=initial_credits
         )
         db.add(user)
         db.commit()
-    elif user.email.lower() == "dat96133@gmail.com" and user.role != "admin":
-        user.role = "admin"
+    elif user.email.lower() == "dat96133@gmail.com":
+        if user.role != "admin":
+            user.role = "admin"
+        if user.credit_balance < 3500:
+            user.credit_balance = 3500
         db.commit()
 
     return {
