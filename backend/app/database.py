@@ -36,6 +36,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_user_columns()
+    _backfill_documents_uploaded_total()
     _ensure_project_columns()
     _ensure_document_columns()
     _ensure_document_chunk_columns()
@@ -213,6 +214,7 @@ def _ensure_user_columns() -> None:
     statements = [
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance INTEGER NOT NULL DEFAULT 300",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS documents_uploaded_total INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE",
     ]
     with engine.begin() as connection:
@@ -221,6 +223,31 @@ def _ensure_user_columns() -> None:
                 connection.execute(text(statement))
             except Exception:
                 pass
+
+
+def _backfill_documents_uploaded_total() -> None:
+    """
+    Khởi tạo documents_uploaded_total cho user đã có sẵn document từ trước khi cột này tồn tại.
+    Chỉ ghi đè khi counter còn = 0, nên chạy lại nhiều lần (mỗi lần server start) vẫn an toàn,
+    không đè lên giá trị đã được tăng dần qua các lần upload sau đó.
+    """
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("""
+                UPDATE users u
+                SET documents_uploaded_total = sub.doc_count
+                FROM (
+                    SELECT p.user_id AS user_id, COUNT(d.id) AS doc_count
+                    FROM documents d
+                    JOIN projects p ON d.project_id = p.id
+                    WHERE p.user_id IS NOT NULL
+                    GROUP BY p.user_id
+                ) sub
+                WHERE u.id = sub.user_id AND u.documents_uploaded_total = 0 AND sub.doc_count > 0;
+            """))
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Could not backfill documents_uploaded_total: %s", exc)
 
 
 def _ensure_project_columns() -> None:

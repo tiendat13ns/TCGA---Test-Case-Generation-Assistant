@@ -25,6 +25,8 @@
   --accent-glow-strong: rgba(139, 105, 20, 0.2);
   --danger: #c0392b;
   --danger-dim: rgba(192, 57, 43, 0.1);
+  --success: #4a8b52;
+  --success-dim: rgba(74, 139, 82, 0.1);
   --warning: #d4a017;
   --info: #2c6fbb;
   --purple: #7c5cbf;
@@ -2382,20 +2384,25 @@ dialog.confirm-dialog[open]::backdrop {
   display: flex;
   flex-direction: column;
   padding: 16px 28px;
-  gap: 4px;
+  gap: 8px;
 }
 
 .tcs-doc-row {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 16px;
+  padding: 10px 14px;
+  min-height: 78px;
   border-radius: var(--radius-card);
-  transition: background var(--transition);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition: border-color var(--transition), background var(--transition);
+  box-sizing: border-box;
 }
 
 .tcs-doc-row:hover {
   background: var(--bg-elevated);
+  border-color: var(--accent);
 }
 
 .tcs-doc-row-icon {

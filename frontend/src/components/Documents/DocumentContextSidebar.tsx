@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { DocumentItem } from "../App";
-import { useProjectDocuments, useAddDocumentsToCache } from "../hooks/useDocuments";
+import type { DocumentItem } from "../../App";
+import { useProjectDocuments, useAddDocumentsToCache } from "../../hooks/useDocuments";
 
 type DocumentContextSidebarProps = {
   projectId: string;

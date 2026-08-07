@@ -1,7 +1,7 @@
-import "../styles.css";
+import "../../styles.css";
 import { ChangeEvent, FormEvent, useRef, useState } from "react";
-import type { DocumentItem } from "../App";
-import { useAuth } from "../contexts/AuthContext";
+import type { DocumentItem } from "../../App";
+import { useAuth } from "../../contexts/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_URL = `${API_BASE}/api/documents/upload`;

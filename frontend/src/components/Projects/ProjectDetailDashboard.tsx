@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Project } from "./ProjectManager";
-import DocumentUpload from "./DocumentUpload";
-import DocumentList from "./DocumentList";
-import RequirementViewer, { GenerateRequirementsResponse } from "./RequirementViewer";
-import SideDrawer from "./SideDrawer";
-import ChatWorkspace, { Message } from "./ChatWorkspace";
-import DocumentContextSidebar from "./DocumentContextSidebar";
-import { DocumentItem } from "../App";
+import DocumentUpload from "../Documents/DocumentUpload";
+import DocumentList from "../Documents/DocumentList";
+import RequirementViewer, { GenerateRequirementsResponse } from "../RequirementViewer";
+import SideDrawer from "../SideDrawer";
+import ChatWorkspace, { Message } from "../ChatWorkspace";
+import DocumentContextSidebar from "../Documents/DocumentContextSidebar";
+import { DocumentItem } from "../../App";
 
 type ProjectDetailDashboardProps = {
   project: Project;

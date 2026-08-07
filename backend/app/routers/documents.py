@@ -11,7 +11,7 @@ from app.services.file_service import (
     save_upload_files,
 )
 from app.services.document_text_service import extract_document_text, get_document_detail
-from app.services.credit_service import deduct_user_credits, check_free_plan_document_quota
+from app.services.credit_service import deduct_user_credits, check_document_upload_quota
 from app.database import SessionLocal
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -49,19 +49,28 @@ async def upload_document(
     # Kiểm tra quota và trừ credit nếu user đã đăng nhập
     user = _try_get_user(request, db)
     if user:
-        check_free_plan_document_quota(db, user)
+        check_document_upload_quota(db, user, num_new_files=len(files))
         # Trừ 2 Credits cho mỗi file upload
         for f in files:
             deduct_user_credits(db, user, "DOCUMENT_INGESTION", target_name=f.filename)
 
     try:
-        return await save_upload_files(files, project_id=project_id)
+        result = await save_upload_files(files, project_id=project_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except OSError as exc:
         raise HTTPException(status_code=500, detail="Could not save uploaded file") from exc
     except SQLAlchemyError as exc:
         raise HTTPException(status_code=500, detail="Database error while saving document") from exc
+
+    if user and result:
+        # Cộng dồn theo số document THẬT SỰ được tạo (1 file zip có thể sinh nhiều document)
+        # để lần kiểm tra quota tiếp theo chính xác, không phụ thuộc số document còn tồn tại.
+        user.documents_uploaded_total = (user.documents_uploaded_total or 0) + len(result)
+        db.add(user)
+        db.commit()
+
+    return result
 
 
 @router.get("", response_model=list[DocumentMetadata])

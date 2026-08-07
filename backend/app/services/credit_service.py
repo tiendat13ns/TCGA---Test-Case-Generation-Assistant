@@ -32,8 +32,11 @@ CREDIT_COST = {
     "TEST_CASE_GENERATION": 10,
 }
 
-# ── Quota FREE plan ───────────────────────────────────────────────────────────
+# ── Quota theo từng gói (khớp ngưỡng credit dùng để xác định plan ở frontend) ──
 FREE_PLAN_MAX_DOCUMENTS = 5
+LITE_PLAN_MAX_DOCUMENTS = 15
+LITE_PLAN_CREDIT_THRESHOLD = 600
+PRO_PLAN_CREDIT_THRESHOLD = 2000
 
 
 def deduct_user_credits(
@@ -91,32 +94,37 @@ def deduct_user_credits(
     )
 
 
-def check_free_plan_document_quota(db: Session, user: "User") -> None:
+def _plan_document_limit(user: "User") -> tuple[str, int | None]:
+    """Trả về (tên plan, giới hạn document). None = không giới hạn (Pro)."""
+    credit_balance = getattr(user, "credit_balance", 0) or 0
+    if credit_balance >= PRO_PLAN_CREDIT_THRESHOLD:
+        return "Pro", None
+    if credit_balance >= LITE_PLAN_CREDIT_THRESHOLD:
+        return "Lite", LITE_PLAN_MAX_DOCUMENTS
+    return "Free", FREE_PLAN_MAX_DOCUMENTS
+
+
+def check_document_upload_quota(db: Session, user: "User", num_new_files: int = 1) -> None:
     """
-    Kiểm tra user FREE plan có vượt quá giới hạn 5 tài liệu không.
-    Ném HTTPException 403 nếu đã đạt giới hạn.
-    Admin bypass quota check.
+    Kiểm tra user có vượt quá giới hạn số tài liệu của gói (Free/Lite) không.
+    Dùng documents_uploaded_total (đếm CỘNG DỒN, không giảm khi xóa) thay vì đếm số
+    document đang tồn tại — tránh việc xóa tài liệu cũ rồi upload lại để lách quota.
+    Ném HTTPException 403 nếu vượt giới hạn. Admin và Pro Plan không giới hạn.
     """
     if getattr(user, "role", "user") == "admin":
         return
 
-    from app.models import Document, Project
-    from sqlalchemy import func as sqlfunc
+    plan_name, limit = _plan_document_limit(user)
+    if limit is None:
+        return
 
-    doc_count = (
-        db.query(sqlfunc.count(Document.id))
-        .join(Project, Document.project_id == Project.id)
-        .filter(Project.user_id == user.id)
-        .scalar()
-        or 0
-    )
-
-    if doc_count >= FREE_PLAN_MAX_DOCUMENTS:
+    uploaded_total = getattr(user, "documents_uploaded_total", 0) or 0
+    if uploaded_total + num_new_files > limit:
         raise HTTPException(
             status_code=403,
             detail=(
-                f"Tài khoản Free chỉ được upload tối đa {FREE_PLAN_MAX_DOCUMENTS} tài liệu. "
-                "Vui lòng xóa tài liệu cũ hoặc nâng cấp lên gói Lite để tiếp tục."
+                f"Tài khoản {plan_name} chỉ được upload tối đa {limit} tài liệu (đã dùng {uploaded_total}). "
+                "Việc xóa tài liệu cũ không hoàn lại quota. Vui lòng nâng cấp gói để tiếp tục — liên hệ admin."
             ),
         )
 

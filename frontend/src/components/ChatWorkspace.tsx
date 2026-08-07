@@ -3,6 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useAuth } from "../contexts/AuthContext";
+import { formatAgentMessage } from "../utils/formatAgentMessage";
+import { TCGAAppIcon } from "./TCGALogo";
 
 export type Message = {
   id: string;
@@ -175,65 +177,80 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       {/* Chat History */}
       <div className="chat-history-scroll">
         {messages.map((msg) => (
-          <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: msg.role === "user" ? "flex-end" : "flex-start" }}>
+          <div
+            key={msg.id}
+            style={{
+              display: "flex",
+              flexDirection: msg.role === "ai" ? "row" : "column",
+              alignItems: msg.role === "user" ? "flex-end" : "flex-end",
+              gap: msg.role === "ai" ? "10px" : 0,
+            }}
+          >
             {msg.role === "ai" && (
-              <div style={{ marginBottom: "4px", fontSize: "12px", color: "var(--accent)", fontWeight: 500 }}>
-                TCGA Agent
+              <div style={{ flexShrink: 0 }}>
+                <TCGAAppIcon size={30} />
               </div>
             )}
-            <div
-              style={{
-                maxWidth: msg.role === "user" ? "80%" : "95%",
-                width: msg.role === "ai" ? "100%" : "auto",
-                padding: msg.role === "ai" ? "16px 20px" : "12px 16px",
-                borderRadius: "16px",
-                background: msg.role === "user" ? "var(--bg-active)" : "var(--bg-hover)",
-                color: "var(--text-primary)",
-                border: msg.role === "user" ? "1px solid var(--accent)" : "1px solid var(--border)",
-                lineHeight: 1.6,
-                fontSize: "14px",
-                boxShadow: msg.role === "ai" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
-              }}
-            >
-              {msg.role === "ai" ? (
-                <>
-                  {msg.content ? (
-                    <div className="markdown-body" style={{ width: "100%", overflowX: "auto" }}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{msg.content}</ReactMarkdown>
-                    </div>
-                  ) : null}
-                  {(isLoading && activeAiMessageId === msg.id) && (
-                    <div style={{ display: "flex", alignItems: "center", color: "var(--text-secondary)", marginTop: msg.content ? "12px" : "0" }}>
-                      <style>
-                        {`
-                          @keyframes typingBlink {
-                            0% { opacity: 0.2; }
-                            20% { opacity: 1; }
-                            100% { opacity: 0.2; }
-                          }
-                          .typing-dot {
-                            animation: typingBlink 1.4s infinite both;
-                            font-size: 16px;
-                            font-weight: bold;
-                            margin-left: 2px;
-                          }
-                          .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-                          .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-                          .typing-dot:nth-child(4) { animation-delay: 0.6s; }
-                        `}
-                      </style>
-                      <span style={{ fontSize: "13px", fontStyle: "italic" }}>
-                        {msg.content ? "Đang tiếp tục xử lý..." : "Đang xử lý"}
-                      </span>
-                      <span className="typing-dot">.</span>
-                      <span className="typing-dot">.</span>
-                      <span className="typing-dot">.</span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                msg.content
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, flex: msg.role === "ai" ? 1 : "unset" }}>
+              {msg.role === "ai" && (
+                <div style={{ marginBottom: "4px", fontSize: "12px", color: "var(--accent)", fontWeight: 500 }}>
+                  TCGA Agent
+                </div>
               )}
+              <div
+                style={{
+                  maxWidth: msg.role === "user" ? "80%" : "95%",
+                  width: msg.role === "ai" ? "100%" : "auto",
+                  padding: msg.role === "ai" ? "16px 20px" : "12px 16px",
+                  borderRadius: "16px",
+                  background: msg.role === "user" ? "var(--bg-active)" : "var(--bg-hover)",
+                  color: "var(--text-primary)",
+                  border: msg.role === "user" ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  lineHeight: 1.6,
+                  fontSize: "14px",
+                  boxShadow: msg.role === "ai" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                }}
+              >
+                {msg.role === "ai" ? (
+                  <>
+                    {msg.content ? (
+                      <div className="markdown-body" style={{ width: "100%", overflowX: "auto" }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{formatAgentMessage(msg.content)}</ReactMarkdown>
+                      </div>
+                    ) : null}
+                    {(isLoading && activeAiMessageId === msg.id) && (
+                      <div style={{ display: "flex", alignItems: "center", color: "var(--text-secondary)", marginTop: msg.content ? "12px" : "0" }}>
+                        <style>
+                          {`
+                            @keyframes typingBlink {
+                              0% { opacity: 0.2; }
+                              20% { opacity: 1; }
+                              100% { opacity: 0.2; }
+                            }
+                            .typing-dot {
+                              animation: typingBlink 1.4s infinite both;
+                              font-size: 16px;
+                              font-weight: bold;
+                              margin-left: 2px;
+                            }
+                            .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+                            .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+                            .typing-dot:nth-child(4) { animation-delay: 0.6s; }
+                          `}
+                        </style>
+                        <span style={{ fontSize: "13px", fontStyle: "italic" }}>
+                          {msg.content ? "Đang tiếp tục xử lý..." : "Đang xử lý"}
+                        </span>
+                        <span className="typing-dot">.</span>
+                        <span className="typing-dot">.</span>
+                        <span className="typing-dot">.</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  msg.content
+                )}
+              </div>
             </div>
           </div>
         ))}

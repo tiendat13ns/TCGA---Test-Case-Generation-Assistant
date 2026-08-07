@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 type User = {
   id: string;
@@ -21,6 +22,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("tcga_token"));
   const [isLoading, setIsLoading] = useState(true);
@@ -61,11 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const login = (newToken: string) => {
+    // Xóa sạch cache của tài khoản trước đó — tránh hiện nhầm project/data của user cũ
+    // cho tới khi F5 (React Query không tự biết đổi user vì queryKey không đổi).
+    queryClient.clear();
     localStorage.setItem("tcga_token", newToken);
     setToken(newToken);
   };
 
   const logout = () => {
+    queryClient.clear();
     localStorage.removeItem("tcga_token");
     setToken(null);
     setUser(null);

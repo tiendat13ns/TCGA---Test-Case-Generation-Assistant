@@ -1,9 +1,9 @@
 import { useState, FormEvent } from "react";
 import { Sparkles } from "lucide-react";
 import { Project } from "./ProjectManager";
-import { useProjects, useCreateProject, useDeleteProject } from "../hooks/useProjects";
-import ConfirmDialog from "./ConfirmDialog";
-import ModalDialog from "./ModalDialog";
+import { useProjects, useCreateProject, useDeleteProject } from "../../hooks/useProjects";
+import ConfirmDialog from "../ConfirmDialog";
+import ModalDialog from "../ModalDialog";
 
 function FolderIcon() {
   return (
