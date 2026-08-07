@@ -1,8 +1,8 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import type { DocumentItem } from "../App";
-import type { GenerateRequirementsResponse } from "./RequirementViewer";
-import { useProjectDocuments, useDeleteDocument, useClearDocuments, useAddDocumentsToCache } from "../hooks/useDocuments";
-import ConfirmDialog from "./ConfirmDialog";
+import type { DocumentItem } from "../../App";
+import type { GenerateRequirementsResponse } from "../RequirementViewer";
+import { useProjectDocuments, useDeleteDocument, useClearDocuments, useAddDocumentsToCache } from "../../hooks/useDocuments";
+import ConfirmDialog from "../ConfirmDialog";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_V1_DOCUMENTS_URL = `${API_BASE}/api/v1/documents`;

@@ -32,6 +32,8 @@ class User(Base):
     email = Column(Text, unique=True, nullable=False, index=True)
     role = Column(Text, nullable=False, default="user")
     credit_balance = Column(Integer, nullable=False, default=300)
+    # Đếm cộng dồn, không giảm khi xóa document — chặn việc xóa rồi upload lại để lách quota.
+    documents_uploaded_total = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True)
 

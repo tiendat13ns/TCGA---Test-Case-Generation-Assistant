@@ -159,6 +159,17 @@ function PlanCard({ plan, isCurrent }: { plan: UsagePlan; isCurrent: boolean }) 
           <span>{plan.storage_mb >= 1024 ? `${plan.storage_mb / 1024}GB` : `${plan.storage_mb}MB`} Storage</span>
         </div>
       </div>
+
+      {isComingSoon && (
+        <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--border-soft)" }}>
+          <a
+            href="mailto:dat96133@gmail.com"
+            style={{ fontSize: "11px", fontWeight: 600, color: "var(--accent)", textDecoration: "none" }}
+          >
+            Liên hệ admin để nâng cấp gói
+          </a>
+        </div>
+      )}
     </div>
   );
 }

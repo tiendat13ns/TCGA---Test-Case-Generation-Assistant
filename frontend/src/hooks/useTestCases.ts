@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { StudioTestCaseItem } from "../components/TestCaseStudio";
+import type { StudioTestCaseItem } from "../components/TesterStudio";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 

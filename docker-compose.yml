@@ -40,6 +40,10 @@ services:
     env_file:
       # Tự động đọc biến môi trường từ file .env trong thư mục backend
       - ./backend/.env
+    environment:
+      # Bind mount trên Windows/Docker Desktop không forward inotify events đầy đủ,
+      # nên phải bật polling để uvicorn --reload phát hiện thay đổi file.
+      - WATCHFILES_FORCE_POLLING=true
 #     environment:
 #       # Ghi đè DATABASE_URL để trỏ tới service "db" thay vì localhost
 #       - DATABASE_URL=postgresql://postgres:password@db:5432/postgres

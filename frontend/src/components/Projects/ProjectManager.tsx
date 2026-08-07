@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
-import "../styles.css";
-import { useProjects, useCreateProject, useDeleteProject } from "../hooks/useProjects";
+import "../../styles.css";
+import { useProjects, useCreateProject, useDeleteProject } from "../../hooks/useProjects";
 
 /* ─── Types ──────────────────────────────────────────────── */
 export type Project = {

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Project } from "../components/ProjectManager";
+import type { Project } from "../components/Projects/ProjectManager";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 

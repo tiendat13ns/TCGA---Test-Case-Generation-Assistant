@@ -55,7 +55,7 @@ def get_usage_summary(
                 "status": "coming_soon",
                 "price_vnd": 50000,
                 "credits_per_month": 600,
-                "max_documents": None,
+                "max_documents": 15,
                 "max_projects": 10,
                 "storage_mb": 500,
             },

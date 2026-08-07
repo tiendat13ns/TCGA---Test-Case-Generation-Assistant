@@ -1,0 +1,409 @@
+import { useEffect, useMemo, useState } from "react";
+import { Project } from "../Projects/ProjectManager";
+import { DocumentItem } from "../../App";
+import { useProjects } from "../../hooks/useProjects";
+import { useProjectDocuments } from "../../hooks/useDocuments";
+import { useTestCases, useUpdateTestCase, useCreateTestCase } from "../../hooks/useTestCases";
+import BugReportDrawer from "./BugReportDrawer";
+import ProjectSelectionView from "./ProjectSelectionView";
+import ProjectWorkspaceView from "./ProjectWorkspaceView";
+import TestCaseTableView from "./TestCaseTableView";
+import { CheckIcon, DEFAULT_BUG_REPORT_FIELDS, computeExecutionSummary, parseBugReport, serializeBugReport } from "./shared";
+import type { BugReportFields, StudioTestCaseItem, StudioView } from "./shared";
+
+export type { StudioTestCaseItem, StudioView } from "./shared";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+interface TesterStudioProps {
+  onNavigateToProjects?: () => void;
+}
+
+export default function TesterStudio({ onNavigateToProjects }: TesterStudioProps = {}) {
+  const [view, setView] = useState<StudioView>("projects");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
+
+  // TC Filters
+  const [filterPriority, setFilterPriority] = useState("");
+  const [filterTestType, setFilterTestType] = useState("");
+
+  // Bulk Editing
+  const [isGlobalEditing, setIsGlobalEditing] = useState(false);
+  const [draftTestCases, setDraftTestCases] = useState<Record<string, Partial<StudioTestCaseItem>>>({});
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
+
+  // Toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Add Manual Row
+  const [isAddingRow, setIsAddingRow] = useState(false);
+  const [newRowDraft, setNewRowDraft] = useState<Partial<StudioTestCaseItem>>({ priority: "Medium", status: "draft", execution_status: "Untested", execution_type: "Manual" });
+
+  // Bug Report Drawer
+  const [bugReportTc, setBugReportTc] = useState<StudioTestCaseItem | null>(null);
+  const [bugReportFields, setBugReportFields] = useState<BugReportFields>(DEFAULT_BUG_REPORT_FIELDS);
+
+  /* ── Hooks ── */
+  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+
+  // Handle URL query parameters for direct navigation to a document/project test cases
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const docId = searchParams.get("document_id") || searchParams.get("doc_id");
+    const projId = searchParams.get("project_id");
+    const docName = searchParams.get("doc_name");
+
+    if (docId) {
+      setSelectedDocument({
+        id: docId,
+        original_filename: docName || "Document",
+        stored_filename: "",
+        file_type: "",
+        file_size: 0,
+        file_path: "",
+        status: "completed",
+        uploaded_at: "",
+        project_id: projId || undefined,
+      });
+      if (projId && projects.length > 0) {
+        const foundProj = projects.find((p) => p.id === projId);
+        if (foundProj) setSelectedProject(foundProj);
+      }
+      setView("testcases");
+    } else if (projId && projects.length > 0) {
+      const foundProj = projects.find((p) => p.id === projId);
+      if (foundProj) {
+        setSelectedProject(foundProj);
+        setView("documents");
+      }
+    }
+  }, [projects]);
+
+  const { data: documents = [], isLoading: isLoadingDocs } = useProjectDocuments(
+    view === "documents" ? selectedProject?.id || null : null
+  );
+
+  const testCaseFilters = {
+    project_id: selectedProject?.id,
+    document_id: selectedDocument?.id,
+    priority: filterPriority,
+    test_type: filterTestType
+  };
+
+  const { data: testCaseData, isLoading: isLoadingTCs } = useTestCases(
+    testCaseFilters,
+    view === "testcases" // Only fetch if we're on the test case view
+  );
+
+  const testCases = testCaseData?.test_cases || [];
+  const totalCount = testCaseData?.total_test_cases || 0;
+
+  const executionSummary = useMemo(() => computeExecutionSummary(testCases), [testCases]);
+
+  // Dữ liệu cấp project (toàn bộ document) — dùng cho Dashboard & Bug Reports ở màn hình Documents.
+  const { data: projectTestCaseData, isLoading: isLoadingProjectTCs } = useTestCases(
+    { project_id: selectedProject?.id },
+    view === "documents" && !!selectedProject?.id
+  );
+  const projectTestCases = projectTestCaseData?.test_cases || [];
+  const projectExecutionSummary = useMemo(() => computeExecutionSummary(projectTestCases), [projectTestCases]);
+  const projectBugReports = useMemo(
+    () => projectTestCases.filter((tc: StudioTestCaseItem) => tc.execution_status === "Fail"),
+    [projectTestCases]
+  );
+  const projectUntestedCases = useMemo(
+    () => projectTestCases.filter((tc: StudioTestCaseItem) => (tc.execution_status || "Untested") === "Untested"),
+    [projectTestCases]
+  );
+
+  // Search riêng cho từng cột ở màn hình Documents
+  const [docSearch, setDocSearch] = useState("");
+  const [bugSearch, setBugSearch] = useState("");
+  const [untestedSearch, setUntestedSearch] = useState("");
+
+  const filteredDocuments = useMemo(() => {
+    const q = docSearch.trim().toLowerCase();
+    if (!q) return documents;
+    return documents.filter((d: DocumentItem) => d.original_filename.toLowerCase().includes(q));
+  }, [documents, docSearch]);
+
+  const filteredBugReports = useMemo(() => {
+    const q = bugSearch.trim().toLowerCase();
+    if (!q) return projectBugReports;
+    return projectBugReports.filter((tc: StudioTestCaseItem) => tc.title.toLowerCase().includes(q));
+  }, [projectBugReports, bugSearch]);
+
+  const filteredUntestedCases = useMemo(() => {
+    const q = untestedSearch.trim().toLowerCase();
+    if (!q) return projectUntestedCases;
+    return projectUntestedCases.filter((tc: StudioTestCaseItem) => tc.title.toLowerCase().includes(q));
+  }, [projectUntestedCases, untestedSearch]);
+
+  // TC-XX theo đúng thứ tự hiển thị trong bảng test case của từng document
+  // (projectTestCases đã được backend order_by created_at/id nên đánh số theo thứ tự đó là khớp).
+  const tcIdByCaseId = useMemo(() => {
+    const map = new Map<string, string>();
+    const perDocCounter = new Map<string, number>();
+    for (const tc of projectTestCases as StudioTestCaseItem[]) {
+      const docKey = tc.document_id || "unknown";
+      const nextIdx = (perDocCounter.get(docKey) || 0) + 1;
+      perDocCounter.set(docKey, nextIdx);
+      map.set(tc.id, `TC-${String(nextIdx).padStart(2, "0")}`);
+    }
+    return map;
+  }, [projectTestCases]);
+
+  const updateTestCase = useUpdateTestCase();
+  const createTestCase = useCreateTestCase();
+
+  /* ── Navigation ── */
+  const handleGoToProjects = () => {
+    if (onNavigateToProjects) {
+      onNavigateToProjects();
+    } else {
+      window.history.pushState(null, "", "/projects");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  };
+
+  const goToDocuments = (project: Project) => {
+    setSelectedProject(project);
+    setSelectedDocument(null);
+    setView("documents");
+  };
+
+  const goToTestCases = (doc: DocumentItem) => {
+    setSelectedDocument(doc);
+    setFilterPriority("");
+    setFilterTestType("");
+    setIsGlobalEditing(false);
+    setDraftTestCases({});
+    setView("testcases");
+  };
+
+  const goBackToProjects = () => {
+    setSelectedProject(null);
+    setSelectedDocument(null);
+    setView("projects");
+  };
+
+  const goBackToDocuments = () => {
+    setSelectedDocument(null);
+    setIsGlobalEditing(false);
+    setDraftTestCases({});
+    setView("documents");
+  };
+
+  /* ── Bulk Editing ── */
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const startGlobalEditing = () => {
+    setIsGlobalEditing(true);
+    setDraftTestCases({});
+  };
+
+  const cancelGlobalEditing = () => {
+    setIsGlobalEditing(false);
+    setDraftTestCases({});
+  };
+
+  const handleDraftChange = (id: string, field: keyof StudioTestCaseItem, value: any) => {
+    setDraftTestCases(prev => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  const saveBulkEditing = async () => {
+    const modifiedIds = Object.keys(draftTestCases);
+    if (modifiedIds.length === 0) {
+      setIsGlobalEditing(false);
+      return;
+    }
+
+    setIsBulkSaving(true);
+    try {
+      await Promise.all(
+        modifiedIds.map(id => updateTestCase.mutateAsync({ id, data: draftTestCases[id] }))
+      );
+      showToast("Bulk update successful!");
+      setIsGlobalEditing(false);
+      setDraftTestCases({});
+    } catch (e) {
+      alert("Failed to save some test cases.");
+    } finally {
+      setIsBulkSaving(false);
+    }
+  };
+
+  /* ── Add Manual Row ── */
+  const handleAddNewRow = async () => {
+    if (!newRowDraft.title) {
+      alert("Title is required");
+      return;
+    }
+
+    // Smart default: use the first test case's requirement_id if available
+    const reqId = testCases.length > 0 ? testCases[0].requirement_id : null;
+    if (!reqId) {
+      alert("Cannot add manual test case: No requirement found in this document. Please generate AI test cases first.");
+      return;
+    }
+
+    try {
+      await createTestCase.mutateAsync({
+        requirement_id: reqId,
+        title: newRowDraft.title,
+        preconditions: newRowDraft.preconditions,
+        test_steps: newRowDraft.test_steps,
+        test_data: newRowDraft.test_data,
+        expected_result: newRowDraft.expected_result || "N/A",
+        priority: newRowDraft.priority || "Medium",
+        execution_status: newRowDraft.execution_status || "Untested",
+        execution_type: "Manual",
+        status: "draft"
+      });
+      showToast("Test case added successfully!");
+      setIsAddingRow(false);
+      setNewRowDraft({ priority: "Medium", status: "draft", execution_status: "Untested", execution_type: "Manual" });
+    } catch (e) {
+      alert("Failed to add test case");
+    }
+  };
+
+  /* ── Execution & Bug Report ── */
+  const openBugReportDrawer = (tc: StudioTestCaseItem) => {
+    setBugReportTc(tc);
+    setBugReportFields(parseBugReport(tc.actual_result));
+  };
+
+  const handleExecutionStatusChange = async (tc: StudioTestCaseItem, newStatus: string) => {
+    // Mở drawer ngay lập tức, không đợi API trả về, để cảm giác phản hồi tức thì.
+    if (newStatus === "Fail") {
+      openBugReportDrawer(tc);
+    }
+    try {
+      await updateTestCase.mutateAsync({
+        id: tc.id,
+        data: { execution_status: newStatus }
+      });
+    } catch (e) {
+      alert("Failed to update status");
+    }
+  };
+
+  const handleSaveBugReport = async () => {
+    if (!bugReportTc) return;
+    try {
+      await updateTestCase.mutateAsync({
+        id: bugReportTc.id,
+        data: { actual_result: serializeBugReport(bugReportFields) }
+      });
+      showToast("Bug report saved successfully!");
+      setBugReportTc(null);
+    } catch (e) {
+      alert("Failed to save bug report");
+    }
+  };
+
+  const exportUrl = (() => {
+    const params = new URLSearchParams();
+    if (selectedProject) params.append("project_id", selectedProject.id);
+    const qs = params.toString();
+    return `${API_BASE}/api/v1/test-cases/export${qs ? `?${qs}` : ""}`;
+  })();
+
+  return (
+    <div className="tcs-container">
+      {view === "projects" && (
+        <ProjectSelectionView
+          projects={projects}
+          isLoadingProjects={isLoadingProjects}
+          onSelectProject={goToDocuments}
+          onGoToProjects={handleGoToProjects}
+        />
+      )}
+
+      {view === "documents" && (
+        <ProjectWorkspaceView
+          selectedProject={selectedProject}
+          documents={documents}
+          isLoadingDocs={isLoadingDocs}
+          filteredDocuments={filteredDocuments}
+          docSearch={docSearch}
+          onDocSearchChange={setDocSearch}
+          projectExecutionSummary={projectExecutionSummary}
+          isLoadingProjectTCs={isLoadingProjectTCs}
+          projectBugReports={projectBugReports}
+          filteredBugReports={filteredBugReports}
+          bugSearch={bugSearch}
+          onBugSearchChange={setBugSearch}
+          projectUntestedCases={projectUntestedCases}
+          filteredUntestedCases={filteredUntestedCases}
+          untestedSearch={untestedSearch}
+          onUntestedSearchChange={setUntestedSearch}
+          tcIdByCaseId={tcIdByCaseId}
+          onGoBackToProjects={goBackToProjects}
+          onGoToTestCases={goToTestCases}
+          onOpenBugReportDrawer={openBugReportDrawer}
+        />
+      )}
+
+      {view === "testcases" && (
+        <TestCaseTableView
+          selectedProject={selectedProject}
+          selectedDocument={selectedDocument}
+          totalCount={totalCount}
+          testCases={testCases}
+          isLoadingTCs={isLoadingTCs}
+          executionSummary={executionSummary}
+          exportUrl={exportUrl}
+          filterPriority={filterPriority}
+          onFilterPriorityChange={setFilterPriority}
+          filterTestType={filterTestType}
+          onFilterTestTypeChange={setFilterTestType}
+          isGlobalEditing={isGlobalEditing}
+          draftTestCases={draftTestCases}
+          isBulkSaving={isBulkSaving}
+          onStartGlobalEditing={startGlobalEditing}
+          onCancelGlobalEditing={cancelGlobalEditing}
+          onSaveBulkEditing={saveBulkEditing}
+          onDraftChange={handleDraftChange}
+          isAddingRow={isAddingRow}
+          onAddRowClick={() => setIsAddingRow(true)}
+          onCancelAddRow={() => setIsAddingRow(false)}
+          newRowDraft={newRowDraft}
+          onNewRowDraftChange={setNewRowDraft}
+          onAddNewRow={handleAddNewRow}
+          isCreatingRow={createTestCase.isPending}
+          onExecutionStatusChange={handleExecutionStatusChange}
+          onOpenBugReportDrawer={openBugReportDrawer}
+          onGoBackToProjects={goBackToProjects}
+          onGoBackToDocuments={goBackToDocuments}
+        />
+      )}
+
+      {toastMessage && (
+        <div className="tcs-toast">
+          <CheckIcon /> {toastMessage}
+        </div>
+      )}
+
+      <BugReportDrawer
+        testCase={bugReportTc}
+        fields={bugReportFields}
+        onFieldsChange={setBugReportFields}
+        onClose={() => setBugReportTc(null)}
+        onSave={handleSaveBugReport}
+        isSaving={updateTestCase.isPending}
+      />
+    </div>
+  );
+}
