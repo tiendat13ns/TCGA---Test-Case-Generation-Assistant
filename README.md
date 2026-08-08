@@ -13,7 +13,8 @@ Hệ thống AI thông minh hỗ trợ BA / QA tự động hóa việc phân t�
 
 ### 2. Xác Thực Người Dùng & Quản Lý Tài Khoản (Authentication)
 - **Xác thực JWT siêu tốc**: Đăng nhập / Đăng ký tài khoản an toàn với cơ chế xác thực JWT nội bộ loại bỏ độ trễ.
-- **User Profile Menu**: Hiển thị thông tin tài khoản, avatar và thông báo số dư trực quan ở thanh điều hướng và Sidebar.
+- **User Profile Menu**: Hiển thị thông tin tài khoản, avatar và thanh progress bar credit (số dư / quota gói hiện tại) ngay trong Sidebar trái — không còn thanh điều hướng trên cùng riêng biệt.
+- **Credit áp dụng đồng nhất cho mọi role**: Admin không có cơ chế bypass — được xếp vào bậc Pro Plan qua ngưỡng credit_balance như user thường, vẫn bị trừ credit khi dùng tính năng AI.
 - **Tối ưu giao diện Form**: Đồng bộ tone màu Warm Beige, tương thích hoàn hảo với tính năng Autofill của trình duyệt (Chrome/Edge/Safari).
 
 ### 3. Tối Ưu Caching & State Management (React Query)
@@ -27,6 +28,8 @@ Hệ thống AI thông minh hỗ trợ BA / QA tự động hóa việc phân t�
 
 ### 5. Sinh Test Case Tự Động & Xuất Excel (AI Test Case Generation)
 - Sinh bộ Test Case chuẩn QA 7 cột: **Feature | Test Case ID | Test Item | Precondition | Test Steps | Test Data | Expected Output**.
+- **Chỉ sinh test case Black-box chức năng** (Positive/Negative/Boundary/Validation/Integration) — không sinh white-box/code-level, performance/load, hay penetration-testing/security-exploit test, vì tester chỉ có tài liệu, không có quyền truy cập source code.
+- Số lượng test case co giãn theo độ phức tạp của Requirement thay vì áp một con số cố định.
 - Xuất file báo cáo Excel (`.xlsx`) chuyên nghiệp trực tiếp từ giao diện.
 
 ### 6. Test Case Studio (Chỉnh Sửa Hàng Loạt)
@@ -45,8 +48,10 @@ Hệ thống AI thông minh hỗ trợ BA / QA tự động hóa việc phân t�
 
 **Backend** — FastAPI + Python 3.12
 - DB: PostgreSQL + `pgvector` (Supabase) qua SQLAlchemy
+- AI Provider: chỉ hỗ trợ OpenAI-compatible API (Gemini/GPT/... qua proxy tương thích chuẩn OpenAI) — đã bỏ hỗ trợ Ollama local.
 - Text extraction & Vectorization: `pdfplumber`, `python-docx`, `openpyxl`, `langchain` text splitters
-- Preprocessing pipeline: Header Chunking → Embedding (1536 chiều) → RAG retrieval
+- Preprocessing pipeline: Chunking theo Heading (Word Heading style, đoạn bôi đậm, hoặc cỡ chữ với PDF) → Embedding (1536 chiều) → RAG retrieval
+- Sinh Requirement/Test Case ưu tiên dùng Structured Output (function-calling), tự fallback về parse JSON thủ công nếu model/proxy không hỗ trợ.
 
 **Frontend** — React 18 + TypeScript + Vite
 - Caching & Data Fetching: **React Query (@tanstack/react-query)**
