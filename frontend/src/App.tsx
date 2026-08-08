@@ -1,5 +1,5 @@
 import "./styles.css";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import GlobalSidebar from "./components/GlobalSidebar";
 import ProjectsGrid from "./components/Projects/ProjectsGrid";
@@ -9,8 +9,6 @@ import UsageBilling from "./components/UsageBilling";
 import AdminDashboard from "./components/AdminDashboard";
 import OverviewDashboard from "./components/OverviewDashboard";
 import TutorialPlaceholder from "./components/TutorialPlaceholder";
-import { Message } from "./components/ChatWorkspace";
-import { loadChatHistory, saveChatHistory } from "./utils/chatHistoryStorage";
 import { useAppRouter } from "./hooks/useAppRouter";
 import { useAuth } from "./contexts/AuthContext";
 import LoginScreen from "./components/LoginScreen";
@@ -47,19 +45,6 @@ function App() {
   } = useAppRouter(isAuthenticated, user);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  // Chat histories keyed by projectId — persisted to localStorage
-  const [chatHistories, setChatHistories] = useState<Record<string, Message[]>>({});
-
-  const getProjectMessages = useCallback((projectId: string): Message[] => {
-    if (chatHistories[projectId]) return chatHistories[projectId];
-    return loadChatHistory(projectId);
-  }, [chatHistories]);
-
-  const handleMessagesChange = useCallback((projectId: string, messages: Message[]) => {
-    setChatHistories(prev => ({ ...prev, [projectId]: messages }));
-    saveChatHistory(projectId, messages);
-  }, []);
 
   if (isLoading) {
     return (
@@ -157,11 +142,7 @@ function App() {
           )}
 
           {activeView === "project_detail" && selectedProject && (
-            <ProjectDetailDashboard
-              project={selectedProject}
-              chatMessages={getProjectMessages(selectedProject.id)}
-              onChatMessagesChange={(msgs) => handleMessagesChange(selectedProject.id, msgs)}
-            />
+            <ProjectDetailDashboard project={selectedProject} />
           )}
 
           {activeView === "test_cases" && (

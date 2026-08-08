@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -31,6 +32,37 @@ def _get_project_stats(db: Session, project_id: UUID) -> tuple[int, int, int]:
     # Count how many requirements have test cases generated, instead of individual test case rows
     test_case_count = db.query(TestCase.requirement_id).join(Requirement, TestCase.requirement_id == Requirement.id).filter(Requirement.project_id == project_id).distinct().count()
     return file_count, req_count, test_case_count
+
+
+def _get_bulk_project_stats(
+    db: Session, project_ids: list[UUID]
+) -> tuple[dict[UUID, int], dict[UUID, int], dict[UUID, int]]:
+    """Đếm file/requirement/test-case cho NHIỀU project cùng lúc bằng GROUP BY — 3 query
+    cố định thay vì 3*N query nếu gọi _get_project_stats() lặp lại cho từng project (N+1).
+    Dùng cho list_projects() — nơi số lượng project có thể lớn."""
+    if not project_ids:
+        return {}, {}, {}
+
+    file_counts = dict(
+        db.query(Document.project_id, func.count(Document.id))
+        .filter(Document.project_id.in_(project_ids))
+        .group_by(Document.project_id)
+        .all()
+    )
+    req_counts = dict(
+        db.query(Requirement.project_id, func.count(Requirement.id))
+        .filter(Requirement.project_id.in_(project_ids))
+        .group_by(Requirement.project_id)
+        .all()
+    )
+    test_case_counts = dict(
+        db.query(Requirement.project_id, func.count(func.distinct(TestCase.requirement_id)))
+        .join(TestCase, TestCase.requirement_id == Requirement.id)
+        .filter(Requirement.project_id.in_(project_ids))
+        .group_by(Requirement.project_id)
+        .all()
+    )
+    return file_counts, req_counts, test_case_counts
 
 
 def _get_owned_project(db: Session, project_id: str, user: User) -> Project:
@@ -81,10 +113,16 @@ def list_projects(
             .order_by(Project.created_at.desc())
             .all()
         )
-        result = []
-        for p in projects:
-            fc, rc, tcc = _get_project_stats(db, p.id)
-            result.append(_project_to_response(p, fc, rc, tcc))
+        file_counts, req_counts, test_case_counts = _get_bulk_project_stats(db, [p.id for p in projects])
+        result = [
+            _project_to_response(
+                p,
+                file_counts.get(p.id, 0),
+                req_counts.get(p.id, 0),
+                test_case_counts.get(p.id, 0),
+            )
+            for p in projects
+        ]
         return ProjectListResponse(
             total=len(result),
             projects=result,

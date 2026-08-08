@@ -1,9 +1,59 @@
-from fastapi import APIRouter, HTTPException, Request
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from app.schemas.chat_schema import ChatRequest, ChatResponse
+from sqlalchemy.orm import Session
+
+from app.core.auth import get_current_user, get_db
+from app.models import Project, User
+from app.schemas.chat_schema import ChatHistoryMessage, ChatHistoryResponse, ChatRequest, ChatResponse
+from app.services.chat_history_service import clear_history, get_history
 from app.services.chat_service import process_chat_message, stream_chat_message
 
 router = APIRouter()
+
+
+def _get_owned_project_id(db: Session, project_id: str, user: User) -> UUID:
+    """Verify project_id hợp lệ và thuộc về user hiện tại — trả 404 (không phải 403) để
+    tránh lộ việc project đó có tồn tại hay không cho user khác."""
+    try:
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid project ID") from exc
+
+    project = db.get(Project, project_uuid)
+    if project is None or project.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project_uuid
+
+
+@router.get("/history", response_model=ChatHistoryResponse)
+def get_chat_history(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Lấy lịch sử chat "Work with Agent" đã lưu của 1 project — gọi khi mở lại màn chat
+    để hiển thị luôn tin nhắn cũ thay vì bắt đầu trống."""
+    project_uuid = _get_owned_project_id(db, project_id, current_user)
+    rows = get_history(db, project_uuid, current_user.id)
+    return ChatHistoryResponse(
+        messages=[
+            ChatHistoryMessage(id=str(m.id), role=m.role, content=m.content, error=m.error)
+            for m in rows
+        ]
+    )
+
+
+@router.delete("/history", status_code=204)
+def delete_chat_history(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Xóa toàn bộ lịch sử chat đã lưu của 1 project (nút "Xóa lịch sử chat" ở FE)."""
+    project_uuid = _get_owned_project_id(db, project_id, current_user)
+    clear_history(db, project_uuid, current_user.id)
 
 
 def _extract_user_id(request: Request) -> str | None:

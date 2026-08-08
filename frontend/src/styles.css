@@ -269,8 +269,8 @@ input:-webkit-autofill:active {
 }
 
 .project-item-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1435,6 +1435,60 @@ input[type="checkbox"]:checked::after {
   gap: 16px;
 }
 
+/* Panel Upload/Document ở sidebar cạnh khung chat dùng chung class .panel với nhiều màn
+   hình khác (nền var(--bg-surface)) — override riêng ở đây để khớp màu nền chính
+   var(--bg), không đổi .panel toàn cục vì sẽ ảnh hưởng các nơi khác đang dùng nó. */
+.workspace-right-sidebar .panel {
+  background: var(--bg);
+  /* Bỏ khung viền quanh Upload Documents / Nguồn tài liệu trong màn Work with Agent —
+     chỉ giữ lại header/body làm khối phân đoạn bằng khoảng trắng, không cần đường viền
+     hộp cho từng panel vì cả cột sidebar này đã tách biệt rõ với khung chat bên trái. */
+  border: none;
+}
+.workspace-right-sidebar .panel-header {
+  border-bottom: none;
+}
+
+/* ── Breadcrumb ──────────────────────────────────────────── */
+.breadcrumb-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+.breadcrumb-static {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-current {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-separator {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
 @media (max-width: 1100px) {
   .workspace-content-grid {
     grid-template-columns: 1fr;
@@ -1937,22 +1991,60 @@ input[type="checkbox"]:checked::after {
   font-family: inherit;
   font-size: 14px;
   line-height: 1.6;
+  /* Chặn text dài không có khoảng trắng (URL, chuỗi ký tự liền) tràn ra ngoài khung chat */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .markdown-body p {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .markdown-body p:last-child {
   margin-bottom: 0;
 }
 .markdown-body ul, .markdown-body ol {
   margin-left: 20px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+}
+.markdown-body ul:last-child, .markdown-body ol:last-child {
+  margin-bottom: 0;
+}
+/* Markdown parser luôn biến "- mục" thành <ul><li> chuẩn (ký tự "-" chỉ là cú pháp, không
+   giữ lại làm text) nên trình duyệt tự vẽ dấu chấm tròn mặc định (list-style: disc) — ép
+   marker thành dấu gạch ngang "-" ở đây để khớp yêu cầu định dạng, không phụ thuộc vào
+   việc model gõ ký tự gì trong markdown gốc. */
+.markdown-body ul {
+  list-style: none;
+  margin-left: 4px;
+  padding-left: 16px;
+}
+.markdown-body ul > li {
+  position: relative;
+}
+.markdown-body ul > li::before {
+  content: "-";
+  position: absolute;
+  left: -14px;
+  color: var(--text-secondary);
+}
+.markdown-body li {
+  margin-bottom: 6px;
+}
+.markdown-body li:last-child {
+  margin-bottom: 0;
+}
+.markdown-body li > ul, .markdown-body li > ol {
+  margin-top: 6px;
+  margin-bottom: 0;
 }
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
-  margin-top: 24px;
-  margin-bottom: 12px;
+  margin-top: 22px;
+  margin-bottom: 10px;
   font-weight: 600;
   color: var(--text-primary);
+}
+.markdown-body h1:first-child, .markdown-body h2:first-child,
+.markdown-body h3:first-child, .markdown-body h4:first-child {
+  margin-top: 0;
 }
 .markdown-body code {
   background: var(--bg-surface);
@@ -3046,6 +3138,30 @@ dialog.confirm-dialog[open]::backdrop {
   background: var(--text-muted);
   animation: sidebarCreditPulse 1.4s ease-in-out infinite;
 }
+
+.chat-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 7px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+.chat-suggestion-item:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+.chat-suggestion-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 .sidebar-logout-btn {
   color: var(--text-muted);
   transition: color var(--transition-fast);
@@ -3747,11 +3863,39 @@ dialog.confirm-dialog[open]::backdrop {
   flex: 1;
   padding: 18px;
   overflow-y: auto;
+  /* An toàn tuyệt đối: không cho bất kỳ nội dung nào (bảng markdown quá khổ, text dài...)
+     tràn ra ngoài khung chat theo chiều ngang — bảng vẫn tự cuộn ngang riêng bên trong
+     wrapper .markdown-body (overflowX: auto), khối này chỉ chặn phần vượt khung ở ngoài. */
+  overflow-x: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
+  /* Ẩn thanh cuộn gốc của trình duyệt — thanh điều hướng câu hỏi (.chat-msg-navigator)
+     thay thế vai trò chỉ báo cuộn ở cạnh phải, để 2 thanh không đè/chen chúc lên nhau. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.chat-history-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Giới hạn chiều rộng nội dung hội thoại & canh giữa — giống cột đọc trung tâm của
+   Claude Chat — thay vì để tin nhắn kéo giãn hết chiều ngang của cột chat. Rộng hơn mức
+   đọc thông thường (760px) vì khung này còn phải hiển thị bảng Test Case nhiều cột. */
+.chat-history-inner {
+  /* Khớp với .chat-bottom-inner để khung tin nhắn và thanh nhập luôn thẳng hàng 2 mép */
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
+}
+
+.chat-bottom-inner {
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 18px;
 }
 
 .chat-typing-indicator {
@@ -3779,7 +3923,7 @@ dialog.confirm-dialog[open]::backdrop {
 
 .chat-bottom-panel {
   position: relative;
-  background: var(--bg-elevated);
+  background: var(--bg);
   z-index: 2;
 }
 
@@ -3790,7 +3934,112 @@ dialog.confirm-dialog[open]::backdrop {
   left: 0;
   right: 0;
   height: 32px;
-  background: linear-gradient(to bottom, rgba(229, 221, 211, 0) 0%, var(--bg-elevated) 100%);
+  background: linear-gradient(to bottom, rgba(213, 203, 192, 0) 0%, var(--bg) 100%);
   pointer-events: none;
+}
+
+/* ── Chat message navigator (minimap cạnh scrollbar) ──────── */
+.chat-msg-navigator {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  right: 3px;
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  /* Các vạch nằm sát nhau thành 1 cụm ở giữa, không dàn trải hết chiều cao khung chat */
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 0;
+  cursor: pointer;
+  z-index: 4;
+}
+
+.chat-msg-navigator-tick {
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border);
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, height 0.15s ease;
+}
+
+.chat-msg-navigator:hover .chat-msg-navigator-tick {
+  background: var(--accent);
+}
+
+.chat-msg-navigator-tick:hover {
+  height: 3px;
+  background: var(--accent-hover) !important;
+}
+
+/* Vạch tương ứng với câu hỏi đang hiển thị trong khung nhìn — in đậm (dày + đổi màu) để
+   phân biệt với các vạch còn lại. */
+.chat-msg-navigator-tick.active {
+  height: 3px;
+  background: var(--accent);
+}
+
+/* Cầu nối vô hình phủ liền từ cụm vạch tới popup (xem giải thích trong JSX) — không có
+   nền/viền nên không tạo cảm giác che/đè lên nội dung, chỉ giữ hover liên tục. */
+.chat-msg-navigator-bridge {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  right: 3px;
+  width: 300px;
+  z-index: 5;
+}
+
+.chat-msg-navigator-popup {
+  position: absolute;
+  /* Căn giữa theo chiều dọc ngay cạnh cụm vạch (cụm vạch đang canh giữa navigator nhờ
+     justify-content: center) — trước đây neo ở top:0 nên popup bị lệch lên hẳn phía trên,
+     tách rời khỏi vị trí thật của cụm vạch. */
+  top: 50%;
+  transform: translateY(-50%);
+  /* Cách cụm vạch 1 khoảng rõ ràng, không đè lên nhau — khoảng cách này vẫn nằm trong
+     vùng cầu nối (.chat-msg-navigator-bridge) nên hover không bị mất khi băng qua. */
+  right: 28px;
+  width: 260px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-msg-navigator-item {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-msg-navigator-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.chat-msg-navigator-item.active {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-glow);
 }
 

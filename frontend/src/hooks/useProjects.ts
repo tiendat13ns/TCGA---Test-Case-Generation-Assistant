@@ -40,6 +40,17 @@ async function createProjectAPI(payload: { name: string; description?: string | 
   return d;
 }
 
+async function updateProjectAPI(payload: { id: string; name: string; description?: string | null }): Promise<Project> {
+  const r = await fetch(`${API_BASE}/api/v1/projects/${payload.id}`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ name: payload.name, description: payload.description }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.detail || "Failed to update project.");
+  return d;
+}
+
 async function deleteProjectAPI(projectId: string): Promise<void> {
   const r = await fetch(`${API_BASE}/api/v1/projects/${projectId}`, {
     method: "DELETE",
@@ -70,6 +81,19 @@ export function useCreateProject() {
       // Optimistically prepend the new project to the cache
       queryClient.setQueryData<Project[]>(projectKeys.all, (old) =>
         old ? [newProject, ...old] : [newProject]
+      );
+    },
+  });
+}
+
+/** Update a project's name/description and update the projects cache. */
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateProjectAPI,
+    onSuccess: (updatedProject) => {
+      queryClient.setQueryData<Project[]>(projectKeys.all, (old) =>
+        old ? old.map((p) => (p.id === updatedProject.id ? updatedProject : p)) : old
       );
     },
   });

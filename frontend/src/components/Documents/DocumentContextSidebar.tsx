@@ -77,13 +77,13 @@ export default function DocumentContextSidebar({
       <div className="panel-header">
         <h2 className="panel-title">Nguồn tài liệu</h2>
         <div className="header-actions">
-          <span 
-            className={`badge ${selectedDocumentIds.length > 0 ? "" : "badge-uploaded"}`}
-            style={selectedDocumentIds.length > 0 ? {
-              background: "var(--accent-dim)",
-              color: "var(--accent)",
-              border: "1px solid var(--accent-glow-strong)"
-            } : {}}
+          <span
+            className="badge"
+            style={{
+              background: "var(--bg)",
+              color: selectedDocumentIds.length > 0 ? "var(--accent)" : "var(--text-muted)",
+              border: "none",
+            }}
           >
             {selectedDocumentIds.length} đã chọn
           </span>
@@ -104,25 +104,23 @@ export default function DocumentContextSidebar({
             name="filename"
             value={filters.filename}
             onChange={(e) => setFilters({ ...filters, filename: e.target.value })}
-            style={{ 
-              width: "100%", 
-              padding: "8px 16px 8px 34px", 
-              borderRadius: "8px", 
-              background: "var(--bg-surface)",
+            style={{
+              width: "100%",
+              padding: "8px 16px 8px 34px",
+              borderRadius: "8px",
+              background: "var(--bg)",
               color: "var(--text-primary)",
-              border: "1px solid var(--border)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              border: "none",
+              boxShadow: "none",
               fontSize: "13px",
               outline: "none",
-              transition: "border-color 0.2s, box-shadow 0.2s"
+              transition: "box-shadow 0.2s"
             }}
             onFocus={(e) => {
-              e.target.style.borderColor = "var(--accent)";
               e.target.style.boxShadow = "0 0 0 2px var(--accent-glow)";
             }}
             onBlur={(e) => {
-              e.target.style.borderColor = "var(--border)";
-              e.target.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)";
+              e.target.style.boxShadow = "none";
             }}
           />
         </div>
@@ -172,10 +170,12 @@ export default function DocumentContextSidebar({
                     gap: "10px",
                     padding: "8px 12px",
                     borderRadius: "8px",
-                    background: selectedDocumentIds.includes(doc.id) ? "var(--bg-active)" : "var(--bg-elevated)",
-                    border: `1px solid ${selectedDocumentIds.includes(doc.id) ? "var(--accent)" : "var(--border)"}`,
+                    // Bỏ viền + không phân biệt nền theo trạng thái chọn — checkbox đã đủ
+                    // thể hiện việc đã chọn hay chưa, mọi card đều dùng chung nền trang.
+                    background: "var(--bg)",
+                    border: "none",
                     cursor: "pointer",
-                    transition: "all 0.2s"
+                    transition: "background 0.2s"
                   }}
                 >
                   <input

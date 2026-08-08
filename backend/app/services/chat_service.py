@@ -26,7 +26,9 @@ from app.database import SessionLocal
 from app.prompts.chat_prompt import (
     FAST_SYSTEM_PROMPT,
     INTENT_CLASSIFICATION_PROMPT,
+    OVERVIEW_ANALYSIS_INSTRUCTION,
 )
+from app.services.chat_history_service import save_message
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +44,105 @@ _SMALL_TALK_KEYWORDS = re.compile(
     re.IGNORECASE | re.UNICODE,
 )
 
+# "Phân tích tổng quan" (nút Quick Action hoặc gõ tương tự) vẫn là general_chat, nhưng cần
+# RAG sâu hơn (nhiều chunk hơn) và output có cấu trúc cố định — khác với 1 câu hỏi ngắn
+# thông thường chỉ cần top-3 chunk là đủ.
+_OVERVIEW_ANALYSIS_KEYWORDS = re.compile(
+    r"(phân tích|tóm tắt).{0,25}(tổng quan)",
+    re.IGNORECASE | re.UNICODE,
+)
 
 _VALID_INTENTS = {"execute_tool", "general_chat", "small_talk"}
+
+# ── Reasoning/chain-of-thought stripper ──────────────────────────────────────
+# Một số model "reasoning" (qua proxy OpenAI-compatible) chèn thẳng đoạn suy luận nội
+# bộ vào field `content` dưới dạng <think>...</think> thay vì tách riêng. Nếu không lọc,
+# đoạn này sẽ hiện nguyên văn lên UI như thể là câu trả lời thật (vừa lộ nội bộ, vừa tốn
+# token/thời gian ngược với chỉ dẫn "trả lời ngắn gọn" trong SYSTEM_PROMPT).
+_THINK_OPEN = "<think>"
+_THINK_CLOSE = "</think>"
+
+
+def _strip_reasoning_block(text: str) -> str:
+    """Loại bỏ <think>...</think> khỏi 1 chuỗi text đầy đủ (dùng cho response non-stream).
+    Xử lý luôn trường hợp thiếu tag mở (proxy tự ẩn <think> ở đầu turn, chỉ trả về
+    </think> mồ côi) — khi đó mọi thứ trước tag đóng cũng là reasoning, cắt luôn."""
+    if not text or _THINK_CLOSE not in text.lower():
+        return text
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
+    close_idx = text.lower().find(_THINK_CLOSE)
+    if close_idx != -1:
+        text = text[close_idx + len(_THINK_CLOSE):]
+    return text.strip()
+
+
+class _ThinkStreamFilter:
+    """Lọc <think>...</think> theo từng chunk khi streaming SSE — không thể dùng regex
+    một lần vì tag có thể bị cắt ngang giữa 2 chunk liên tiếp. feed() trả về phần text an
+    toàn để emit ngay; phần cuối buffer (có thể là nửa tag) được giữ lại chờ chunk kế tiếp.
+    flush() lấy nốt phần còn đọng lại khi stream kết thúc."""
+
+    _MAX_TAG_LEN = max(len(_THINK_OPEN), len(_THINK_CLOSE))
+
+    def __init__(self):
+        self._buf = ""
+        self._in_think = False
+
+    def feed(self, chunk: str) -> str:
+        self._buf += chunk
+        out: list[str] = []
+        while True:
+            if self._in_think:
+                idx = self._buf.lower().find(_THINK_CLOSE)
+                if idx == -1:
+                    return "".join(out)
+                self._buf = self._buf[idx + len(_THINK_CLOSE):]
+                self._in_think = False
+                continue
+
+            low = self._buf.lower()
+            open_idx = low.find(_THINK_OPEN)
+            close_idx = low.find(_THINK_CLOSE)
+
+            if close_idx != -1 and (open_idx == -1 or close_idx < open_idx):
+                # </think> mồ côi: proxy đã ẩn tag mở, mọi thứ trước đó là reasoning
+                self._buf = self._buf[close_idx + len(_THINK_CLOSE):]
+                continue
+
+            if open_idx == -1:
+                # Giữ lại tối đa (độ dài tag - 1) ký tự cuối phòng trường hợp tag bị cắt
+                # ngang giữa chunk này và chunk kế tiếp.
+                safe_len = max(0, len(self._buf) - self._MAX_TAG_LEN + 1)
+                out.append(self._buf[:safe_len])
+                self._buf = self._buf[safe_len:]
+                return "".join(out)
+
+            out.append(self._buf[:open_idx])
+            self._buf = self._buf[open_idx + len(_THINK_OPEN):]
+            self._in_think = True
+            continue
+
+    def flush(self) -> str:
+        if self._in_think:
+            self._buf = ""
+            return ""
+        remaining = self._buf
+        self._buf = ""
+        return remaining
+
+# RAG top_k + số chunk đưa vào context — mặc định cho general_chat thường, và mở rộng
+# riêng cho yêu cầu phân tích tổng quan (cần bao phủ rộng hơn, giống mức Requirement
+# extraction, thay vì chỉ nhìn top-3 chunk gần nhất với câu hỏi).
+_DEFAULT_RAG_TOP_K = 3
+_DEFAULT_CONTEXT_CHUNK_LIMIT = 6
+_OVERVIEW_RAG_TOP_K = 12
+_OVERVIEW_CONTEXT_CHUNK_LIMIT = 15
+
+
+def _is_overview_analysis_request(message: str) -> bool:
+    """Nhận diện yêu cầu 'phân tích tổng quan' để áp RAG sâu hơn + prompt có cấu trúc cố
+    định (xem OVERVIEW_ANALYSIS_INSTRUCTION) — khác với general_chat thông thường."""
+    return bool(_OVERVIEW_ANALYSIS_KEYWORDS.search(message))
 
 
 def _keyword_classify(message: str) -> str | None:
@@ -85,14 +184,20 @@ async def _llm_classify_intent(message: str) -> str:
         return "general_chat"
 
 
-async def _fast_response(request: ChatRequest, use_rag: bool = True) -> str:
+async def _build_fast_path_system_content(request: ChatRequest, use_rag: bool) -> str:
     """
-    Luồng NHANH: Lấy chunk liên quan nhất từ Vector DB (Direct RAG) nếu use_rag=True → gọi LLM một lần duy nhất.
-    Không nạp Tools, không có ReAct loop.
+    Build system prompt cho Fast Path — dùng chung giữa _fast_response() (JSON) và
+    stream_chat_message() (SSE) để tránh lặp logic RAG + chọn prompt ở 2 nơi.
+
+    Nếu câu hỏi là yêu cầu "phân tích tổng quan" (xem _is_overview_analysis_request), lấy
+    RAG sâu hơn (top-12 thay vì top-3, giống mức Requirement extraction) và thêm
+    OVERVIEW_ANALYSIS_INSTRUCTION để output có cấu trúc cố định thay vì tuỳ hứng mỗi lần.
     """
+    is_overview = _is_overview_analysis_request(request.message)
+    top_k = _OVERVIEW_RAG_TOP_K if is_overview else _DEFAULT_RAG_TOP_K
+    context_limit = _OVERVIEW_CONTEXT_CHUNK_LIMIT if is_overview else _DEFAULT_CONTEXT_CHUNK_LIMIT
+
     context_chunks: list[str] = []
-    
-    # 1. Direct RAG — lấy context liên quan từ tài liệu đã chọn (chỉ chạy nếu use_rag=True)
     if use_rag and request.document_ids:
         db = SessionLocal()
         try:
@@ -100,24 +205,30 @@ async def _fast_response(request: ChatRequest, use_rag: bool = True) -> str:
                 chunks = await retrieve_relevant_chunks_async(
                     db=db,
                     query=request.message,
-                    top_k=3,
+                    top_k=top_k,
                     document_id=doc_id,
                 )
                 context_chunks.extend(chunks)
         finally:
             db.close()
 
-    # 2. Build system message với context (nếu có)
+    system_content = FAST_SYSTEM_PROMPT
+    if is_overview:
+        system_content += "\n\n" + OVERVIEW_ANALYSIS_INSTRUCTION
     if context_chunks:
-        context_text = "\n\n---\n\n".join(context_chunks[:6])
-        system_content = (
-            FAST_SYSTEM_PROMPT
-            + f"\n\n## Nội dung tài liệu liên quan:\n\n{context_text}"
-        )
-    else:
-        system_content = FAST_SYSTEM_PROMPT
+        context_text = "\n\n---\n\n".join(context_chunks[:context_limit])
+        system_content += f"\n\n## Nội dung tài liệu liên quan:\n\n{context_text}"
 
-    # 3. Build message history
+    return system_content
+
+
+async def _fast_response(request: ChatRequest, use_rag: bool = True) -> str:
+    """
+    Luồng NHANH: Lấy chunk liên quan nhất từ Vector DB (Direct RAG) nếu use_rag=True → gọi LLM một lần duy nhất.
+    Không nạp Tools, không có ReAct loop.
+    """
+    system_content = await _build_fast_path_system_content(request, use_rag)
+
     messages: list = [SystemMessage(content=system_content)]
     for msg in request.chat_history:
         if msg.role == "user":
@@ -126,10 +237,9 @@ async def _fast_response(request: ChatRequest, use_rag: bool = True) -> str:
             messages.append(AIMessage(content=msg.content))
     messages.append(HumanMessage(content=request.message))
 
-    # 4. Single LLM call — không tool
     llm = get_llm()
     response = await llm.ainvoke(messages)
-    return response.content
+    return _strip_reasoning_block(response.content)
 
 
 async def _agent_response(request: ChatRequest) -> str:
@@ -172,7 +282,7 @@ async def _agent_response(request: ChatRequest) -> str:
 
     final_text = ""
     if messages and isinstance(messages[-1], AIMessage):
-        final_text = messages[-1].content or ""
+        final_text = _strip_reasoning_block(messages[-1].content or "")
 
     return "\n\n".join(tool_outputs + ([final_text] if final_text else []))
 
@@ -215,6 +325,30 @@ def _deduct_credits_for_request(request: ChatRequest, operation: str) -> None:
         logger.warning("Credit deduction failed (non-fatal): %s", e)
 
 
+def _persist_user_message(request: ChatRequest) -> None:
+    """Lưu tin nhắn user vào lịch sử chat của project (nếu request có project_id + user_id).
+    Không lưu được thì bỏ qua im lặng — không nên làm gián đoạn luồng chat chính."""
+    user_id = getattr(request, "user_id", None)
+    if not request.project_id or not user_id:
+        return
+    db = SessionLocal()
+    try:
+        save_message(db, request.project_id, user_id, "user", request.message)
+    finally:
+        db.close()
+
+
+def _persist_ai_message(request: ChatRequest, content: str, error: bool = False) -> None:
+    user_id = getattr(request, "user_id", None)
+    if not request.project_id or not user_id or not content:
+        return
+    db = SessionLocal()
+    try:
+        save_message(db, request.project_id, user_id, "ai", content, error=error)
+    finally:
+        db.close()
+
+
 # ── Public Entry Point ───────────────────────────────────────────────────────
 async def process_chat_message(request: ChatRequest) -> ChatResponse:
     message = request.message.strip()
@@ -223,6 +357,8 @@ async def process_chat_message(request: ChatRequest) -> ChatResponse:
         intent = await _llm_classify_intent(message)
 
     logger.info("Router → intent=%s for message: %.80s", intent, message)
+
+    _persist_user_message(request)
 
     if intent != "execute_tool":
         _deduct_credits_for_request(request, "COPILOT_CHAT")
@@ -233,6 +369,8 @@ async def process_chat_message(request: ChatRequest) -> ChatResponse:
         final_response = await _fast_response(request, use_rag=True)
     else:
         final_response = await _fast_response(request, use_rag=False)
+
+    _persist_ai_message(request, str(final_response))
 
     return ChatResponse(response=str(final_response))
 
@@ -248,6 +386,12 @@ async def stream_chat_message(request: ChatRequest):
         intent = await _llm_classify_intent(message)
 
     logger.info("StreamRouter → intent=%s for message: %.80s", intent, message)
+
+    _persist_user_message(request)
+    # Gom lại toàn bộ text đã stream ra UI để lưu thành 1 message AI hoàn chỉnh vào lịch
+    # sử sau khi stream xong — không lưu từng chunk riêng lẻ.
+    full_response_parts: list[str] = []
+    had_error = False
 
     if intent != "execute_tool":
         _deduct_credits_for_request(request, "COPILOT_CHAT")
@@ -272,6 +416,7 @@ async def stream_chat_message(request: ChatRequest):
             )
             history.append(HumanMessage(content=request.message + context_instruction))
 
+            think_filter = _ThinkStreamFilter()
             agent = get_chat_agent()
             async for event in agent.astream({"messages": history}, stream_mode="messages"):
                 # event = (chunk, metadata) khi stream_mode="messages"
@@ -289,6 +434,7 @@ async def stream_chat_message(request: ChatRequest):
 
                     text = chunk.content
                     # Thêm khoảng trắng để tách biệt với các câu chữ khác
+                    full_response_parts.append(f"\n\n{text}\n\n")
                     payload = json.dumps({"chunk": f"\n\n{text}\n\n"}, ensure_ascii=False)
                     yield f"data: {payload}\n\n"
                     continue
@@ -302,37 +448,22 @@ async def stream_chat_message(request: ChatRequest):
                     if getattr(chunk, "tool_call_chunks", None):
                         continue
 
-                    text = chunk.content
-                    payload = json.dumps({"chunk": text}, ensure_ascii=False)
-                    yield f"data: {payload}\n\n"
+                    text = think_filter.feed(chunk.content)
+                    if text:
+                        full_response_parts.append(text)
+                        payload = json.dumps({"chunk": text}, ensure_ascii=False)
+                        yield f"data: {payload}\n\n"
+
+            tail = think_filter.flush()
+            if tail:
+                full_response_parts.append(tail)
+                payload = json.dumps({"chunk": tail}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
 
         # ── Nhánh FAST (general_chat / small_talk): stream trực tiếp LLM ─────
         else:
             use_rag = (intent == "general_chat")
-            context_chunks: list[str] = []
-
-            if use_rag and request.document_ids:
-                db = SessionLocal()
-                try:
-                    for doc_id in request.document_ids:
-                        chunks = await retrieve_relevant_chunks_async(
-                            db=db,
-                            query=request.message,
-                            top_k=3,
-                            document_id=doc_id,
-                        )
-                        context_chunks.extend(chunks)
-                finally:
-                    db.close()
-
-            if context_chunks:
-                context_text = "\n\n---\n\n".join(context_chunks[:6])
-                system_content = (
-                    FAST_SYSTEM_PROMPT
-                    + f"\n\n## Nội dung tài liệu liên quan:\n\n{context_text}"
-                )
-            else:
-                system_content = FAST_SYSTEM_PROMPT
+            system_content = await _build_fast_path_system_content(request, use_rag)
 
             messages_list: list = [SystemMessage(content=system_content)]
             for msg in request.chat_history:
@@ -342,19 +473,33 @@ async def stream_chat_message(request: ChatRequest):
                     messages_list.append(AIMessage(content=msg.content))
             messages_list.append(HumanMessage(content=request.message))
 
+            think_filter = _ThinkStreamFilter()
             llm = get_llm()
             async for chunk in llm.astream(messages_list):
                 if chunk.content:
-                    payload = json.dumps({"chunk": chunk.content}, ensure_ascii=False)
-                    yield f"data: {payload}\n\n"
+                    text = think_filter.feed(chunk.content)
+                    if text:
+                        full_response_parts.append(text)
+                        payload = json.dumps({"chunk": text}, ensure_ascii=False)
+                        yield f"data: {payload}\n\n"
+
+            tail = think_filter.flush()
+            if tail:
+                full_response_parts.append(tail)
+                payload = json.dumps({"chunk": tail}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
 
     except Exception as exc:
         # Không để lỗi từ AI provider (403/429/timeout/network...) làm crash cả
         # ASGI response — trả về một chunk báo lỗi dễ hiểu rồi kết thúc stream sạch sẽ.
         logger.error("stream_chat_message failed (intent=%s): %s", intent, exc, exc_info=True)
         error_text = _describe_provider_error(exc)
+        had_error = True
+        full_response_parts.append(f"\n\n❌ {error_text}")
         payload = json.dumps({"chunk": f"\n\n❌ {error_text}"}, ensure_ascii=False)
         yield f"data: {payload}\n\n"
+
+    _persist_ai_message(request, "".join(full_response_parts).strip(), error=had_error)
 
     # Signal kết thúc stream
     yield "data: [DONE]\n\n"

@@ -54,35 +54,42 @@ def get_admin_users(
     - số test case đã tạo
     """
     users = db.query(User).order_by(User.created_at.desc()).all()
+    user_ids = [u.id for u in users]
+
+    # Đếm theo BATCH bằng GROUP BY cho toàn bộ user cùng lúc (3 query cố định) thay vì lặp
+    # 3 query riêng cho mỗi user (1+3N) — tránh N+1 khi danh sách user lớn.
+    projects_counts: dict = {}
+    requirements_counts: dict = {}
+    test_cases_counts: dict = {}
+    if user_ids:
+        projects_counts = dict(
+            db.query(Project.user_id, func.count(Project.id))
+            .filter(Project.user_id.in_(user_ids))
+            .group_by(Project.user_id)
+            .all()
+        )
+        requirements_counts = dict(
+            db.query(Project.user_id, func.count(Requirement.id))
+            .join(Requirement, Requirement.project_id == Project.id)
+            .filter(Project.user_id.in_(user_ids))
+            .group_by(Project.user_id)
+            .all()
+        )
+        test_cases_counts = dict(
+            db.query(Project.user_id, func.count(TestCase.id))
+            .join(Requirement, Requirement.project_id == Project.id)
+            .join(TestCase, TestCase.requirement_id == Requirement.id)
+            .filter(Project.user_id.in_(user_ids))
+            .group_by(Project.user_id)
+            .all()
+        )
+
     results = []
 
     for user in users:
-        # Số project của user
-        projects_count = (
-            db.query(func.count(Project.id))
-            .filter(Project.user_id == user.id)
-            .scalar()
-            or 0
-        )
-
-        # Số requirement thuộc các project của user
-        requirements_count = (
-            db.query(func.count(Requirement.id))
-            .join(Project, Requirement.project_id == Project.id)
-            .filter(Project.user_id == user.id)
-            .scalar()
-            or 0
-        )
-
-        # Số test case thuộc các requirement trong các project của user
-        test_cases_count = (
-            db.query(func.count(TestCase.id))
-            .join(Requirement, TestCase.requirement_id == Requirement.id)
-            .join(Project, Requirement.project_id == Project.id)
-            .filter(Project.user_id == user.id)
-            .scalar()
-            or 0
-        )
+        projects_count = projects_counts.get(user.id, 0)
+        requirements_count = requirements_counts.get(user.id, 0)
+        test_cases_count = test_cases_counts.get(user.id, 0)
 
         plan = "Pro Plan" if (user.role == "admin" or (user.credit_balance is not None and user.credit_balance >= 2000)) else ("Lite Plan" if (user.credit_balance is not None and user.credit_balance >= 600) else "Free Plan")
 

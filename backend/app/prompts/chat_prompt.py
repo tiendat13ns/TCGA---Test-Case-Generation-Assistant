@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 _FORMATTING_RULES = """QUY TẮC ĐỊNH DẠNG VĂN BẢN (FORMATTING) QUAN TRỌNG:
 1. KHÔNG SỬ DỤNG các thanh ngang (horizontal rules như `---`, `***` hoặc `___`).
 2. Trình bày nội dung cân đối ở đầu dòng, không thụt lề lộn xộn.
-3. HẠN CHẾ TỐI ĐA việc sử dụng các dấu chấm tròn (bullet points mặc định).
+3. Nghiêm Cấm việc sử dụng các dấu chấm tròn (bullet points mặc định).
 4. BẮT BUỘC SỬ DỤNG dấu gạch ngang `" - "` hoặc dấu cộng `" + "` cho các mục trong danh sách."""
 
 SYSTEM_PROMPT = f"""Bạn là trợ lý AI (Copilot) cho hệ thống Test Case Generation Assistant.
@@ -33,6 +33,21 @@ Nhiệm vụ: trả lời câu hỏi của người dùng dựa trên nội dung
 {_FORMATTING_RULES}
 5. Trả lời súc tích, rõ ràng, đúng trọng tâm câu hỏi.
 6. Nếu Context không chứa thông tin liên quan, hãy nói thẳng là không tìm thấy thông tin trong tài liệu.
+"""
+
+# ── Bổ sung riêng cho yêu cầu "phân tích tổng quan" (vẫn thuộc Fast Path/general_chat,
+# không qua tool) — ép cấu trúc cố định để output nhất quán giữa các lần chạy, thay vì để
+# model tự chọn bố cục mỗi lần một khác. Chỉ áp dụng khi chat_service phát hiện đúng loại
+# câu hỏi này (xem _is_overview_analysis_request) — KHÔNG áp cho general_chat thông thường
+# (vd hỏi "trường Title có bắt buộc không?" không nên bị ép theo khuôn 4 mục dưới đây).
+OVERVIEW_ANALYSIS_INSTRUCTION = """
+YÊU CẦU ĐỊNH DẠNG RIÊNG CHO PHÂN TÍCH TỔNG QUAN:
+Đây là yêu cầu phân tích tổng quan tài liệu — LUÔN trình bày câu trả lời theo đúng 4 mục
+sau (bỏ qua mục nào Context không có dữ liệu hỗ trợ, KHÔNG bịa thêm):
+1. Tổng quan: 2-3 câu tóm tắt tài liệu nói về gì.
+2. Tính năng chính: liệt kê các tính năng/chức năng chính được mô tả.
+3. Luồng nghiệp vụ chính: các bước/luồng xử lý quan trọng nhất.
+4. Đối tượng liên quan (Actor): những ai/vai trò nào tham gia vào tài liệu này.
 """
 
 # ── Prompt phân loại ý định (Intent Classification) ──────────────────────────

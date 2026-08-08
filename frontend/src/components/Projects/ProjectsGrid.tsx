@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { Sparkles } from "lucide-react";
 import { Project } from "./ProjectManager";
-import { useProjects, useCreateProject, useDeleteProject } from "../../hooks/useProjects";
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "../../hooks/useProjects";
 import ConfirmDialog from "../ConfirmDialog";
 import ModalDialog from "../ModalDialog";
 
@@ -26,6 +26,15 @@ function TrashIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"></polyline>
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path>
     </svg>
   );
 }
@@ -121,6 +130,7 @@ type ProjectsGridProps = {
 export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
   const { data: projects = [], isLoading } = useProjects();
   const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -129,7 +139,15 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
 
+  // Form sửa project — tách state riêng khỏi form tạo mới để tránh dữ liệu 2 form lẫn
+  // vào nhau nếu người dùng mở form này rồi form kia trong cùng phiên.
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editError, setEditError] = useState("");
+
   const isCreating = createProject.isPending;
+  const isUpdating = updateProject.isPending;
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -143,6 +161,34 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
         },
         onError: (err) => {
           setError(err instanceof Error ? err.message : "Error creating project.");
+        },
+      }
+    );
+  };
+
+  const openEditModal = (p: Project) => {
+    setEditingProject(p);
+    setEditName(p.name);
+    setEditDescription(p.description || "");
+    setEditError("");
+  };
+
+  const closeEditModal = () => {
+    setEditingProject(null);
+    setEditName(""); setEditDescription(""); setEditError("");
+  };
+
+  const handleUpdate = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+    if (!editName.trim()) { setEditError("Project name is required."); return; }
+    setEditError("");
+    updateProject.mutate(
+      { id: editingProject.id, name: editName.trim(), description: editDescription.trim() || null },
+      {
+        onSuccess: () => closeEditModal(),
+        onError: (err) => {
+          setEditError(err instanceof Error ? err.message : "Error updating project.");
         },
       }
     );
@@ -234,19 +280,32 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
                     <FolderIcon />
                   </div>
                   <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</h3>
-                  <button
-                    type="button"
-                    className="icon-btn-ghost"
-                    style={{ marginLeft: "auto", color: "var(--danger)" }}
-                    title="Delete project"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setProjectToDelete(p);
-                    }}
-                    disabled={deleteProject.isPending}
-                  >
-                    <TrashIcon />
-                  </button>
+                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "2px" }}>
+                    <button
+                      type="button"
+                      className="icon-btn-ghost"
+                      title="Edit project"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(p);
+                      }}
+                    >
+                      <EditIcon />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn-ghost"
+                      style={{ color: "var(--danger)" }}
+                      title="Delete project"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProjectToDelete(p);
+                      }}
+                      disabled={deleteProject.isPending}
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
                 </div>
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                   {p.description || "No description"}
@@ -314,6 +373,52 @@ export default function ProjectsGrid({ onSelectProject }: ProjectsGridProps) {
             </button>
             <button type="submit" className="btn btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }} disabled={isCreating}>
               {isCreating ? <><SpinnerIcon /> Creating...</> : "Create Project"}
+            </button>
+          </div>
+        </form>
+      </ModalDialog>
+
+      <ModalDialog
+        isOpen={!!editingProject}
+        onClose={closeEditModal}
+        title="Edit Project"
+        width="400px"
+      >
+        <form onSubmit={handleUpdate} style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "8px" }}>
+          {editError && <div className="error-message" style={{ color: "var(--danger)", fontSize: "14px", padding: "8px", backgroundColor: "rgba(220, 38, 38, 0.1)", borderRadius: "6px" }}>{editError}</div>}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" }}>Project Name</label>
+            <input
+              autoFocus
+              type="text"
+              className="filter-control"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              placeholder="e.g. Acme E-commerce"
+              required
+              style={{ fontSize: "14px", padding: "10px 12px" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)" }}>Description <span style={{ color: "var(--text-muted)", fontWeight: "400" }}>(Optional)</span></label>
+            <textarea
+              className="filter-control"
+              value={editDescription}
+              onChange={e => setEditDescription(e.target.value)}
+              placeholder="Briefly describe the project..."
+              rows={3}
+              style={{ resize: "vertical", fontSize: "14px", padding: "10px 12px", minHeight: "80px" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
+            <button type="button" className="btn btn-secondary" style={{ padding: "8px 16px", fontSize: "13px" }} onClick={closeEditModal}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }} disabled={isUpdating}>
+              {isUpdating ? <><SpinnerIcon /> Saving...</> : "Save Changes"}
             </button>
           </div>
         </form>

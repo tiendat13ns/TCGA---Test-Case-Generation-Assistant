@@ -207,6 +207,34 @@ class TestCase(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True)
 
 
+class ChatMessage(Base):
+    """Một tin nhắn (user hoặc AI) trong lịch sử chat "Work with Agent" của 1 project.
+    Lưu ở DB (thay vì chỉ localStorage phía client) để lịch sử đồng bộ được giữa các thiết
+    bị/trình duyệt và không mất khi xóa cache — xem services/chat_history_service.py."""
+    __tablename__ = "chat_messages"
+    __table_args__ = (
+        Index("ix_chat_messages_project_id_created_at", "project_id", "created_at"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role = Column(Text, nullable=False)  # "user" | "ai" | "system"
+    content = Column(Text, nullable=False)
+    error = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class UsageLog(Base):
     """Nhật ký trừ Credit theo từng tác vụ AI."""
     __tablename__ = "usage_logs"
