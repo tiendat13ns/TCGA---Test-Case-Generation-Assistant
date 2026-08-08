@@ -3,7 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import io
 
 from app.schemas.test_case_schema import GenerateTestCasesResponse, ListTestCasesResponse
-from app.services.test_case_generation_service import (
+from app.services.generation.test_case_generation_service import (
     TestCaseGenerationError,
     generate_test_cases_from_requirement,
     list_test_cases_by_requirement,

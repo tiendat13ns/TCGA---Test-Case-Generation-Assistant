@@ -8,7 +8,7 @@ from app.schemas.requirement_schema import (
     ListRequirementsResponse,
     RequirementResponse,
 )
-from app.services.requirement_generation_service import (
+from app.services.generation.requirement_generation_service import (
     RequirementGenerationError,
     generate_requirements_from_document,
     list_requirements_by_document,

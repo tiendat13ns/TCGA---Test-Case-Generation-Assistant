@@ -1,3 +1,18 @@
+"""
+Orchestrator: Document đã extract text → RAG lấy context liên quan → gọi LLM sinh
+Requirement → lưu DB. Đây là entry point chính được routers/requirements.py gọi.
+
+Luồng generate_requirements_from_document():
+  1. Lấy top-k chunk liên quan nhất từ document_chunks (retrieval_service) — fallback về
+     toàn bộ extracted_text nếu chưa có chunk nào (chưa embed xong hoặc document quá ngắn).
+  2. Build prompt (prompts/requirement_extraction_prompt.py) rồi gọi LLM
+     (services/agent/workflow_service.extract_requirements_node).
+  3. Xoá requirement cũ của document (nếu có) rồi lưu requirement mới vào DB.
+
+Theo thiết kế hiện tại, một document luôn được tổng hợp thành ĐÚNG 1 Requirement duy nhất
+(xem rule trong requirement_extraction_prompt.py) — quy ước 1 file = 1 use case.
+"""
+
 import logging
 import time
 from datetime import datetime
@@ -9,7 +24,7 @@ from app.database import SessionLocal, is_database_configured
 from app.models import Document, Requirement
 from app.repositories.requirement_repository import RequirementRepository
 from app.schemas.requirement_schema import GenerateRequirementsResponse, ListRequirementsResponse, RequirementResponse
-from app.services.retrieval_service import retrieve_relevant_chunks_async
+from app.services.rag.retrieval_service import retrieve_relevant_chunks_async
 from app.services.agent.workflow_service import extract_requirements_node
 
 logger = logging.getLogger(__name__)
@@ -136,7 +151,7 @@ async def generate_requirements_from_document(document_id: str) -> GenerateRequi
             retrieved_context=retrieved_context
         )
         
-        result = extract_requirements_node(user_prompt, document_id)
+        result = await extract_requirements_node(user_prompt, document_id)
         execution_time_ms = int((time.perf_counter() - started_at) * 1000)
         logger.info("Agent extract_requirements completed in %d ms", execution_time_ms)
     except Exception as exc:

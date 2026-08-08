@@ -3,14 +3,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.schemas.document_schema import DocumentDeleteRequest, DocumentDetail, DocumentExtractResponse, DocumentMetadata
-from app.services.file_service import (
+from app.services.documents.file_service import (
     clear_upload_history,
     delete_documents_by_ids,
     list_documents,
     list_documents_by_project,
     save_upload_files,
 )
-from app.services.document_text_service import extract_document_text, get_document_detail
+from app.services.documents.document_text_service import extract_document_text, get_document_detail
 from app.services.credit_service import deduct_user_credits, check_document_upload_quota
 from app.database import SessionLocal
 

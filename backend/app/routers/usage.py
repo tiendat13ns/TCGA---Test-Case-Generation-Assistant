@@ -7,6 +7,7 @@ from typing import Optional
 from app.database import SessionLocal
 from app.routers.auth import get_current_user
 from app.models import User, UsageLog
+from app.services.credit_service import resolve_user_plan
 
 router = APIRouter(prefix="/api/usage", tags=["usage"])
 logger = logging.getLogger(__name__)
@@ -35,9 +36,11 @@ def get_usage_summary(
         or 0
     )
 
+    plan_name, _limit = resolve_user_plan(current_user)
+
     return {
         "credit_balance": current_user.credit_balance,
-        "current_plan": "Free Plan",
+        "current_plan": f"{plan_name} Plan",
         "plan_status": "active",
         "total_credits_used": int(total_used),
         "plans": [

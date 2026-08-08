@@ -9,12 +9,25 @@ Do not include markdown.
 Do not include explanations outside JSON.
 Do not wrap the JSON in code fences.
 
+SCOPE (IMPORTANT): These test cases are BLACK-BOX tests derived purely from the requirement
+document — the tester has no access to source code and does not know the implementation.
+Only generate test cases a QA/BA could execute by using the application like an end user
+(UI/API inputs and outputs, documented business rules). Do NOT generate:
+- White-box / code-level tests (unit tests, code coverage, internal function calls).
+- Performance / load / stress tests (response time, concurrency, throughput).
+- Penetration-testing / security-exploit tests (SQL injection, XSS, fuzzing, auth bypass
+  attempts) — these require implementation knowledge the tester does not have.
+Permission/role checks ARE in scope, but only as ordinary functional black-box tests
+(e.g. "user without role X cannot see button Y" / "action Z returns a permission-denied
+message for role W") based strictly on what the requirement's permission/role rules state —
+not as an attempt to find security vulnerabilities.
+
 For every requirement provided, generate comprehensive test cases that cover:
 - Happy path / positive scenarios
 - Negative scenarios (invalid inputs, boundary violations)
 - Boundary value cases
 - Validation and business rule enforcement
-- Permission / authorization scenarios (if applicable)
+- Permission / role-based access scenarios (if applicable) — functional, not security-exploit testing
 - Error handling and exception flows (if applicable)
 
 Each test case must include:
@@ -26,7 +39,7 @@ Each test case must include:
 - expected_result: what the system should do
 - priority: High | Medium | Low
 - severity: Critical | Major | Minor | Trivial (or null)
-- test_type: Positive | Negative | Boundary | Validation | Integration | Security | Other
+- test_type: Positive | Negative | Boundary | Validation | Integration | Other
 - automation_candidate: true or false
 - execution_type: Manual | Automation Candidate
 
@@ -36,18 +49,24 @@ Rules:
   2. Boundary Value Analysis: Test exact MIN, MAX, MIN-1, MAX+1.
   3. Decision Table: If business rules have multiple conditions, create combinations of True/False paths.
   4. State Transition: Test valid and invalid state changes based on 'workflow' and 'state'.
-- IMPORTANT (TEST DATA): Do NOT use generic test data like "invalid email" or "long string". Your `test_data` MUST be specific and explicit (e.g., "email='user@.com'", "name='A'*256", "age=-1", "amount=0"). Include Unicode, empty strings/arrays, nulls, SQL/XSS injections, and boundary-exceeding values for negative/security cases.
+- IMPORTANT (TEST DATA): Do NOT use generic test data like "invalid email" or "long string". Your `test_data` MUST be specific and explicit (e.g., "email='user@.com'", "name='A'*256", "age=-1", "amount=0"). Include Unicode, empty strings/arrays, nulls, and boundary-exceeding values for negative cases. Do NOT include exploit-style payloads (SQL injection, XSS, script injection) — that is penetration testing, out of scope here (see SCOPE above).
 - IMPORTANT (LANGUAGE): The language of your output test cases MUST MATCH the language of the input requirement (e.g., if the requirement text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
-- title: A clear, human-readable sentence stating the objective or purpose of the test case. Do NOT use ID-like formats (e.g. PM_TC001_...).
 - test_steps must be a list of strings (at least 2 steps). Do NOT include numbering or prefixes like "Step 1:", "Bước 1:", "1.", "- " in the strings (the UI will handle numbering automatically).
 - expected_result must be explicit and verifiable — never vague like "it works".
-- IMPORTANT: This is a comprehensive use case. Generate a thorough test suite of at LEAST 20 test cases. Cover all dimensions: Functional (happy path), Negative (invalid input/actions), Boundary (min/max/edge values), Security (authorization checks), and State Transition (status change flows).
+- IMPORTANT (COVERAGE SCOPE): Scale the number of test cases to the ACTUAL complexity of the requirement. Do not pad with redundant or low-value cases just to hit a number, and do not skip cases just to save time. As a guide:
+  - Simple requirement (few fields, no branching business rules, single actor): ~8-12 test cases.
+  - Medium requirement (some validation rules, permissions, or a state transition): ~12-20 test cases.
+  - Complex requirement (many validation rules, multiple roles/permissions, multi-step workflow, several error/state scenarios): ~20-30 test cases.
+  - Keep the total under ~35 test cases even for very rich requirements — if there is more ground than that to cover, prioritize the highest-value scenarios (critical validations, permission/role checks, state transitions) over exhaustively enumerating minor variants.
+  - Cover all dimensions that actually apply to this requirement: Functional (happy path), Negative (invalid input/actions), Boundary (min/max/edge values), Permission/role-based access (if the requirement defines roles), and State Transition (status change flows). Do not force a dimension that has no basis in the requirement (e.g. no State Transition cases if the requirement has no state/status field, no permission cases if the requirement defines no roles).
+  - Do not concentrate cases in only 1-2 dimensions — a suite that is 90% happy-path with only 1-2 negative cases is not acceptable coverage regardless of total count.
 - Every validation rule MUST have at least 2 negative test cases (one for each boundary).
 - Every error handling scenario MUST have a dedicated test case.
 - If [Q&A CLARIFICATION CONTEXT] is provided below, generate additional dedicated test cases for each answer provided — these represent confirmed business rules.
 - Do not invent business logic not supported by the requirement or the Q&A context.
 - priority: High for critical/auth/data-integrity flows, Medium for standard flows, Low for edge cases.
 - automation_candidate: true if the test case has deterministic steps and clear data.
+- automation_candidate and execution_type MUST be consistent with each other: if automation_candidate is true, execution_type MUST be "Automation Candidate"; if automation_candidate is false, execution_type MUST be "Manual".
 
 Required JSON schema:
 
@@ -164,12 +183,14 @@ def build_user_prompt(requirement: Requirement, document_context: str | None = N
 Before returning JSON, internally verify:
 - ISTQB check: Have you used Boundary Value Analysis (MIN/MAX, MIN-1, MAX+1) and Equivalence Partitioning?
 - Test Data check: Does `test_data` contain explicit, raw values (e.g., exact strings, numbers, nulls, special chars) rather than generic descriptions?
-- Coverage check: at least 20 test cases are generated covering Functional, Negative, Boundary, Security, and State Transition.
+- Coverage check: the number of test cases matches the ACTUAL complexity of this requirement (not padded, not skimped — see COVERAGE SCOPE rule), and spans every dimension that applies here (Functional, Negative, Boundary, Permission/role-based access, State Transition) without concentrating almost entirely on happy-path.
+- Scope check: no white-box/code-level, performance/load, or penetration-testing/security-exploit test cases (SQL injection, XSS, fuzzing) — this is black-box functional testing only.
 - every validation rule has at least 2 negative test cases;
 - every error handling scenario has a dedicated test case;
 - if Q&A context is provided, each answer has at least 1 dedicated test case;
 - title values are unique, descriptive, and in natural language (no ID codes);
 - test_steps contains at least 2 steps for each test case;
+- automation_candidate and execution_type agree with each other (true ↔ "Automation Candidate", false ↔ "Manual");
 - the response is ONLY valid JSON matching the required schema.
 """)
 

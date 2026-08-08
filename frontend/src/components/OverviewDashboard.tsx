@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useProjects } from "../hooks/useProjects";
-import { useUsageSummary } from "../hooks/useUsage";
+import { useUsageSummary, getCurrentPlanQuota } from "../hooks/useUsage";
 import { useAuth } from "../contexts/AuthContext";
 import {
   FolderGit2,
@@ -50,7 +50,12 @@ export default function OverviewDashboard({
 }: OverviewDashboardProps) {
   const { user } = useAuth();
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
-  const { data: usageSummary } = useUsageSummary();
+  const { data: usageSummary, isLoading: usageLoading } = useUsageSummary();
+  const currentPlanQuota = getCurrentPlanQuota(usageSummary);
+  const creditBalance = usageSummary?.credit_balance ?? user?.credit_balance ?? 0;
+  const creditPct = currentPlanQuota
+    ? Math.max(0, Math.min(100, (creditBalance / currentPlanQuota) * 100))
+    : null;
   const [searchQuery, setSearchQuery] = useState("");
 
   const isAdmin = user?.role === "admin";
@@ -333,14 +338,28 @@ export default function OverviewDashboard({
 
           {/* Credit Balance */}
           <div className="card" style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "16px", background: "var(--bg-surface)" }}>
-            <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Zap size={20} strokeWidth={1.75} />
             </div>
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Credit Balance</div>
-              <div style={{ fontSize: "24px", fontWeight: 700, marginTop: "2px", color: "var(--accent)" }}>
-                {(usageSummary?.credit_balance ?? user?.credit_balance ?? 0).toLocaleString()}
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                <div style={{ fontSize: "24px", fontWeight: 700, marginTop: "2px", color: "var(--accent)" }}>
+                  {creditBalance.toLocaleString()}
+                </div>
+                {creditPct !== null && (
+                  <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>/ {currentPlanQuota!.toLocaleString()}</div>
+                )}
               </div>
+              {creditPct !== null ? (
+                <div style={{ height: "5px", borderRadius: "999px", background: "var(--border)", overflow: "hidden", marginTop: "8px" }} title={`${usageSummary?.current_plan} · ${Math.round(creditPct)}%`}>
+                  <div style={{ height: "100%", width: `${creditPct}%`, background: "var(--accent)", borderRadius: "999px", transition: "width 0.6s ease" }} />
+                </div>
+              ) : usageLoading ? (
+                <div style={{ height: "5px", borderRadius: "999px", background: "var(--border)", overflow: "hidden", marginTop: "8px" }}>
+                  <div className="sidebar-credit-bar-skeleton" style={{ height: "100%", width: "40%", borderRadius: "999px" }} />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

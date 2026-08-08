@@ -1,3 +1,12 @@
+"""
+Pipeline: text tài liệu → chunk → gọi Embedding API → lưu vào bảng document_chunks.
+
+Được gọi ngầm (background thread, xem document_text_service._trigger_background_chunking)
+ngay sau khi extract text từ file thành công — không nằm trên critical path của request
+upload, để tránh block response quá lâu khi gọi Embedding API. retrieval_service.py sau
+này query lại chính bảng document_chunks mà module này ghi vào.
+"""
+
 import asyncio
 import logging
 from uuid import UUID
@@ -5,7 +14,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models import DocumentChunk
-from app.services.embedding_service import EmbeddingService
+from app.services.rag.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 

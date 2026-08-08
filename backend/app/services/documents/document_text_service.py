@@ -1,3 +1,14 @@
+"""
+Trích xuất text thô từ file đã upload (extract_document_text) — bước đầu tiên của pipeline
+RAG, chạy TRƯỚC chunking/embedding. Sau khi extract xong, file gốc trên đĩa bị xoá luôn
+(_delete_source_file) — từ đây về sau, extracted_text trong DB mới là nguồn dữ liệu chính,
+không phải file vật lý.
+
+Ngay khi extract xong, tự động trigger chunking+embedding chạy NGẦM trong thread riêng
+(_trigger_background_chunking) — không block response của request extract, vì gọi Embedding
+API có thể mất vài giây tuỳ độ dài tài liệu.
+"""
+
 import logging
 import threading
 import time
@@ -8,7 +19,7 @@ from uuid import UUID
 from app.database import SessionLocal, is_database_configured
 from app.models import Document
 from app.schemas.document_schema import DocumentDetail, DocumentExtractResponse
-from app.services.extractors.extractor_factory import ExtractorFactory
+from app.services.documents.extractors.extractor_factory import ExtractorFactory
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +29,7 @@ def _trigger_background_chunking(document_id: str, text: str, project_id: str | 
     project_id được truyền vào để lưu denormalized vào mỗi chunk — giúp RAG filter không cần JOIN.
     """
     def _run():
-        from app.services.chunk_storage_service import process_and_store_document_chunks
+        from app.services.rag.chunk_storage_service import process_and_store_document_chunks
         logger.info("Starting background chunking & embedding for document %s (project=%s)", document_id, project_id)
         with SessionLocal() as db:
             try:
@@ -30,7 +41,7 @@ def _trigger_background_chunking(document_id: str, text: str, project_id: str | 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[3]  # trỏ tới backend/ — chứa uploads/
 
 
 def _format_datetime(value) -> str | None:

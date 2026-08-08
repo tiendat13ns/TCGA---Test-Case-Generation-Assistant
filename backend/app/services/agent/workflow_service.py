@@ -1,3 +1,15 @@
+"""
+"Node" gọi LLM thực sự cho 2 tác vụ sinh nội dung cốt lõi: extract_requirements_node()
+và generate_test_cases_node(). Đây là nơi DUY NHẤT trong dự án thực sự gọi LLM để sinh
+Requirement/Test Case (khác với services/agent/chat_agent.py — đó là ReAct agent cho chat,
+agent bên đó gọi lại xuống các service dùng module này, không tự gọi LLM để sinh JSON).
+
+Ưu tiên dùng structured output (function-calling) để Pydantic tự validate response —
+nếu model/proxy không hỗ trợ, fallback về cách cũ: yêu cầu JSON trong prompt rồi tự tách
+bằng regex + JSONDecoder (_extract_json). get_llm() cũng được tái sử dụng bởi chat_service.py
+và bug_report_service.py cho các lời gọi LLM đơn giản không cần structured output.
+"""
+
 import json
 import logging
 import os
@@ -16,7 +28,7 @@ from app.models import AgentLog
 from app.database import SessionLocal
 
 # Load environment variables
-BACKEND_DIR = Path(__file__).resolve().parents[4]
+BACKEND_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(BACKEND_DIR / ".env")
 
 logger = logging.getLogger(__name__)
@@ -88,26 +100,34 @@ from app.prompts.requirement_extraction_prompt import SYSTEM_PROMPT as REQ_SYSTE
 from app.prompts.test_case_generation_prompt import SYSTEM_PROMPT as TC_SYSTEM_PROMPT
 
 
-def extract_requirements_node(user_prompt: str, document_id: str) -> AIRequirementOutput:
+async def extract_requirements_node(user_prompt: str, document_id: str) -> AIRequirementOutput:
     """
     Node trích xuất Requirement.
-    Gọi LLM với prompt JSON tường minh, tự parse + validate bằng Pydantic
-    để tránh lỗi khi API proxy không hỗ trợ Function Calling.
+    Ưu tiên dùng structured output (function-calling) của LLM để Pydantic tự validate
+    trực tiếp — đáng tin cậy hơn nhiều so với tự parse JSON từ raw text, nhất là với
+    output dài. Nếu proxy/model không hỗ trợ function-calling, fallback về cách cũ:
+    yêu cầu JSON trong prompt rồi tự trích xuất bằng regex + JSONDecoder.
     """
     start_time = time.time()
+    messages = [
+        SystemMessage(content=REQ_SYSTEM_PROMPT),
+        HumanMessage(content=user_prompt),
+    ]
     try:
         llm = get_llm()
 
-        messages = [
-            SystemMessage(content=REQ_SYSTEM_PROMPT),
-            HumanMessage(content=user_prompt),
-        ]
-
-        response = llm.invoke(messages)
-        raw_text = response.content
-
-        data = _extract_json(raw_text)
-        result = AIRequirementOutput.model_validate(data)
+        try:
+            structured_llm = llm.with_structured_output(AIRequirementOutput)
+            result = await structured_llm.ainvoke(messages)
+        except Exception as structured_exc:
+            logger.warning(
+                "Structured output failed for extract_requirements_node (%s) — "
+                "falling back to manual JSON parsing",
+                structured_exc,
+            )
+            response = await llm.ainvoke(messages)
+            data = _extract_json(response.content)
+            result = AIRequirementOutput.model_validate(data)
 
         duration = int((time.time() - start_time) * 1000)
         log_agent_execution("extract_requirements", document_id, "document", "success", duration=duration)
@@ -124,25 +144,32 @@ def extract_requirements_node(user_prompt: str, document_id: str) -> AIRequireme
         raise
 
 
-def generate_test_cases_node(user_prompt: str, requirement_id: str) -> AITestCaseOutput:
+async def generate_test_cases_node(user_prompt: str, requirement_id: str) -> AITestCaseOutput:
     """
     Node sinh Test Case từ Requirement.
-    Gọi LLM với prompt JSON tường minh, tự parse + validate bằng Pydantic.
+    Ưu tiên structured output; fallback về parse JSON thủ công nếu model/proxy
+    không hỗ trợ function-calling (xem ghi chú ở extract_requirements_node).
     """
     start_time = time.time()
+    messages = [
+        SystemMessage(content=TC_SYSTEM_PROMPT),
+        HumanMessage(content=user_prompt),
+    ]
     try:
         llm = get_llm()
 
-        messages = [
-            SystemMessage(content=TC_SYSTEM_PROMPT),
-            HumanMessage(content=user_prompt),
-        ]
-
-        response = llm.invoke(messages)
-        raw_text = response.content
-
-        data = _extract_json(raw_text)
-        result = AITestCaseOutput.model_validate(data)
+        try:
+            structured_llm = llm.with_structured_output(AITestCaseOutput)
+            result = await structured_llm.ainvoke(messages)
+        except Exception as structured_exc:
+            logger.warning(
+                "Structured output failed for generate_test_cases_node (%s) — "
+                "falling back to manual JSON parsing",
+                structured_exc,
+            )
+            response = await llm.ainvoke(messages)
+            data = _extract_json(response.content)
+            result = AITestCaseOutput.model_validate(data)
 
         duration = int((time.time() - start_time) * 1000)
         log_agent_execution("generate_test_cases", requirement_id, "requirement", "success", duration=duration)

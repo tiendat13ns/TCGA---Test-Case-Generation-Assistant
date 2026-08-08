@@ -1,3 +1,18 @@
+"""
+ReAct Agent cho luồng chat có dùng tool (LangGraph create_react_agent) — được
+services/chat_service.py gọi khi intent phân loại là "execute_tool" (người dùng yêu cầu
+tạo/cập nhật Requirement hoặc Test Case qua chat, thay vì chỉ hỏi đáp thông thường).
+
+5 tool AI có thể gọi: search_documents_tool (RAG), update_requirement_tool,
+extract_requirement_tool, list_requirements_tool, generate_test_case_tool. Các tool sinh
+nội dung (extract_requirement_tool, generate_test_case_tool) gọi ngược lại xuống
+services/generation/ — module này KHÔNG tự gọi LLM để sinh JSON, chỉ điều phối tool.
+
+_format_test_cases_as_markdown_table format sẵn kết quả thành bảng Markdown ngay trong
+tool, để agent LLM không cần (và bị cấm — xem chat_prompt.py) tóm tắt/sinh lại nội dung,
+tránh tốn token và tránh AI diễn giải sai số liệu.
+"""
+
 import logging
 from typing import List, Dict
 
@@ -69,11 +84,11 @@ from langgraph.prebuilt import create_react_agent
 from app.database import SessionLocal
 from app.models import Requirement, TestCase
 from app.services.agent.workflow_service import get_llm
-from app.services.retrieval_service import retrieve_relevant_chunks_async
+from app.services.rag.retrieval_service import retrieve_relevant_chunks_async
 from app.prompts.chat_prompt import SYSTEM_PROMPT
 
-from app.services.requirement_generation_service import generate_requirements_from_document, list_requirements_by_document
-from app.services.test_case_generation_service import generate_test_cases_from_requirement
+from app.services.generation.requirement_generation_service import generate_requirements_from_document, list_requirements_by_document
+from app.services.generation.test_case_generation_service import generate_test_cases_from_requirement
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +260,7 @@ async def generate_test_case_tool(requirement_ids: List[str]) -> str:
     results = []
     try:
         for req_id in requirement_ids:
-            from app.services.test_case_generation_service import generate_test_cases_from_requirement
+            from app.services.generation.test_case_generation_service import generate_test_cases_from_requirement
             res = await generate_test_cases_from_requirement(req_id)
             # Format thành Markdown table ngay tại đây — AI không cần xử lý thêm
             markdown_output = _format_test_cases_as_markdown_table(req_id, res)

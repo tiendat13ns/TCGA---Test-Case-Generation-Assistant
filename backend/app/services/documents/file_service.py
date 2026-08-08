@@ -1,3 +1,13 @@
+"""
+Xử lý upload file (đơn lẻ hoặc .zip nhiều file) — validate kích thước/định dạng, lưu file
+vật lý vào UPLOAD_DIR, tạo record Document trong DB, và quản lý xoá file/document.
+
+Lưu ý: file vật lý bị xoá ngay sau khi extract text xong (xem document_text_service.py) —
+UPLOAD_DIR chỉ chứa file đang chờ extract, không phải kho lưu trữ lâu dài. METADATA_FILE
+(documents.json) là sidecar JSON lưu song song với DB, dùng khi cần đọc nhanh metadata mà
+không cần query DB.
+"""
+
 import json
 import re
 import zipfile
@@ -12,7 +22,7 @@ from app.database import SessionLocal, is_database_configured
 from app.models import Document, Requirement, TestCase
 from app.schemas.document_schema import DocumentMetadata
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[3]  # trỏ tới backend/
 UPLOAD_DIR = BASE_DIR / "uploads"
 METADATA_FILE = UPLOAD_DIR / "documents.json"
 MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -134,7 +144,7 @@ def _extract_saved_documents(documents: list[DocumentMetadata]) -> list[Document
     if not is_database_configured():
         return documents
 
-    from app.services.document_text_service import extract_document_text
+    from app.services.documents.document_text_service import extract_document_text
 
     for document in documents:
         extract_document_text(document.id)

@@ -7,7 +7,7 @@ import httpx
 from dotenv import load_dotenv
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
-BACKEND_DIR = Path(__file__).resolve().parents[2]
+BACKEND_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(BACKEND_DIR / ".env")
 
 logger = logging.getLogger(__name__)

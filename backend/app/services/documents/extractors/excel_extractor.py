@@ -1,4 +1,4 @@
-from app.services.extractors.base import BaseExtractor
+from app.services.documents.extractors.base import BaseExtractor
 
 
 class ExcelExtractor(BaseExtractor):

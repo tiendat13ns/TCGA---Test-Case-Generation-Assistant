@@ -1,3 +1,20 @@
+"""
+SQLAlchemy ORM models — nguồn sự thật (source of truth) cho schema DB thật.
+
+Quan hệ chính (User sở hữu Project, Project chứa Document, Document sinh Requirement,
+Requirement sinh TestCase):
+
+  User ──< Project ──< Document ──< DocumentChunk (chunk + vector embedding cho RAG)
+                            │
+                            └──< Requirement ──< TestCase
+
+AgentLog và UsageLog là bảng log độc lập (không tham chiếu ngược từ entity khác), dùng để
+theo dõi lịch sử gọi LLM và lịch sử trừ credit.
+
+Lưu ý: DB không dùng Alembic — mọi thay đổi cột ở đây cần thêm câu ALTER TABLE tương ứng
+vào app/database.py (_ensure_*_columns) để áp dụng cho DB đã tồn tại, xem docstring ở đó.
+"""
+
 import uuid
 
 from pgvector.sqlalchemy import Vector
@@ -26,6 +43,7 @@ class Project(Base):
 
 
 class User(Base):
+    """Tài khoản đăng nhập. id map 1-1 với auth.users của Supabase (không tự sinh UUID ở đây)."""
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True)  # Sẽ map 1-1 với auth.users của Supabase
@@ -39,6 +57,8 @@ class User(Base):
 
 
 class Document(Base):
+    """Một file tài liệu đã upload (SRS/BRD/...). extracted_text là text thô sau khi extractor
+    xử lý xong (xem services/documents/extractors/) — nguồn cho chunking + embedding (DocumentChunk)."""
     __tablename__ = "documents"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -141,6 +161,8 @@ class Requirement(Base):
 
 
 class AgentLog(Base):
+    """Nhật ký mỗi lần gọi LLM để sinh Requirement/Test Case (thành công hay thất bại,
+    thời gian chạy) — dùng để debug/theo dõi chất lượng, không ảnh hưởng credit (xem UsageLog)."""
     __tablename__ = "agent_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -158,6 +180,8 @@ class AgentLog(Base):
 
 
 class TestCase(Base):
+    """Một test case sinh bởi AI (hoặc chỉnh sửa thủ công) cho một Requirement. version tăng
+    dần mỗi lần requirement được generate lại — xem TestCaseRepository.get_latest_version_by_requirement_id."""
     __tablename__ = "test_cases"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

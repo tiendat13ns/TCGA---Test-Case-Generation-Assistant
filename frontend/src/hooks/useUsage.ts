@@ -64,18 +64,27 @@ async function fetchUsageLogs(limit = 50, offset = 0): Promise<UsageLogsResponse
   return r.json();
 }
 
+/**
+ * Trả về credits_per_month của gói hiện tại của user (dựa trên current_plan trong
+ * summary), hoặc undefined nếu chưa load xong / không tìm thấy plan khớp tên.
+ */
+export function getCurrentPlanQuota(summary: UsageSummary | undefined): number | undefined {
+  return summary?.plans.find((p) => p.name === summary.current_plan)?.credits_per_month;
+}
+
 /* ── Hooks ──────────────────────────────────────────────── */
 
 /**
  * Fetch usage summary (credit balance, plan info, total used).
  * Refetches every 30 seconds to keep credit balance live.
  */
-export function useUsageSummary() {
+export function useUsageSummary(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: usageKeys.summary,
     queryFn: fetchUsageSummary,
     staleTime: 30_000,       // consider fresh for 30 seconds
     refetchInterval: 30_000, // auto-refetch in background every 30s
+    enabled: options?.enabled ?? true,
   });
 }
 

@@ -1,3 +1,17 @@
+"""
+Kết nối Database + cơ chế "tự migrate" đơn giản, KHÔNG dùng Alembic.
+
+Chiến lược: mỗi lần server khởi động, init_db() chạy Base.metadata.create_all() để tạo
+bảng mới hoàn toàn (nếu chưa có), sau đó chạy một loạt hàm _ensure_*_columns() — mỗi hàm
+là các câu `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...` idempotent để thêm cột mới vào
+bảng ĐÃ TỒN TẠI (create_all không tự thêm cột cho bảng cũ khi model thay đổi). Nhờ
+IF NOT EXISTS, chạy lại nhiều lần (mỗi lần deploy/restart) đều an toàn.
+
+Đánh đổi: đơn giản, không cần thêm dependency Alembic, nhưng không có migration history/
+rollback thật sự, và không xoá được cột — chỉ cộng dồn. Nếu dự án lớn hơn, nên cân nhắc
+chuyển sang Alembic.
+"""
+
 import os
 from pathlib import Path
 
@@ -26,6 +40,8 @@ def is_database_configured() -> bool:
 
 
 def init_db() -> None:
+    """Tạo bảng (nếu chưa có) + chạy toàn bộ migration thủ công + seed admin user.
+    Gọi 1 lần lúc FastAPI startup (xem main.py). No-op nếu DATABASE_URL chưa cấu hình."""
     if not is_database_configured():
         return
 
@@ -265,7 +281,10 @@ def _ensure_project_columns() -> None:
 
 
 def _ensure_admin_user() -> None:
-    """Tự động cấp quyền admin & Pro Plan (3,500 credits) cho dat96133@gmail.com trong DB."""
+    """Tự động cấp quyền admin & Pro Plan (3,500 credits) cho dat96133@gmail.com trong DB.
+    Chạy lại mỗi lần server start, nên nếu credit_balance của admin bị trừ xuống dưới 3500
+    qua sử dụng bình thường (không còn bypass — xem credit_service.py), nó sẽ được nạp lại
+    về 3500 ở lần restart kế tiếp. Đây không phải unlimited credit, chỉ là "top-up" định kỳ."""
     try:
         with engine.begin() as connection:
             connection.execute(

@@ -135,93 +135,8 @@ input:-webkit-autofill:active {
 
 /* ── Layout ──────────────────────────────────────────────── */
 .app-shell {
-  display: grid;
-  grid-template-rows: 56px 1fr;
   height: 100dvh;
   overflow: hidden;
-}
-
-.app-nav {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-surface);
-  position: sticky;
-  top: 0;
-  z-index: 40;
-}
-
-.app-nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  text-decoration: none;
-}
-
-.app-nav-logo-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: var(--bg-surface, #EAE5D9);
-  border: 1px solid var(--border-soft, #DDD6C7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.app-nav-logo-mark svg {
-  width: 17px;
-  height: 17px;
-}
-
-.app-nav-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--border);
-  margin: 0 4px;
-}
-
-.app-nav-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.app-nav-badge {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: var(--accent-dim);
-  color: var(--accent);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.app-nav-project-crumb {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--accent);
-  background: var(--accent-glow);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  padding: 2px 8px;
-  border-radius: 10px;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-left: auto;
 }
 
 /* Theme toggle button in nav */
@@ -270,7 +185,7 @@ input:-webkit-autofill:active {
 /* ── 2-Column Workspace Layout ─────────────────────────── */
 .app-workspace {
   display: flex;
-  min-height: calc(100dvh - 56px);
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -1734,10 +1649,6 @@ input[type="checkbox"]:checked::after {
     padding: 6px 11px;
     font-size: 11px;
   }
-
-  .app-nav {
-    padding: 0 16px;
-  }
 }
 
 /* ── HITL Q&A Panel ── */
@@ -1935,10 +1846,6 @@ input[type="checkbox"]:checked::after {
   .btn {
     padding: 6px 11px;
     font-size: 11px;
-  }
-
-  .app-nav {
-    padding: 0 16px;
   }
 }
 
@@ -3129,6 +3036,16 @@ dialog.confirm-dialog[open]::backdrop {
   border-radius: 12px;
   display: inline-flex;
 }
+
+@keyframes sidebarCreditPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+.sidebar-credit-bar-skeleton {
+  background: var(--text-muted);
+  animation: sidebarCreditPulse 1.4s ease-in-out infinite;
+}
 .sidebar-logout-btn {
   color: var(--text-muted);
   transition: color var(--transition-fast);
@@ -3828,14 +3745,37 @@ dialog.confirm-dialog[open]::backdrop {
 /* ── Chat Workspace Bottom Fade & Mask Effect ────────────── */
 .chat-history-scroll {
   flex: 1;
-  padding: 20px;
+  padding: 18px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 56px), transparent 100%);
 }
+
+.chat-typing-indicator {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+@keyframes typingBlink {
+  0% { opacity: 0.2; }
+  20% { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+
+.typing-dot {
+  animation: typingBlink 1.4s infinite both;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-dot:nth-child(4) { animation-delay: 0.6s; }
 
 .chat-bottom-panel {
   position: relative;

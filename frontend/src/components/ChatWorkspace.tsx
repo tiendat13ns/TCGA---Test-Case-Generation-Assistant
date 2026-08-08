@@ -10,6 +10,7 @@ export type Message = {
   id: string;
   role: "user" | "ai" | "system";
   content: string;
+  error?: boolean;
 };
 
 type ChatWorkspaceProps = {
@@ -40,10 +41,14 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // Track whether we're past the initial mount to avoid redundant save on first render
   const isMounted = useRef(false);
+  // Trong lúc đang stream token, dùng scroll "auto" (tức thì) thay vì "smooth" cho từng
+  // token — gọi smooth-scroll liên tục nhiều lần/giây gây giật lag. Chỉ smooth-scroll khi
+  // thêm message mới (đầu câu hỏi / đầu câu trả lời).
+  const isStreamingRef = useRef(false);
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: isStreamingRef.current ? "auto" : "smooth" });
   }, [messages]);
 
   // Persist messages to parent whenever they change (after initial mount)
@@ -115,6 +120,7 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       if (reader) {
         let aiContent = "";
         let buffer = "";
+        isStreamingRef.current = true;
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -148,10 +154,11 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       }
     } catch (error) {
       console.error(error);
-      setMessages((prev) => 
-        prev.map(msg => msg.id === aiMessageId ? { ...msg, content: msg.content || "❌ Đã có lỗi xảy ra khi gọi AI Agent. Vui lòng thử lại." } : msg)
+      setMessages((prev) =>
+        prev.map(msg => msg.id === aiMessageId ? { ...msg, content: msg.content || "❌ Đã có lỗi xảy ra khi gọi AI Agent. Vui lòng thử lại.", error: true } : msg)
       );
     } finally {
+      isStreamingRef.current = false;
       setIsLoading(false);
       setActiveAiMessageId(null);
       refreshUser?.();
@@ -163,7 +170,7 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       {/* Header */}
       <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ width: "28px" }}></div> {/* Placeholder for centering balance */}
-        <h3 style={{ margin: 0, fontWeight: 500, color: "var(--text-primary)", fontSize: "14px" }}>TCGA Agent</h3>
+        <h3 style={{ margin: 0, fontWeight: 500, color: "var(--text-primary)", fontSize: "14px" }}>TCGA</h3>
         <button 
           onClick={clearChat}
           className="icon-btn-ghost"
@@ -176,37 +183,37 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
       
       {/* Chat History */}
       <div className="chat-history-scroll">
-        {messages.map((msg) => (
+        {messages.map((msg, idx) => (
           <div
             key={msg.id}
             style={{
               display: "flex",
               flexDirection: msg.role === "ai" ? "row" : "column",
-              alignItems: msg.role === "user" ? "flex-end" : "flex-end",
-              gap: msg.role === "ai" ? "10px" : 0,
+              alignItems: "flex-end",
+              gap: msg.role === "ai" ? "8px" : 0,
             }}
           >
             {msg.role === "ai" && (
               <div style={{ flexShrink: 0 }}>
-                <TCGAAppIcon size={30} />
+                <TCGAAppIcon size={28} />
               </div>
             )}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, flex: msg.role === "ai" ? 1 : "unset" }}>
               {msg.role === "ai" && (
-                <div style={{ marginBottom: "4px", fontSize: "12px", color: "var(--accent)", fontWeight: 500 }}>
-                  TCGA Agent
+                <div style={{ marginBottom: "3px", fontSize: "12px", color: "var(--accent)", fontWeight: 500 }}>
+                  TCGA
                 </div>
               )}
               <div
                 style={{
                   maxWidth: msg.role === "user" ? "80%" : "95%",
                   width: msg.role === "ai" ? "100%" : "auto",
-                  padding: msg.role === "ai" ? "16px 20px" : "12px 16px",
+                  padding: msg.role === "ai" ? "14px 18px" : "10px 14px",
                   borderRadius: "16px",
                   background: msg.role === "user" ? "var(--bg-active)" : "var(--bg-hover)",
                   color: "var(--text-primary)",
-                  border: msg.role === "user" ? "1px solid var(--accent)" : "1px solid var(--border)",
-                  lineHeight: 1.6,
+                  border: msg.error ? "1px solid var(--danger)" : (msg.role === "user" ? "1px solid var(--accent)" : "1px solid var(--border)"),
+                  lineHeight: 1.55,
                   fontSize: "14px",
                   boxShadow: msg.role === "ai" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
                 }}
@@ -219,25 +226,7 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
                       </div>
                     ) : null}
                     {(isLoading && activeAiMessageId === msg.id) && (
-                      <div style={{ display: "flex", alignItems: "center", color: "var(--text-secondary)", marginTop: msg.content ? "12px" : "0" }}>
-                        <style>
-                          {`
-                            @keyframes typingBlink {
-                              0% { opacity: 0.2; }
-                              20% { opacity: 1; }
-                              100% { opacity: 0.2; }
-                            }
-                            .typing-dot {
-                              animation: typingBlink 1.4s infinite both;
-                              font-size: 16px;
-                              font-weight: bold;
-                              margin-left: 2px;
-                            }
-                            .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-                            .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-                            .typing-dot:nth-child(4) { animation-delay: 0.6s; }
-                          `}
-                        </style>
+                      <div className="chat-typing-indicator" style={{ marginTop: msg.content ? "10px" : "0" }}>
                         <span style={{ fontSize: "13px", fontStyle: "italic" }}>
                           {msg.content ? "Đang tiếp tục xử lý..." : "Đang xử lý"}
                         </span>
@@ -245,6 +234,19 @@ export default function ChatWorkspace({ projectId, selectedDocumentIds, initialM
                         <span className="typing-dot">.</span>
                         <span className="typing-dot">.</span>
                       </div>
+                    )}
+                    {msg.error && (
+                      <button
+                        onClick={() => {
+                          const prevMsg = messages[idx - 1];
+                          if (prevMsg?.role === "user") sendMessage(prevMsg.content);
+                        }}
+                        disabled={isLoading}
+                        className="btn btn-secondary btn-xs"
+                        style={{ marginTop: "10px" }}
+                      >
+                        🔄 Thử lại
+                      </button>
                     )}
                   </>
                 ) : (

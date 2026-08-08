@@ -8,7 +8,6 @@ import TesterStudio from "./components/TesterStudio";
 import UsageBilling from "./components/UsageBilling";
 import AdminDashboard from "./components/AdminDashboard";
 import OverviewDashboard from "./components/OverviewDashboard";
-import AppNav from "./components/AppNav";
 import TutorialPlaceholder from "./components/TutorialPlaceholder";
 import { Message } from "./components/ChatWorkspace";
 import { loadChatHistory, saveChatHistory } from "./utils/chatHistoryStorage";
@@ -114,14 +113,6 @@ function App() {
 
   return (
     <div className="app-shell">
-      <AppNav
-        activeView={activeView}
-        selectedProject={selectedProject}
-        user={user}
-        onLogout={logout}
-        onGoToLanding={() => navigateTo("/")}
-      />
-
       {/* Main layout */}
       <div className="app-workspace">
         <div
@@ -138,11 +129,13 @@ function App() {
         >
           <GlobalSidebar
             activeView={activeView}
+            selectedProject={selectedProject}
             onNavigate={handleNavigate}
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             user={user}
             onLogout={logout}
+            onGoToLanding={() => navigateTo("/")}
           />
         </div>
 

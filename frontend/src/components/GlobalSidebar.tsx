@@ -1,5 +1,7 @@
-import { LogOut, Zap, ShieldCheck } from "lucide-react";
+import { LogOut, Zap, ShieldCheck, ChevronRight } from "lucide-react";
 import { TCGAAppIcon } from "./TCGALogo";
+import { Project } from "./Projects/ProjectManager";
+import { useUsageSummary, getCurrentPlanQuota } from "../hooks/useUsage";
 
 function PieChartIcon() {
   return (
@@ -66,29 +68,56 @@ function HelpCircleIcon() {
   );
 }
 
+function formatCompact(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return `${n}`;
+}
+
+function FolderIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+    </svg>
+  );
+}
+
 export type GlobalViewType = "overview" | "projects" | "project_detail" | "test_cases" | "usage" | "tutorial" | "admin";
 
 type GlobalSidebarProps = {
   activeView: GlobalViewType;
+  selectedProject?: Project | null;
   onNavigate: (view: "overview" | "projects" | "test_cases" | "usage" | "tutorial" | "admin") => void;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
   user: { email: string; role?: string; credit_balance: number } | null;
   onLogout: () => void;
+  onGoToLanding?: () => void;
 };
 
-export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, onToggleSidebar, user, onLogout }: GlobalSidebarProps) {
+export default function GlobalSidebar({ activeView, selectedProject, onNavigate, isSidebarOpen, onToggleSidebar, user, onLogout, onGoToLanding }: GlobalSidebarProps) {
   const isAdmin = user?.role === "admin";
+  // Admin không còn bypass credit ở backend — dùng chung logic quota/progress-bar với
+  // mọi user (current_plan trả về đúng gói thật dựa trên credit_balance).
+  const { data: usageSummary, isLoading: usageLoading } = useUsageSummary({ enabled: !!user });
+  const currentPlanQuota = getCurrentPlanQuota(usageSummary);
+  const creditPct = currentPlanQuota
+    ? Math.max(0, Math.min(100, (user!.credit_balance / currentPlanQuota) * 100))
+    : null;
 
   return (
     <aside className="global-sidebar project-sidebar" style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
       <div className="sidebar-header" style={{ justifyContent: isSidebarOpen ? "space-between" : "center", padding: isSidebarOpen ? "14px 20px" : "14px 0" }}>
         {isSidebarOpen ? (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={onGoToLanding}
+              title="Test Case Generation Assistant · AI-powered — Về trang chủ"
+              style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", padding: 0, cursor: onGoToLanding ? "pointer" : "default" }}
+            >
               <TCGAAppIcon size={26} />
               <span className="sidebar-title" style={{ fontSize: "14px", fontWeight: 700, letterSpacing: "0.02em" }}>TCGA</span>
-            </div>
+            </button>
             <button type="button" className="icon-btn-ghost" onClick={onToggleSidebar} title="Close sidebar">
               <PanelLeftCloseIcon />
             </button>
@@ -99,6 +128,17 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
           </button>
         )}
       </div>
+
+      {isSidebarOpen && activeView === "project_detail" && selectedProject && (
+        <div
+          className="sidebar-project-crumb"
+          title={selectedProject.name}
+          style={{ display: "flex", alignItems: "center", gap: "5px", margin: "10px 16px 4px", padding: "6px 10px", fontSize: "12px", fontWeight: 500, color: "var(--accent)", background: "var(--accent-glow)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "8px", overflow: "hidden" }}
+        >
+          <FolderIcon />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedProject.name}</span>
+        </div>
+      )}
 
       <ul className="project-list" style={{ marginTop: "16px", flex: 1, padding: isSidebarOpen ? "0 12px" : "0 4px", display: "flex", flexDirection: "column", gap: "4px" }}>
         {isAdmin && (
@@ -182,13 +222,39 @@ export default function GlobalSidebar({ activeView, onNavigate, isSidebarOpen, o
             {isSidebarOpen && (
               <>
                 <div className="sidebar-user-info" style={{ flex: 1, minWidth: 0 }}>
-                  <div className="sidebar-user-email" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "14px", fontWeight: 500, color: "var(--text-primary)" }}>
-                    {user.email}
+                  <div className="sidebar-user-email" title={user.email} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "14px", fontWeight: 500, color: "var(--text-primary)" }}>
+                    {user.email.split("@")[0]}
                   </div>
-                  <div className="sidebar-credit-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
-                    <Zap size={12} />
-                    <span>{user.credit_balance.toLocaleString()} credits</span>
-                  </div>
+                  {creditPct !== null ? (
+                    <button
+                      type="button"
+                      onClick={() => onNavigate("usage")}
+                      title={`${user.credit_balance.toLocaleString()} / ${currentPlanQuota!.toLocaleString()} credits (${Math.round(creditPct)}%) — ${usageSummary?.current_plan}`}
+                      style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "6px", background: "none", border: "none", padding: 0, width: "100%", cursor: "pointer" }}
+                    >
+                      <div style={{ flex: 1, height: "6px", borderRadius: "999px", background: "var(--border)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${creditPct}%`, background: "var(--accent)", borderRadius: "999px", transition: "width 0.6s ease" }} />
+                      </div>
+                      <span style={{ fontSize: "10px", fontWeight: 500, color: "var(--text-muted)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                        {formatCompact(user.credit_balance)}/{formatCompact(currentPlanQuota!)}
+                      </span>
+                      <ChevronRight size={11} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                    </button>
+                  ) : usageLoading ? (
+                    // Skeleton — cùng hình dạng thanh bar thật, tránh nhấp nháy đổi layout
+                    // khi usage summary còn đang fetch (~vài trăm ms sau khi đăng nhập).
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "6px" }}>
+                      <div style={{ flex: 1, height: "6px", borderRadius: "999px", background: "var(--border)", overflow: "hidden" }}>
+                        <div className="sidebar-credit-bar-skeleton" style={{ height: "100%", width: "40%", borderRadius: "999px" }} />
+                      </div>
+                      <span style={{ fontSize: "10px", fontWeight: 500, color: "var(--text-muted)", opacity: 0.5, flexShrink: 0 }}>···</span>
+                    </div>
+                  ) : (
+                    <div className="sidebar-credit-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
+                      <Zap size={12} />
+                      <span>{user.credit_balance.toLocaleString()} credits</span>
+                    </div>
+                  )}
                 </div>
                 <button type="button" className="sidebar-logout-btn icon-btn-ghost" onClick={onLogout} title="Log out" style={{ padding: "6px" }}>
                   <LogOut size={16} />

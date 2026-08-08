@@ -48,24 +48,13 @@ def deduct_user_credits(
     """
     Trừ Credit của user và ghi log vào usage_logs.
     Ném HTTPException 402 nếu không đủ Credit.
-    Admin không bị trừ Credit.
+    Áp dụng cho MỌI user kể cả admin — không có bypass đặc quyền theo role, tránh tạo
+    lỗ hổng. Admin chỉ khác user thường ở việc được cấp credit_balance cao (đủ ngưỡng
+    Pro Plan) và có quyền truy cập Admin Dashboard, không phải ở logic trừ credit.
     """
     from app.models import UsageLog
 
     cost = CREDIT_COST.get(operation, 1)
-
-    # Admin bypass: Không giới hạn credit
-    if getattr(user, "role", "user") == "admin":
-        log = UsageLog(
-            user_id=user.id,
-            operation=operation,
-            target_name=target_name,
-            credits_used=0,
-        )
-        db.add(log)
-        db.commit()
-        logger.info("Admin user=%s executed op=%s (unlimited credit)", user.id, operation)
-        return
 
     if user.credit_balance < cost:
         raise HTTPException(
@@ -94,8 +83,12 @@ def deduct_user_credits(
     )
 
 
-def _plan_document_limit(user: "User") -> tuple[str, int | None]:
-    """Trả về (tên plan, giới hạn document). None = không giới hạn (Pro)."""
+def resolve_user_plan(user: "User") -> tuple[str, int | None]:
+    """
+    Trả về (tên plan, giới hạn document) suy ra từ credit_balance hiện tại của user.
+    None = không giới hạn (Pro). Áp dụng chung cho mọi user, kể cả admin — không có
+    bypass theo role, đúng gói nào thì đúng quyền lợi/giới hạn của gói đó.
+    """
     credit_balance = getattr(user, "credit_balance", 0) or 0
     if credit_balance >= PRO_PLAN_CREDIT_THRESHOLD:
         return "Pro", None
@@ -109,12 +102,10 @@ def check_document_upload_quota(db: Session, user: "User", num_new_files: int = 
     Kiểm tra user có vượt quá giới hạn số tài liệu của gói (Free/Lite) không.
     Dùng documents_uploaded_total (đếm CỘNG DỒN, không giảm khi xóa) thay vì đếm số
     document đang tồn tại — tránh việc xóa tài liệu cũ rồi upload lại để lách quota.
-    Ném HTTPException 403 nếu vượt giới hạn. Admin và Pro Plan không giới hạn.
+    Ném HTTPException 403 nếu vượt giới hạn. Chỉ Pro Plan (bao gồm admin nếu credit_balance
+    đủ ngưỡng Pro) mới không giới hạn — không có bypass riêng theo role.
     """
-    if getattr(user, "role", "user") == "admin":
-        return
-
-    plan_name, limit = _plan_document_limit(user)
+    plan_name, limit = resolve_user_plan(user)
     if limit is None:
         return
 

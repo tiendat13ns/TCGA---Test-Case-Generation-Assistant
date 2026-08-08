@@ -4,7 +4,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from app.services.ai.base_provider import AIProviderConfigurationError, BaseAIProvider
-from app.services.ai.ollama_provider import OllamaProvider
 from app.services.ai.openai_compatible_provider import OpenAICompatibleProvider
 
 BACKEND_DIR = Path(__file__).resolve().parents[3]
@@ -13,7 +12,6 @@ load_dotenv(BACKEND_DIR / ".env")
 
 class AIProviderFactory:
     _providers = {
-        "ollama": OllamaProvider,
         "openai_compatible": OpenAICompatibleProvider,
     }
 

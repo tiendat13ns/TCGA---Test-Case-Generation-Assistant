@@ -1,3 +1,9 @@
+"""
+Sinh Bug Report Markdown (kiểu vé Jira) từ 1 Test Case bị FAIL — dùng ở Tester Studio khi
+QA đánh dấu execution_status="Fail" và nhập actual_result. Gọi LLM một lần duy nhất, không
+qua RAG/agent — chỉ cần dữ liệu của chính test case đó làm input.
+"""
+
 import logging
 from typing import Dict, Any
 

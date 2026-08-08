@@ -1,3 +1,18 @@
+"""
+Orchestrator: Requirement đã lưu DB → RAG lấy context gốc từ tài liệu → gọi LLM sinh
+Test Case (chuẩn ISTQB, black-box) → lưu DB. Entry point chính do routers/test_cases.py gọi.
+
+Luồng generate_test_cases_from_requirement():
+  1. Lấy lại các field của Requirement (functional_requirement, validation_rule, workflow...)
+     làm nguồn chính cho prompt.
+  2. Bổ sung thêm context RAG từ CHÍNH document gốc (scope theo document_id) để có thêm dữ
+     liệu cụ thể (test data, edge case) mà các field Requirement có thể chưa nêu hết.
+  3. Nếu requirement có clarifying_questions đã được người dùng trả lời (Q&A HITL), coi mỗi
+     câu trả lời là 1 business rule đã xác nhận và bắt AI sinh test case riêng cho nó.
+  4. Build prompt (prompts/test_case_generation_prompt.py), gọi LLM, lưu test case mới với
+     version tăng dần (không xoá test case cũ như bên Requirement — giữ lịch sử các lần sinh).
+"""
+
 import logging
 import time
 from datetime import datetime
@@ -9,7 +24,7 @@ from app.database import SessionLocal, is_database_configured
 from app.models import Requirement, TestCase
 from app.repositories.test_case_repository import TestCaseRepository
 from app.schemas.test_case_schema import GenerateTestCasesResponse, ListTestCasesResponse, TestCaseResponse
-from app.services.retrieval_service import retrieve_relevant_chunks_async
+from app.services.rag.retrieval_service import retrieve_relevant_chunks_async
 from app.services.agent.workflow_service import generate_test_cases_node
 
 logger = logging.getLogger(__name__)
@@ -128,7 +143,7 @@ async def generate_test_cases_from_requirement(requirement_id: str) -> GenerateT
         user_prompt = build_user_prompt(requirement, document_context)
         
         # Gọi Workflow Agent với Structured Output
-        result = generate_test_cases_node(user_prompt, requirement_id)
+        result = await generate_test_cases_node(user_prompt, requirement_id)
         execution_time_ms = int((time.perf_counter() - started_at) * 1000)
         logger.info("Agent generate_test_cases completed in %d ms", execution_time_ms)
     except Exception as exc:

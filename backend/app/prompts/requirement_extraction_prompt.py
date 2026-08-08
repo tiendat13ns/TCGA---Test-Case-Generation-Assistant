@@ -29,15 +29,13 @@ Each requirement may also include useful metadata:
 - actor
 - source_reference
 - confidence_score
-- status
 
 Rules:
 - Do not invent unsupported business logic.
 - If information is missing for text metadata (except module_name and feature_name), use null.
 - For `module_name` and `feature_name`: DO NOT return null. If not explicitly stated, infer a short, logical name based on the document's context and title (e.g., "Authentication", "Checkout").
 - If information is missing for list fields, use an empty array [].
-- IMPORTANT: Synthesize the entire document or use case into EXACTLY ONE highly detailed, comprehensive requirement. DO NOT fragment the use case into multiple small requirements. The `requirements` array MUST contain exactly ONE item.
-- QUAN TRỌNG TỐI THƯỢNG: Bạn BẮT BUỘC phải gộp TẤT CẢ thông tin thành MỘT (1) requirement duy nhất. KHÔNG ĐƯỢC tách nhỏ thành nhiều requirement. Mảng `requirements` CHỈ ĐƯỢC PHÉP chứa CHÍNH XÁC 1 phần tử duy nhất.
+- CRITICAL / BẮT BUỘC: Synthesize the entire document or use case into EXACTLY ONE (1) highly detailed, comprehensive requirement — gộp TẤT CẢ thông tin thành DUY NHẤT một requirement. Do NOT fragment the use case into multiple small requirements — KHÔNG được tách nhỏ. The `requirements` array MUST contain exactly ONE item, no more, no less.
 - IMPORTANT: The language of your output MUST MATCH the language of the input document (e.g., if the input text is in Vietnamese, all JSON string values must be written in Vietnamese; if English, output in English).
 - The `title` field must be a short, clear name for the requirement.
 - The `description` field must be a high-level summary.
@@ -56,7 +54,6 @@ Rules:
 - Prefer highly detailed and complete extraction over brevity. Every field in the JSON should be as exhaustive as possible.
 - source_reference should briefly indicate where the requirement came from in the text.
 - confidence_score must be between 0 and 1.
-- status should be "ai_generated" if clear, otherwise "needs_review".
 - IMPORTANT: After extracting the requirement, act as a skeptical QA lead. Identify 3 to 5 specific gaps, ambiguities, or missing boundary conditions in the document that a tester would need answered to write accurate test cases. Store these as the `clarifying_questions` list. Each question must be concrete and reference a specific scenario (e.g., "What error message should appear if the project name exceeds the character limit?"). If the document is fully explicit, return an empty array [].
 
 Required JSON schema:
@@ -77,8 +74,7 @@ Required JSON schema:
       "feature_name": "string or null",
       "actor": "string or null",
       "source_reference": "string or null",
-      "confidence_score": 0.0,
-      "status": "ai_generated"
+      "confidence_score": 0.0
     }
   ]
 }
@@ -92,12 +88,11 @@ def build_user_prompt(
     document_type: str,
     retrieved_context: str,
 ) -> str:
+    project_context_block = f"Project context:\n{project_context}\n\n" if project_context.strip() else ""
+
     return f"""Generate requirements from the following document context.
 
-Project context:
-{project_context}
-
-Document metadata:
+{project_context_block}Document metadata:
 - document_id: {document_id}
 - file_name: {file_name}
 - document_type: {document_type}
